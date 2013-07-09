@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{79
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InitDirect3D", "InitDirect3D\InitDirect3D.csproj", "{C67D7BC4-21E4-4563-A0BC-79F78CD4C1C8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BoxDemo", "BoxDemo\BoxDemo.csproj", "{2183B279-2804-4749-803E-3DD4DD8EA9D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,11 +23,16 @@ Global
 		{C67D7BC4-21E4-4563-A0BC-79F78CD4C1C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C67D7BC4-21E4-4563-A0BC-79F78CD4C1C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C67D7BC4-21E4-4563-A0BC-79F78CD4C1C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2183B279-2804-4749-803E-3DD4DD8EA9D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2183B279-2804-4749-803E-3DD4DD8EA9D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2183B279-2804-4749-803E-3DD4DD8EA9D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2183B279-2804-4749-803E-3DD4DD8EA9D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C67D7BC4-21E4-4563-A0BC-79F78CD4C1C8} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+		{2183B279-2804-4749-803E-3DD4DD8EA9D0} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 	EndGlobalSection
 EndGlobal

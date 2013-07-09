@@ -15,38 +15,38 @@ namespace InitDirect3D {
 
     using Debug = System.Diagnostics.Debug;
 
-    class InitDirect3D : D3DApp {
-        private bool _disposed;
-        public InitDirect3D(IntPtr hInstance) : base(hInstance) {
-        }
-        protected override void Dispose(bool disposing) {
-            if (!_disposed) {
-                if (disposing) {
+class InitDirect3D : D3DApp {
+    private bool _disposed;
+    public InitDirect3D(IntPtr hInstance) : base(hInstance) {
+    }
+    protected override void Dispose(bool disposing) {
+        if (!_disposed) {
+            if (disposing) {
                     
-                }
-                _disposed = true;
             }
-            base.Dispose(disposing);
+            _disposed = true;
         }
+        base.Dispose(disposing);
+    }
         
-        public override void DrawScene() {
-            Debug.Assert(ImmediateContext!= null);
-            Debug.Assert(SwapChain != null);
-            ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Blue);
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0);
+    public override void DrawScene() {
+        Debug.Assert(ImmediateContext!= null);
+        Debug.Assert(SwapChain != null);
+        ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Blue);
+        ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0);
 
-            SwapChain.Present(0, PresentFlags.None);
-        }
+        SwapChain.Present(0, PresentFlags.None);
     }
+}
 
-    class Program {
-        static void Main(string[] args) {
-            SlimDX.Configuration.EnableObjectTracking = true;
-            var app = new InitDirect3D(Process.GetCurrentProcess().Handle);
-            if (!app.Init()) {
-                return;
-            }
-            app.Run();
+class Program {
+    static void Main(string[] args) {
+        SlimDX.Configuration.EnableObjectTracking = true;
+        var app = new InitDirect3D(Process.GetCurrentProcess().Handle);
+        if (!app.Init()) {
+            return;
         }
+        app.Run();
     }
+}
 }

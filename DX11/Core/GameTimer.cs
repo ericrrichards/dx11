@@ -24,7 +24,7 @@
             _stopped = false;
 
             var countsPerSec = Stopwatch.Frequency;
-            _secondsPerCount = 1.0 / (double)countsPerSec;
+            _secondsPerCount = 1.0 / countsPerSec;
 
         }
 

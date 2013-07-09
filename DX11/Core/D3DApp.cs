@@ -70,6 +70,7 @@ namespace Core {
                     Timer.Start();
                     OnResize();
                 };
+                
 
                 Window.Show();
                 Window.Update();
@@ -160,10 +161,10 @@ namespace Core {
             }
             ImmediateContext = Device.ImmediateContext;
             if (Device.FeatureLevel != FeatureLevel.Level_11_0) {
-                MessageBox.Show("Direct3D Feature Level 11 unsupported");
-                return false;
+                MessageBox.Show("Direct3D Feature Level 11 unsupported\nSupported feature level: " + Enum.GetName(Device.FeatureLevel.GetType(), Device.FeatureLevel));
+                //return false;
             }
-            System.Diagnostics.Debug.Assert((Msaa4XQuality = Device.CheckMultisampleQualityLevels(Format.R8G8B8A8_UNorm, 4)) > 0);
+            //Debug.Assert((Msaa4XQuality = Device.CheckMultisampleQualityLevels(Format.R8G8B8A8_UNorm, 4)) > 0);
             try {
                 var sd = new SwapChainDescription() {
                     ModeDescription = new ModeDescription(ClientWidth, ClientHeight, new Rational(60, 1), Format.R8G8B8A8_UNorm) {
@@ -195,7 +196,7 @@ namespace Core {
                 var fps = (float)frameCount;
                 var mspf = 1000.0f / fps;
 
-                var s = string.Format("{0}\tFPS: {1}\tFrame Time: {2} (ms)", MainWindowCaption, fps, mspf);
+                var s = string.Format("{0}    FPS: {1}    Frame Time: {2} (ms)", MainWindowCaption, fps, mspf);
                 Window.Text = s;
                 frameCount = 0;
                 timeElapsed += 1.0f;
