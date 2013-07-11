@@ -116,10 +116,10 @@ namespace HillDemo {
             ImmediateContext.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
 
             var wvp = _world * _view * _proj;
-            
 
+            _fxWVP.SetMatrix(wvp);
             for (int p = 0; p < _tech.Description.PassCount; p++) {
-                _fxWVP.SetMatrix(wvp);
+                
                 _tech.GetPassByIndex(p).Apply(ImmediateContext);
                 ImmediateContext.DrawIndexed(_gridIndexCount, 0, 0);
             }
@@ -166,7 +166,7 @@ namespace HillDemo {
                 Color4 color;
 
                 if (pos.Y < -10.0f) {
-                    color = new Color4(1.0f, 0.96f, 0.62f, 1.0f);
+                    color = new Color4(1.0f, 1.0f, 0.96f, 0.62f);
                 } else if (pos.Y < 5.0f) {
                     color = new Color4(1.0f, 0.48f, 0.77f, 0.46f);
                 } else if (pos.Y < 12.0f) {
@@ -178,12 +178,12 @@ namespace HillDemo {
                 }
                 vertices.Add(new Vertex(pos, color));
             }
-            var vbd = new BufferDescription(Vertex.Stride, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            var vbd = new BufferDescription(Vertex.Stride*vertices.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _vb = new Buffer(Device, new DataStream(vertices.ToArray(), false, false), vbd);
 
             var ibd = new BufferDescription(sizeof (int)*grid.Indices.Count, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _ib = new Buffer(Device, new DataStream(grid.Indices.ToArray(), false, false), ibd);
-
+            _gridIndexCount = grid.Indices.Count;
 
         }
         private void BuildFX() {

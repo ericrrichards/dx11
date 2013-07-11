@@ -45,7 +45,7 @@ namespace Core {
             for (var i = 0; i < m; i++) {
                 var z = halfDepth - i*dz;
                 for (var j = 0; j < n; j++) {
-                    var x = -halfWidth*j*dx;
+                    var x = -halfWidth + j*dx;
                    ret.Vertices.Add(new Vertex(new Vector3(x, 0, z), new Vector3(0,1,0), new Vector3(1, 0, 0), new Vector2(j*du, i*dv)));
                 }
             }
