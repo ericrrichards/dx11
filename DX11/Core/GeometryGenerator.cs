@@ -81,29 +81,31 @@ namespace Core {
 
         public static MeshData CreateSphere(float radius, int sliceCount, int stackCount) {
             var ret = new MeshData();
-            ret.Vertices.Add(new Vertex(0,+radius,0, 0,1,0, 1,0,0, 0,0));
+            ret.Vertices.Add(new Vertex(0,radius,0, 0,1,0, 1,0,0, 0,0));
             var phiStep = MathF.PI/stackCount;
             var thetaStep = 2.0f*MathF.PI/sliceCount;
-
+            
             for (int i = 1; i <= stackCount-1; i++) {
                 var phi = i*phiStep;
                 for (int j = 0; j <= sliceCount; j++) {
                     var theta = j*thetaStep;
                     var p = new Vector3(
-                        radius*MathF.Sin(phi)*MathF.Cos(theta),
-                        radius*MathF.Cos(phi),
-                        radius* MathF.Sin(phi)*MathF.Sin(theta)
+                        (radius*MathF.Sin(phi)*MathF.Cos(theta)),
+                        (radius*MathF.Cos(phi)),
+                        (radius* MathF.Sin(phi)*MathF.Sin(theta))
                         );
+                    
                     var t = new Vector3(-radius*MathF.Sin(phi)*MathF.Sin(theta), 0, radius*MathF.Sin(phi)*MathF.Cos(theta));
                     t.Normalize();
                     var n = p;
-                    p.Normalize();
+                    n.Normalize();
                     var uv = new Vector2(theta/(MathF.PI*2), phi / MathF.PI);
                     ret.Vertices.Add(new Vertex(p, n, t, uv));
                 }
             }
             ret.Vertices.Add(new Vertex(0,-radius, 0, 0, -1, 0, 1, 0, 0, 0, 1));
 
+            
             for (int i = 1; i <= sliceCount; i++) {
                 ret.Indices.Add(0);
                 ret.Indices.Add(i+1);
@@ -207,8 +209,8 @@ namespace Core {
             var dTheta = 2.0f * MathF.PI / sliceCount;
 
             for (int i = 0; i <= sliceCount; i++) {
-                var x = topRadius * MathF.Cos(i * dTheta);
-                var z = topRadius * MathF.Sin(i * dTheta);
+                var x = bottomRadius * MathF.Cos(i * dTheta);
+                var z = bottomRadius * MathF.Sin(i * dTheta);
 
                 var u = x / height + 0.5f;
                 var v = z / height + 0.5f;
@@ -227,7 +229,7 @@ namespace Core {
             var ret = new MeshData();
 
             var halfWidth = width*0.5f;
-            var halfDepth = width*0.5f;
+            var halfDepth = depth*0.5f;
 
             var dx = width/(n - 1);
             var dz = depth/(m - 1);
@@ -253,7 +255,6 @@ namespace Core {
                     ret.Indices.Add((i+1)*n+j+1);
                 }
             }
-
             return ret;
         }
 
