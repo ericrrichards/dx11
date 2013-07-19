@@ -174,12 +174,12 @@ namespace Core {
                     ret.Indices.Add(i*ringVertexCount + j + 1);
                 }
             }
-            BuildCylinderTopCap(bottomRadius, topRadius, height, sliceCount, stackCount, ref ret);
-            BuildCylinderBottomCap(bottomRadius, topRadius, height, sliceCount, stackCount, ref ret);
+            BuildCylinderTopCap(topRadius, height, sliceCount, ref ret);
+            BuildCylinderBottomCap(bottomRadius, height, sliceCount, ref ret);
             return ret;
         }
 
-        private static void BuildCylinderTopCap(float bottomRadius, float topRadius, float height, int sliceCount, int stackCount, ref MeshData ret) {
+        private static void BuildCylinderTopCap(float topRadius, float height, int sliceCount, ref MeshData ret) {
             var baseIndex = ret.Vertices.Count;
             
             var y  = 0.5f*height;
@@ -202,7 +202,7 @@ namespace Core {
             }
         }
 
-        private static void BuildCylinderBottomCap(float bottomRadius, float topRadius, float height, int sliceCount, int stackCount, ref MeshData ret) {
+        private static void BuildCylinderBottomCap(float bottomRadius, float height, int sliceCount, ref MeshData ret) {
             var baseIndex = ret.Vertices.Count;
 
             var y = -0.5f * height;
