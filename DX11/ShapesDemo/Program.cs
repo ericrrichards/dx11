@@ -62,7 +62,8 @@ namespace ShapesDemo {
         private Point _lastMousePos;
 
         private bool _disposed;
-        public ShapesDemo(IntPtr hInstance) : base(hInstance) {
+        public ShapesDemo(IntPtr hInstance)
+            : base(hInstance) {
             _vb = null;
             _ib = null;
             _fx = null;
@@ -70,27 +71,27 @@ namespace ShapesDemo {
             _fxWVP = null;
             _inputLayout = null;
             _wireframeRS = null;
-            _theta = 1.5f*MathF.PI;
-            _phi = 0.1f*MathF.PI;
+            _theta = 1.5f * MathF.PI;
+            _phi = 0.1f * MathF.PI;
             _radius = 15.0f;
 
             MainWindowCaption = "Shapes Demo";
 
-            _lastMousePos = new Point(0,0);
+            _lastMousePos = new Point(0, 0);
 
             _gridWorld = Matrix.Identity;
             _view = Matrix.Identity;
             _proj = Matrix.Identity;
 
-            _boxWorld = Matrix.Scaling(2.0f, 1.0f, 2.0f)*Matrix.Translation(0, 0.5f, 0);
-            _centerSphere = Matrix.Scaling(2.0f, 2.0f, 2.0f)*Matrix.Translation(0, 2, 0);
+            _boxWorld = Matrix.Scaling(2.0f, 1.0f, 2.0f) * Matrix.Translation(0, 0.5f, 0);
+            _centerSphere = Matrix.Scaling(2.0f, 2.0f, 2.0f) * Matrix.Translation(0, 2, 0);
 
             for (int i = 0; i < 5; ++i) {
-                _cylWorld[i*2] = Matrix.Translation(-5.0f, 1.5f, -10.0f + i*5.0f);
-                _cylWorld[i*2 + 1] = Matrix.Translation(5.0f, 1.5f, -10.0f + i*5.0f);
+                _cylWorld[i * 2] = Matrix.Translation(-5.0f, 1.5f, -10.0f + i * 5.0f);
+                _cylWorld[i * 2 + 1] = Matrix.Translation(5.0f, 1.5f, -10.0f + i * 5.0f);
 
-                _sphereWorld[i*2] = Matrix.Translation(-5.0f, 3.5f, -10.0f + i*5.0f);
-                _sphereWorld[i*2 + 1] = Matrix.Translation(5.0f, 3.5f, -10.0f + i*5.0f);
+                _sphereWorld[i * 2] = Matrix.Translation(-5.0f, 3.5f, -10.0f + i * 5.0f);
+                _sphereWorld[i * 2 + 1] = Matrix.Translation(5.0f, 3.5f, -10.0f + i * 5.0f);
             }
 
         }
@@ -128,7 +129,7 @@ namespace ShapesDemo {
         public override void OnResize() {
             base.OnResize();
 
-            _proj = Matrix.PerspectiveFovLH(0.25f*MathF.PI, AspectRatio, 1.0f, 1000.0f);
+            _proj = Matrix.PerspectiveFovLH(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
         }
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
@@ -147,7 +148,7 @@ namespace ShapesDemo {
         public override void DrawScene() {
             base.DrawScene();
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.LightSteelBlue);
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0);
+            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
             ImmediateContext.InputAssembler.InputLayout = _inputLayout;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
@@ -157,29 +158,29 @@ namespace ShapesDemo {
             ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, Vertex.Stride, 0));
             ImmediateContext.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
 
-            var viewProj = _view*_proj;
+            var viewProj = _view * _proj;
 
             var techDesc = _tech.Description;
             for (int p = 0; p < techDesc.PassCount; p++) {
-                _fxWVP.SetMatrix(_gridWorld*viewProj);
+                _fxWVP.SetMatrix(_gridWorld * viewProj);
                 _tech.GetPassByIndex(p).Apply(ImmediateContext);
                 ImmediateContext.DrawIndexed(_gridIndexCount, _gridIndexOffset, _gridVertexOffset);
 
-                _fxWVP.SetMatrix(_boxWorld*viewProj);
+                _fxWVP.SetMatrix(_boxWorld * viewProj);
                 _tech.GetPassByIndex(p).Apply(ImmediateContext);
                 ImmediateContext.DrawIndexed(_boxIndexCount, _boxIndexOffset, _boxVertexOffset);
 
-                _fxWVP.SetMatrix(_centerSphere*viewProj);
+                _fxWVP.SetMatrix(_centerSphere * viewProj);
                 _tech.GetPassByIndex(p).Apply(ImmediateContext);
                 ImmediateContext.DrawIndexed(_sphereIndexCount, _sphereIndexOffset, _sphereVertexOffset);
 
                 foreach (var matrix in _cylWorld) {
-                    _fxWVP.SetMatrix(matrix*viewProj);
+                    _fxWVP.SetMatrix(matrix * viewProj);
                     _tech.GetPassByIndex(p).Apply(ImmediateContext);
                     ImmediateContext.DrawIndexed(_cylinderIndexCount, _cylinderIndexOffset, _cylinderVertexOffset);
                 }
                 foreach (var matrix in _sphereWorld) {
-                    _fxWVP.SetMatrix(matrix*viewProj);
+                    _fxWVP.SetMatrix(matrix * viewProj);
                     _tech.GetPassByIndex(p).Apply(ImmediateContext);
                     ImmediateContext.DrawIndexed(_sphereIndexCount, _sphereIndexOffset, _sphereVertexOffset);
                 }
@@ -249,8 +250,8 @@ namespace ShapesDemo {
             foreach (var v in cylinder.Vertices) {
                 vs.Add(new Vertex(v.Position, Color.Black));
             }
-            var vbd = new BufferDescription(Vertex.Stride*totalVertexCount, 
-                ResourceUsage.Immutable, BindFlags.VertexBuffer, 
+            var vbd = new BufferDescription(Vertex.Stride * totalVertexCount,
+                ResourceUsage.Immutable, BindFlags.VertexBuffer,
                 CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _vb = new Buffer(Device, new DataStream(vs.ToArray(), false, false), vbd);
 
@@ -260,7 +261,7 @@ namespace ShapesDemo {
             indices.AddRange(sphere.Indices);
             indices.AddRange(cylinder.Indices);
 
-            var ibd = new BufferDescription(sizeof (int)*totalIndexCount, ResourceUsage.Immutable, 
+            var ibd = new BufferDescription(sizeof(int) * totalIndexCount, ResourceUsage.Immutable,
                 BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _ib = new Buffer(Device, new DataStream(indices.ToArray(), false, false), ibd);
 
@@ -281,17 +282,17 @@ namespace ShapesDemo {
             _fxWVP = _fx.GetVariableByName("gWorldViewProj").AsMatrix();
         }
         private void BuildVertexLayout() {
-                var vertexDesc = new[] {
-            new InputElement("POSITION", 0, Format.R32G32B32_Float, 
-                0, 0, InputClassification.PerVertexData, 0),
-            new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 
-                12, 0, InputClassification.PerVertexData, 0)
-        };
+            var vertexDesc = new[] {
+                new InputElement("POSITION", 0, Format.R32G32B32_Float, 
+                    0, 0, InputClassification.PerVertexData, 0),
+                new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 
+                    12, 0, InputClassification.PerVertexData, 0)
+            };
             Debug.Assert(_tech != null);
             var passDesc = _tech.GetPassByIndex(0).Description;
             _inputLayout = new InputLayout(Device, passDesc.Signature, vertexDesc);
         }
-        
+
     }
 
     class Program {
