@@ -175,16 +175,21 @@ namespace SkullDemo {
                     
 
                     var input = reader.ReadLine();
-                    if (input != null) vcount = Convert.ToInt32(input.Split(new[] {':'})[1].Trim());
+                    if (input != null)
+                        // VertexCount: X
+                        vcount = Convert.ToInt32(input.Split(new[] {':'})[1].Trim());
 
                     input = reader.ReadLine();
-                    if (input != null) tcount = Convert.ToInt32(input.Split(new[] { ':' })[1].Trim());
+                    if (input != null) 
+                        //TriangleCount: X
+                        tcount = Convert.ToInt32(input.Split(new[] { ':' })[1].Trim());
+
                     var c = Color.Black;
-                    // Get the vertices
+                    // skip ahead to the vertex data
                     do {
                         input = reader.ReadLine();
                     } while (input != null && !input.StartsWith("{"));
-                    
+                    // Get the vertices  
                     for (int i = 0; i < vcount; i++) {
                         input = reader.ReadLine();
                         if (input != null) {
@@ -197,30 +202,30 @@ namespace SkullDemo {
                                 c));
                         }
                     }
-                    // Get the indices
+                    // skip ahead to the index data
                     do {
                         input = reader.ReadLine();
                     } while (input != null && !input.StartsWith("{"));
-
+                    // Get the indices
                     _skullIndexCount = 3*tcount;
-                    var regex = new Regex(@"(\d+) (\d+) (\d+)");
-                    for (int i = 0; i < tcount; i++) {
+                    for (var i = 0; i < tcount; i++) {
                             input = reader.ReadLine();
-                        if (input != null) {
-                            var m = regex.Match(input);
-                            if (m.Success) {
-                                indices.Add(Convert.ToInt32(m.Groups[1].Value));
-                                indices.Add(Convert.ToInt32(m.Groups[2].Value));
-                                indices.Add(Convert.ToInt32(m.Groups[3].Value));
-                            }
+                        if (input == null) {
+                            break;
                         }
+                        var m = input.Trim().Split(new[] { ' ' });
+                        indices.Add(Convert.ToInt32(m[0].Trim()));
+                        indices.Add(Convert.ToInt32(m[1].Trim()));
+                        indices.Add(Convert.ToInt32(m[2].Trim()));
                     }
                 }
 
-                var vbd = new BufferDescription(Vertex.Stride*vcount, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+                var vbd = new BufferDescription(Vertex.Stride*vcount, ResourceUsage.Immutable, 
+                    BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
                 _vb = new Buffer(Device, new DataStream(vertices.ToArray(), false, false), vbd);
 
-                var ibd = new BufferDescription(sizeof (int)*_skullIndexCount, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+                var ibd = new BufferDescription(sizeof (int)*_skullIndexCount, ResourceUsage.Immutable, 
+                    BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
                 _ib = new Buffer(Device, new DataStream(indices.ToArray(), false, false), ibd);
 
 
