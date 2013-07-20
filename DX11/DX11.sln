@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkullDemo", "SkullDemo\SkullDemo.csproj", "{85770DD8-59C4-48E6-BDD5-26760B9691B4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaveDemo", "WaveDemo\WaveDemo.csproj", "{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{85770DD8-59C4-48E6-BDD5-26760B9691B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{85770DD8-59C4-48E6-BDD5-26760B9691B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{85770DD8-59C4-48E6-BDD5-26760B9691B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -61,8 +67,6 @@ Global
 		{9DC8B8EF-E3F0-4306-9646-D82F1D134625} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{5A76A5C4-2E85-470B-8039-87565D625F6E} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{85770DD8-59C4-48E6-BDD5-26760B9691B4} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
-	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
+		{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 	EndGlobalSection
 EndGlobal
