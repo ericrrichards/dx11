@@ -52,6 +52,7 @@
     <Compile Include="DisposableClass.cs" />
     <Compile Include="GameTimer.cs" />
     <Compile Include="GeometryGenerator.cs" />
+    <Compile Include="Lights.cs" />
     <Compile Include="MathF.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util.cs" />
