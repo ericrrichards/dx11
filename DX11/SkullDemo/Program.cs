@@ -126,7 +126,7 @@ namespace SkullDemo {
 
             ImmediateContext.Rasterizer.State = _wireframeRS;
 
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, Vertex.Stride, 0));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, VertexPC.Stride, 0));
             ImmediateContext.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
 
             var wvp = _skullWorld*_view*_proj;
@@ -167,7 +167,7 @@ namespace SkullDemo {
         }
         private void BuildGeometryBuffers() {
             try {
-                var vertices = new List<Vertex>();
+                var vertices = new List<VertexPC>();
                 var indices = new List<int>();
                 var vcount = 0;
                 var tcount = 0;
@@ -194,7 +194,7 @@ namespace SkullDemo {
                         input = reader.ReadLine();
                         if (input != null) {
                             var vals = input.Split(new[] {' '});
-                            vertices.Add(new Vertex(
+                            vertices.Add(new VertexPC(
                                 new Vector3(
                                     Convert.ToSingle(vals[0].Trim()), 
                                     Convert.ToSingle(vals[1].Trim()), 
@@ -220,7 +220,7 @@ namespace SkullDemo {
                     }
                 }
 
-                var vbd = new BufferDescription(Vertex.Stride*vcount, ResourceUsage.Immutable, 
+                var vbd = new BufferDescription(VertexPC.Stride*vcount, ResourceUsage.Immutable, 
                     BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
                 _vb = new Buffer(Device, new DataStream(vertices.ToArray(), false, false), vbd);
 

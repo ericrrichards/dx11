@@ -103,7 +103,7 @@ namespace BoxDemo {
         ImmediateContext.InputAssembler.InputLayout = _inputLayout;
         ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-        ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_boxVB, Vertex.Stride, 0));
+        ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_boxVB, VertexPC.Stride, 0));
         ImmediateContext.InputAssembler.SetIndexBuffer(_boxIB, Format.R32_UInt, 0);
 
         var wvp = _world * _view * _proj;
@@ -145,17 +145,17 @@ namespace BoxDemo {
 
     private void BuildGeometryBuffers() {
         var vertices = new[] {
-            new Vertex(new Vector3(-1.0f, -1.0f, -1.0f), Color.White),
-            new Vertex(new Vector3(-1, 1, -1), Color.Black),
-            new Vertex(new Vector3(1,1,-1), Color.Red ),
-            new Vertex( new Vector3(1,-1,-1), Color.Green ),
-            new Vertex(new Vector3(-1,-1,1),Color.Blue ),
-            new Vertex(new Vector3(-1,1,1), Color.Yellow ),
-            new Vertex(new Vector3(1,1,1), Color.Cyan ),
-            new Vertex(new Vector3(1,-1,1),Color.Magenta )
+            new VertexPC(new Vector3(-1.0f, -1.0f, -1.0f), Color.White),
+            new VertexPC(new Vector3(-1, 1, -1), Color.Black),
+            new VertexPC(new Vector3(1,1,-1), Color.Red ),
+            new VertexPC( new Vector3(1,-1,-1), Color.Green ),
+            new VertexPC(new Vector3(-1,-1,1),Color.Blue ),
+            new VertexPC(new Vector3(-1,1,1), Color.Yellow ),
+            new VertexPC(new Vector3(1,1,1), Color.Cyan ),
+            new VertexPC(new Vector3(1,-1,1),Color.Magenta )
         };
         var vbd = new BufferDescription(
-            Vertex.Stride*vertices.Length, 
+            VertexPC.Stride*vertices.Length, 
             ResourceUsage.Immutable, 
             BindFlags.VertexBuffer, 
             CpuAccessFlags.None, 

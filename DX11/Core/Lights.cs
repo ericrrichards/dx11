@@ -13,6 +13,7 @@ namespace Core {
         public Color4 Diffuse;
         public Color4 Specular;
         public Vector3 Direction;
+        public float Pad;
 
     }
     [StructLayout(LayoutKind.Sequential)]
@@ -23,6 +24,7 @@ namespace Core {
         public Vector3 Position;
         public float Range;
         public Vector3 Attenuation;
+        public float Pad;
     }
     [StructLayout(LayoutKind.Sequential)]
     public struct SpotLight {
@@ -34,6 +36,7 @@ namespace Core {
         public Vector3 Direction;
         public float Spot;
         public Vector3 Attenuation;
+        public float Pad;
     }
     [StructLayout(LayoutKind.Sequential)]
     public struct Material {

@@ -18,11 +18,22 @@ namespace Core {
 
         private Vector3[] _currentSolution;
         private Vector3[] _prevSolution;
+        private Vector3[] _normals;
+        private Vector3[] _tangentX;
 
         public int VertexCount {get { return _vertexCount; }}
         public int RowCount {get { return _rowCount; }}
         public int ColumnCount {get { return _columnCount; }}
         public int TriangleCount {get { return _triangleCount; }}
+        public float Width { get { return _columnCount*_spatialStep; } }
+        public float Depth { get { return _rowCount*_spatialStep; } }
+
+        public Vector3 Normal(int i) {
+            return _normals[i];
+        } 
+        public Vector3 TangentX(int i) {
+            return _tangentX[i];
+        }
 
         public Vector3 this[int i] {
             get { return _currentSolution[i]; }
@@ -45,6 +56,8 @@ namespace Core {
 
             _currentSolution = new Vector3[m*n];
             _prevSolution = new Vector3[m*n];
+            _normals = new Vector3[m*n];
+            _tangentX = new Vector3[m*n];
 
             var w2 = (n - 1) * dx * 0.5f;
             var d2 = (m - 1) * dx * 0.5f;
@@ -55,6 +68,8 @@ namespace Core {
                     var x = -w2 + j * dx;
                     _prevSolution[i*n+j] = new Vector3(x, 0, z);
                     _currentSolution[i*n+j] = new Vector3(x, 0, z);
+                    _normals[i*n+j] = new Vector3(0,1,0);
+                    _tangentX[i*n+j] = new Vector3(1.0f, 0, 0);
                 }
             }
         }
@@ -83,6 +98,18 @@ namespace Core {
             _prevSolution = _currentSolution;
             _currentSolution = temp;
             _t = 0.0f;
+            for (int i = 1; i < _rowCount - 1; i++) {
+                for (int j = 1; j < _columnCount - 1; j++) {
+                    var l = _currentSolution[i*_columnCount + j - 1].Y;
+                    var r = _currentSolution[i*_columnCount + j + 1].Y;
+                    var t = _currentSolution[(i - 1)*_columnCount + j].Y;
+                    var b = _currentSolution[(i + 1)*_columnCount + j].Y;
+                    _normals[i*_columnCount + j] = Vector3.Normalize(new Vector3(-r+l, 2.0f*_spatialStep, b-t));
+                    
+                    _tangentX[i*_columnCount + j]  = Vector3.Normalize(new Vector3(2.0f*_spatialStep, r-l, 0.0f));
+
+                }
+            }
         }
 
         public void Disturb(int i, int j, float magnitude) {
