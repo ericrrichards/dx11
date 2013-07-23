@@ -50,6 +50,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="DisposableClass.cs" />
+    <Compile Include="Effects.cs" />
     <Compile Include="GameTimer.cs" />
     <Compile Include="GeometryGenerator.cs" />
     <Compile Include="Lights.cs" />

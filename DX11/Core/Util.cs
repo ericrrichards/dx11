@@ -1,4 +1,6 @@
 ﻿namespace Core {
+    using System.Runtime.InteropServices;
+
     using SlimDX;
 
     public static class Util {
@@ -15,5 +17,14 @@
             return (i >> 16) & 0xFFFF;
         }
 
+        public static byte[] GetArray(object o) {
+            var len = Marshal.SizeOf(o);
+            var arr = new byte[len];
+            var ptr = Marshal.AllocHGlobal(len);
+            Marshal.StructureToPtr(o, ptr, true);
+            Marshal.Copy(ptr, arr, 0, len);
+            Marshal.FreeHGlobal(ptr);
+            return arr;
+        }
     }
 }

@@ -20,6 +20,7 @@ namespace ShapesDemo {
     using SlimDX;
 
     using Buffer = SlimDX.Direct3D11.Buffer;
+    using Effect = SlimDX.Direct3D11.Effect;
 
     class ShapesDemo : D3DApp {
         private Buffer _vb;
@@ -155,7 +156,7 @@ namespace ShapesDemo {
 
             ImmediateContext.Rasterizer.State = _wireframeRS;
 
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, Vertex.Stride, 0));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, VertexPC.Stride, 0));
             ImmediateContext.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
 
             var viewProj = _view * _proj;
@@ -237,20 +238,20 @@ namespace ShapesDemo {
             var totalVertexCount = box.Vertices.Count + grid.Vertices.Count + sphere.Vertices.Count + cylinder.Vertices.Count;
             var totalIndexCount = _boxIndexCount + _gridIndexCount + _sphereIndexCount + _cylinderIndexCount;
 
-            var vs = new List<Vertex>();
+            var vs = new List<VertexPC>();
             foreach (var vertex in box.Vertices) {
-                vs.Add(new Vertex(vertex.Position, Color.Black));
+                vs.Add(new VertexPC(vertex.Position, Color.Black));
             }
             foreach (var v in grid.Vertices) {
-                vs.Add(new Vertex(v.Position, Color.Black));
+                vs.Add(new VertexPC(v.Position, Color.Black));
             }
             foreach (var v in sphere.Vertices) {
-                vs.Add(new Vertex(v.Position, Color.Black));
+                vs.Add(new VertexPC(v.Position, Color.Black));
             }
             foreach (var v in cylinder.Vertices) {
-                vs.Add(new Vertex(v.Position, Color.Black));
+                vs.Add(new VertexPC(v.Position, Color.Black));
             }
-            var vbd = new BufferDescription(Vertex.Stride * totalVertexCount,
+            var vbd = new BufferDescription(VertexPC.Stride * totalVertexCount,
                 ResourceUsage.Immutable, BindFlags.VertexBuffer,
                 CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _vb = new Buffer(Device, new DataStream(vs.ToArray(), false, false), vbd);

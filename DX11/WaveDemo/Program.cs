@@ -16,6 +16,7 @@ namespace WaveDemo {
 
     using Buffer = SlimDX.Direct3D11.Buffer;
     using Debug = System.Diagnostics.Debug;
+    using Effect = SlimDX.Direct3D11.Effect;
     using MapFlags = SlimDX.Direct3D11.MapFlags;
 
     public class WaveDemo : D3DApp {
@@ -133,7 +134,7 @@ namespace WaveDemo {
 
             var mappedData = ImmediateContext.MapSubresource(_wavesVB, 0, MapMode.WriteDiscard, MapFlags.None);
             for (int i = 0; i < _waves.VertexCount; i++) {
-                mappedData.Data.Write(new Vertex(_waves[i], Color.Blue));
+                mappedData.Data.Write(new VertexPC(_waves[i], Color.Blue));
             }
             ImmediateContext.UnmapSubresource(_wavesVB, 0);
         }
@@ -146,7 +147,7 @@ namespace WaveDemo {
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
             
             for (int i = 0; i < _tech.Description.PassCount; i++) {
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_landVB, Vertex.Stride, 0));
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_landVB, VertexPC.Stride, 0));
                 ImmediateContext.InputAssembler.SetIndexBuffer(_landIB, Format.R32_UInt, 0);
 
                 _fxWVP.SetMatrix(_gridWorld * _view * _proj);
@@ -155,7 +156,7 @@ namespace WaveDemo {
                 ImmediateContext.DrawIndexed(_gridIndexCount, 0,0);
 
                 ImmediateContext.Rasterizer.State = _wireframeRS;
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_wavesVB, Vertex.Stride, 0));
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_wavesVB, VertexPC.Stride, 0));
                 ImmediateContext.InputAssembler.SetIndexBuffer(_wavesIB, Format.R32_UInt, 0);
 
                 _fxWVP.SetMatrix(_wavesWorld * _view * _proj);
@@ -199,7 +200,7 @@ namespace WaveDemo {
 
         private void BuildLandGeometryBuffers() {
             var grid = GeometryGenerator.CreateGrid(160.0f, 160.0f, 50, 50);
-            var vertices = new List<Vertex>();
+            var vertices = new List<VertexPC>();
             foreach (var vertex in grid.Vertices) {
                 var pos = vertex.Position;
                 pos.Y = GetHeight(pos.X, pos.Z);
@@ -216,9 +217,9 @@ namespace WaveDemo {
                 } else {
                     color = new Color4(1, 1, 1, 1);
                 }
-                vertices.Add(new Vertex(pos, color));
+                vertices.Add(new VertexPC(pos, color));
             }
-            var vbd = new BufferDescription(Vertex.Stride * vertices.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            var vbd = new BufferDescription(VertexPC.Stride * vertices.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _landVB= new Buffer(Device, new DataStream(vertices.ToArray(), false, false), vbd);
 
             var ibd = new BufferDescription(sizeof(int) * grid.Indices.Count, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
@@ -226,7 +227,7 @@ namespace WaveDemo {
             _gridIndexCount = grid.Indices.Count;
         }
         private void BuildWavesGeometryBuffers() {
-            var vbd = new BufferDescription(Vertex.Stride * _waves.VertexCount, ResourceUsage.Dynamic, BindFlags.VertexBuffer, CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
+            var vbd = new BufferDescription(VertexPC.Stride * _waves.VertexCount, ResourceUsage.Dynamic, BindFlags.VertexBuffer, CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
             _wavesVB = new Buffer(Device, vbd);
 
             var indices = new List<int>();

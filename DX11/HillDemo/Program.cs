@@ -15,6 +15,8 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Debug = System.Diagnostics.Debug;
 
 namespace HillDemo {
+    using Effect = SlimDX.Direct3D11.Effect;
+
     public class BoxApp : D3DApp {
         private Buffer _vb;
         private Buffer _ib;
@@ -112,7 +114,7 @@ namespace HillDemo {
             ImmediateContext.InputAssembler.InputLayout = _inputLayout;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, Vertex.Stride, 0));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, VertexPC.Stride, 0));
             ImmediateContext.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
 
             var wvp = _world * _view * _proj;
@@ -159,7 +161,7 @@ namespace HillDemo {
 
         private void BuildGeometryBuffers() {
             var grid = GeometryGenerator.CreateGrid(160.0f, 160.0f, 50, 50);
-            var vertices = new List<Vertex>();
+            var vertices = new List<VertexPC>();
             foreach (var vertex in grid.Vertices) {
                 var pos = vertex.Position;
                 pos.Y = GetHeight(pos.X, pos.Z);
@@ -176,9 +178,9 @@ namespace HillDemo {
                 } else {
                     color = new Color4(1,1,1,1);
                 }
-                vertices.Add(new Vertex(pos, color));
+                vertices.Add(new VertexPC(pos, color));
             }
-            var vbd = new BufferDescription(Vertex.Stride*vertices.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            var vbd = new BufferDescription(VertexPC.Stride*vertices.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _vb = new Buffer(Device, new DataStream(vertices.ToArray(), false, false), vbd);
 
             var ibd = new BufferDescription(sizeof (int)*grid.Indices.Count, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
