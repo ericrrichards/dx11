@@ -14,6 +14,7 @@ using SlimDX.DXGI;
 using SlimDX.Direct3D11;
 using Buffer = SlimDX.Direct3D11.Buffer;
 using Debug = System.Diagnostics.Debug;
+using Effect = SlimDX.Direct3D11.Effect;
 using MapFlags = SlimDX.Direct3D11.MapFlags;
 
 namespace LightingDemo {
