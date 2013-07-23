@@ -16,6 +16,7 @@ namespace WaveDemo {
 
     using Buffer = SlimDX.Direct3D11.Buffer;
     using Debug = System.Diagnostics.Debug;
+    using Effect = SlimDX.Direct3D11.Effect;
     using MapFlags = SlimDX.Direct3D11.MapFlags;
 
     public class WaveDemo : D3DApp {

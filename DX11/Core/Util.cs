@@ -2,6 +2,8 @@
 using System.Runtime.InteropServices;
 
 namespace Core {
+    using System.Runtime.InteropServices;
+
     using SlimDX;
 
     public static class Util {

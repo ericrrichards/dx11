@@ -11,6 +11,8 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Debug = System.Diagnostics.Debug;
 
 namespace BoxDemo {
+    using Effect = SlimDX.Direct3D11.Effect;
+
     public class BoxApp : D3DApp {
     private Buffer _boxVB;
     private Buffer _boxIB;

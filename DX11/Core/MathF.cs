@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Core {
+    using SlimDX;
+
     public static class MathF {
         private static Random _rand = new Random();
         public const float PI = (float) Math.PI;
@@ -32,6 +34,10 @@ namespace Core {
 
         public static float Rand(float min, float max) {
             return min + (float)_rand.NextDouble() * (max - min);
+        }
+
+        public static Matrix InverseTranspose(Matrix m) {
+            return Matrix.Transpose(Matrix.Invert(m));
         }
     }
 }

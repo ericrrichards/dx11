@@ -16,6 +16,8 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Debug = System.Diagnostics.Debug;
 
 namespace SkullDemo {
+    using Effect = SlimDX.Direct3D11.Effect;
+
     public class SkullDemo :D3DApp {
         private Buffer _vb;
         private Buffer _ib;

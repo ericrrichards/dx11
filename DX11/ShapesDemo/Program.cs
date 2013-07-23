@@ -20,6 +20,7 @@ namespace ShapesDemo {
     using SlimDX;
 
     using Buffer = SlimDX.Direct3D11.Buffer;
+    using Effect = SlimDX.Direct3D11.Effect;
 
     class ShapesDemo : D3DApp {
         private Buffer _vb;
