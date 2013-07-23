@@ -13,7 +13,6 @@ namespace Core {
         public Color4 Diffuse;
         public Color4 Specular;
         public Vector3 Direction;
-        public float pad;
         public float Pad;
 
     }
