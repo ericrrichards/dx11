@@ -39,13 +39,13 @@ namespace Core {
         public const int Stride = 24;
     }
 
-    public class InputLayoutDescriptions {
+    public static class InputLayoutDescriptions {
         public static readonly InputElement[] PosNormal = new[] {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
         };
     }
-    public class InputLayouts {
+    public static class InputLayouts {
         public static void InitAll(Device device) {
             var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
             PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);

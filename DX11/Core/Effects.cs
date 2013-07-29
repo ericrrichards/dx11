@@ -42,12 +42,12 @@ namespace Core {
         public EffectTechnique Light2Tech;
         public EffectTechnique Light3Tech;
 
-        public EffectMatrixVariable WorldViewProj;
-        public EffectMatrixVariable World;
-        public EffectMatrixVariable WorldInvTranspose;
-        public EffectVectorVariable EyePosW;
-        public EffectVariable DirLights;
-        public EffectVariable Mat;
+        private EffectMatrixVariable WorldViewProj;
+        private EffectMatrixVariable World;
+        private EffectMatrixVariable WorldInvTranspose;
+        private EffectVectorVariable EyePosW;
+        private EffectVariable DirLights;
+        private EffectVariable Mat;
 
         public BasicEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -89,7 +89,7 @@ namespace Core {
         }
     }
 
-    public class Effects {
+    public static class Effects {
         public static void InitAll(Device device) {
             BasicFX = new BasicEffect(device, "FX/Basic.fxo");
         }
