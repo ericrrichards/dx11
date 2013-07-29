@@ -134,13 +134,13 @@ namespace LightingDemo {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    Util.ReleaseCom(_landVB);
-                    Util.ReleaseCom(_landIB);
-                    Util.ReleaseCom(_waveVB);
-                    Util.ReleaseCom(_waveIB);
+                    Util.ReleaseCom(ref _landVB);
+                    Util.ReleaseCom(ref _landIB);
+                    Util.ReleaseCom(ref _waveVB);
+                    Util.ReleaseCom(ref _waveIB);
 
-                    Util.ReleaseCom(_fx);
-                    Util.ReleaseCom(_inputLayout);
+                    Util.ReleaseCom(ref _fx);
+                    Util.ReleaseCom(ref _inputLayout);
                 }
                 _disposed = true;
             }
@@ -345,7 +345,7 @@ namespace LightingDemo {
                 MessageBox.Show(ex.Message);
                 return;
             } finally {
-                Util.ReleaseCom(compiledShader);
+                Util.ReleaseCom(ref compiledShader);
             }
 
             _tech = _fx.GetTechniqueByName("LightTech");

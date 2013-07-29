@@ -99,11 +99,11 @@ namespace ShapesDemo {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    Util.ReleaseCom(_vb);
-                    Util.ReleaseCom(_ib);
-                    Util.ReleaseCom(_fx);
-                    Util.ReleaseCom(_inputLayout);
-                    Util.ReleaseCom(_wireframeRS);
+                    Util.ReleaseCom(ref _vb);
+                    Util.ReleaseCom(ref _ib);
+                    Util.ReleaseCom(ref _fx);
+                    Util.ReleaseCom(ref _inputLayout);
+                    Util.ReleaseCom(ref _wireframeRS);
                 }
                 _disposed = true;
             }
@@ -276,7 +276,7 @@ namespace ShapesDemo {
                 MessageBox.Show(ex.Message);
                 return;
             } finally {
-                Util.ReleaseCom(compiledShader);
+                Util.ReleaseCom(ref compiledShader);
             }
 
             _tech = _fx.GetTechniqueByName("ColorTech");

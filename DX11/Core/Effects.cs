@@ -23,13 +23,13 @@ namespace Core {
             } catch (Exception ex) {
                 MessageBox.Show(ex.Message);
             } finally {
-                Util.ReleaseCom(compiledShader);
+                Util.ReleaseCom(ref compiledShader);
             }
         }
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    Util.ReleaseCom(FX);
+                    Util.ReleaseCom(ref FX);
                 }
                 _disposed = true;
             }

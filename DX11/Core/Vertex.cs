@@ -25,7 +25,7 @@ namespace Core {
             Color = color;
         }
 
-        public const int Stride = 28;
+        public static readonly int Stride = Marshal.SizeOf(typeof (VertexPC));
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -38,30 +38,30 @@ namespace Core {
             Normal = normal;
         }
 
-        public const int Stride = 24;
+        public static readonly int Stride = Marshal.SizeOf(typeof(VertexPN));
     }
 
-[StructLayout(LayoutKind.Sequential)]
-public struct Basic32 {
-    public Vector3 Position;
-    public Vector3 Normal;
-    public Vector2 Tex;
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Basic32 {
+        public Vector3 Position;
+        public Vector3 Normal;
+        public Vector2 Tex;
 
-    public Basic32(Vector3 position, Vector3 normal, Vector2 texC) {
-        Position = position;
-        Normal = normal;
-        Tex = texC;
+        public Basic32(Vector3 position, Vector3 normal, Vector2 texC) {
+            Position = position;
+            Normal = normal;
+            Tex = texC;
+        }
+
+        public static readonly int Stride = Marshal.SizeOf(typeof(Basic32));
     }
 
-    public const int Stride = 32;
-}
-
-public static class InputLayoutDescriptions {
-    public static readonly InputElement[] PosNormal = {
+    public static class InputLayoutDescriptions {
+        public static readonly InputElement[] PosNormal = {
         new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
         new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
     };
-    public static readonly InputElement[] Basic32 = {
+        public static readonly InputElement[] Basic32 = {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
         new InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0, InputClassification.PerVertexData, 0), 
@@ -70,25 +70,25 @@ public static class InputLayoutDescriptions {
     public static class InputLayouts {
         public static void InitAll(Device device) {
             var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
-        try {
-            PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
-        } catch (Direct3D11Exception dex) {
-            Console.WriteLine(dex.Message);
-            PosNormal = null;
-        }
-        try {
-        Basic32 = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
-        } catch (Direct3D11Exception dex) {
-            Console.WriteLine(dex.Message);
-            Basic32 = null;
-        }
+            try {
+                PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
+            } catch (Direct3D11Exception dex) {
+                Console.WriteLine(dex.Message);
+                PosNormal = null;
+            }
+            try {
+                Basic32 = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
+            } catch (Direct3D11Exception dex) {
+                Console.WriteLine(dex.Message);
+                Basic32 = null;
+            }
         }
         public static void DestroyAll() {
-            Util.ReleaseCom(PosNormal);
-        Util.ReleaseCom(Basic32);
+            Util.ReleaseCom(ref PosNormal);
+            Util.ReleaseCom(ref Basic32);
         }
 
         public static InputLayout PosNormal;
-    public static InputLayout Basic32;
+        public static InputLayout Basic32;
     }
 }

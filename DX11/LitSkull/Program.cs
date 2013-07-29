@@ -149,10 +149,10 @@ namespace LitSkull {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    Util.ReleaseCom(_shapesVB);
-                    Util.ReleaseCom(_shapesIB);
-                    Util.ReleaseCom(_skullVB);
-                    Util.ReleaseCom(_skullIB);
+                    Util.ReleaseCom(ref _shapesVB);
+                    Util.ReleaseCom(ref _shapesIB);
+                    Util.ReleaseCom(ref _skullVB);
+                    Util.ReleaseCom(ref _skullIB);
 
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();

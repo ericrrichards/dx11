@@ -206,15 +206,15 @@ namespace Core {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    Util.ReleaseCom(RenderTargetView);
-                    Util.ReleaseCom(DepthStencilView);
-                    Util.ReleaseCom(SwapChain);
-                    Util.ReleaseCom(DepthStencilBuffer);
+                    Util.ReleaseCom(ref RenderTargetView);
+                    Util.ReleaseCom(ref DepthStencilView);
+                    Util.ReleaseCom(ref SwapChain);
+                    Util.ReleaseCom(ref DepthStencilBuffer);
                     if (ImmediateContext != null) {
                         ImmediateContext.ClearState();
                     }
-                    Util.ReleaseCom(ImmediateContext);
-                    Util.ReleaseCom(Device);
+                    Util.ReleaseCom(ref ImmediateContext);
+                    Util.ReleaseCom(ref Device);
                 }
                 _disposed = true;
             }
@@ -260,9 +260,9 @@ namespace Core {
             Debug.Assert(Device != null);
             Debug.Assert(SwapChain != null);
 
-            Util.ReleaseCom(RenderTargetView);
-            Util.ReleaseCom(DepthStencilView);
-            Util.ReleaseCom(DepthStencilBuffer);
+            Util.ReleaseCom(ref RenderTargetView);
+            Util.ReleaseCom(ref DepthStencilView);
+            Util.ReleaseCom(ref DepthStencilBuffer);
 
             SwapChain.ResizeBuffers(1, ClientWidth, ClientHeight, Format.R8G8B8A8_UNorm, SwapChainFlags.None);
             using (var resource = SlimDX.Direct3D11.Resource.FromSwapChain<Texture2D>(SwapChain, 0)) {

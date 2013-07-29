@@ -57,10 +57,10 @@ namespace BoxDemo {
     protected override void Dispose(bool disposing) {
         if (!_disposed) {
             if (disposing) {
-                Util.ReleaseCom(_boxVB);
-                Util.ReleaseCom(_boxIB);
-                Util.ReleaseCom(_fx);
-                Util.ReleaseCom(_inputLayout);
+                Util.ReleaseCom(ref _boxVB);
+                Util.ReleaseCom(ref _boxIB);
+                Util.ReleaseCom(ref _fx);
+                Util.ReleaseCom(ref _inputLayout);
             }
             _disposed = true;
         }
@@ -220,7 +220,7 @@ namespace BoxDemo {
             MessageBox.Show(ex.Message);
             return;
         } finally {
-            Util.ReleaseCom(compiledShader);
+            Util.ReleaseCom(ref compiledShader);
         }
 
         _tech = _fx.GetTechniqueByName("ColorTech");
