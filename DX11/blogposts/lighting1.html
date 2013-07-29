@@ -1,0 +1,136 @@
+﻿<p>Last time, we finished up our exploration of the examples from Chapter 6 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>.&nbsp; This time, and for the next week or so, we’re going to be adding lighting to our repertoire.&nbsp; There are only two demo applications on tap in this chapter, but they are comparatively meatier, so I may take a couple posts to describe each one. </p>
+<p>
+    First off, we are going to modify our previous Waves Demo to render using per-pixel lighting, as opposed to the flat color we used previously.&nbsp; Even without any more advanced techniques, this gives us a much prettier visual.<br>
+    <a href="http://lh3.ggpht.com/-jOTOUU01I0E/Ue8QnbbWFcI/AAAAAAAAC1E/dIiyQOwmSIY/s1600-h/lighting%25255B2%25255D.png"><img title="lighting" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="lighting" src="http://lh3.ggpht.com/-scYPuDEg-34/Ue8QoEYzekI/AAAAAAAAC1M/h9tmDgaX7UQ/lighting_thumb.png?imgmax=800" width="244" height="190"></a>
+    <a href="http://lh4.ggpht.com/-Vqag66FXl48/Ue8QotuKtzI/AAAAAAAAC1U/nPwj5-Ud4kQ/s1600-h/waves%25255B2%25255D.png"><img title="waves" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="waves" src="http://lh5.ggpht.com/-m3yqhm3aEf0/Ue8Qo-wWHEI/AAAAAAAAC1c/QJ3DJ3TEfbg/waves_thumb.png?imgmax=800" width="244" height="192"></a>
+    <br>
+    To get there, we are going to have to do a lot of legwork to implement this more realistic lighting model.&nbsp; We will need to implement three different varieties of lights, a material class, and a much more advanced shader effect.&nbsp; Along the way, we will run into a couple interesting and slightly aggravating differences between the way one would do things in C++ and native DirectX and how we need to implement the same ideas in C# with SlimDX.&nbsp; I would suggest that you follow along with my code from <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>.&nbsp; You will want to examine the Examples/LightingDemo and Core projects from the solution.
+</p>
+<!--more-->
+
+<h3>Local Illumination</h3>
+<p>You may want to brush up on your 3D math and computer graphics theory.&nbsp; I am not going to go into the details of the illumination model, so if this becomes Greek to you, take a minute and study up a bit.&nbsp; Luna’s explanation is pretty solid, but if you want a fuller treatment of lighting theory, I would suggest <a href="http://www.amazon.com/dp/1568814690" target="_blank">Fundamentals of Computer Graphics</a> by Peter Shirley.&nbsp; I’ve also seen a lot of good review for <a href="http://www.amazon.com/Real-Time-Rendering-Third-Edition-Akenine-Moller/dp/1568814240" target="_blank">Real-Time Rendering</a>, but I have nor had the pleasure of reading through it yet myself.</p>
+<p>We are going to be using what is often called the <a href="http://en.wikipedia.org/wiki/Phong_shading" target="_blank">Phong Shading Model</a>.&nbsp; Instead of specifying the color explicitly for each vertex, we will instead be specifying a set of material properties for each object, and then using a lighting equation to determine the color of each pixel based upon the pixel’s interpolated normal vector.&nbsp; A normal vector, if you are not familiar, is the unit vector perpendicular to a point on the object’s surface.&nbsp; Specifying normals for each pixel on an object’s surface would be massively memory-intensive, but fortunately, the graphics hardware will interpolate normals for each pixel, so long as we provide a normal for each vertex of each triangle (I may be dating myself here, but when I was first playing video games, per-pixel lighting was a big deal.&nbsp; Graphics chips were either non-existent or quite wimpy, so many games used a simpler shading model, called <a href="http://en.wikipedia.org/wiki/Gouraud_shading" target="_blank">Gouraud Shading</a> or per-vertex shading, which was less computationally expensive, but less attractive.&nbsp; Thankfully, even the cheapest of integrated cards can handle per-pixel lighting these days…)&nbsp; In our current example, since we are using mathematical surfaces, we can compute these vertex normals directly using calculus, but typically, one computes the normal at each vertex by averaging the face normals for each triangle that uses the vertex.</p>
+<p>So, first up, we will need to create a new vertex structure, which will contain a position and a normal.&nbsp; We are going to imaginatively call this new structure VertexPN.&nbsp; I have renamed the previous vertex structure VertexPC, for what I hope are obvious reasons.</p>
+<pre class="csharpcode">[StructLayout(LayoutKind.Sequential)]
+<span class="kwrd">public</span> <span class="kwrd">struct</span> VertexPN {
+    <span class="kwrd">public</span> Vector3 Position;
+    <span class="kwrd">public</span> Vector3 Normal;
+
+    <span class="kwrd">public</span> VertexPN(Vector3 position, Vector3 normal) {
+        Position = position;
+        Normal = normal;
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">const</span> <span class="kwrd">int</span> Stride = 24;
+}</pre>
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<p>
+    Note that our vertex stride has changed.&nbsp; The two vectors only occupy 24 bytes of space (4 bytes for each float component), whereas before, we had a vector and a four-float color component.&nbsp; You can run into some very strange bugs and crashes if you continue using the previous 28 byte stride.<br>
+    <br>
+    We will also need to change our vertex layout when we use this new vertex format.&nbsp; Thus, in BuildVertexLayout(), we will now be using the following InputElement array to create our InputLayout:
+</p>
+<pre class="csharpcode">var vertexDesc = <span class="kwrd">new</span>[] {<br>    <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, <br>        0, 0, InputClassification.PerVertexData, 0),<br>    <span class="kwrd">new</span> InputElement(<span class="str">"NORMAL"</span>, 0, Format.R32G32B32_Float, <br>        12, 0, InputClassification.PerVertexData, 0)<br>};<br></pre>
+<p>Additionally, this change carries over into our shader file in the definition of our VertexIn structure.&nbsp; (See FX/Lighting.fx) </p>
+<pre class="csharpcode"><span class="kwrd">struct</span> VertexIn<br>{<br>    float3 PosL    : POSITION;<br>    float3 NormalL : NORMAL;<br>};<br></pre>
+<p>Next, we’ll build up the structures necessary for our lighting equation.</p>
+<h3>Material</h3>
+
+<p>The Phong reflection model is an empirical model of for the light absorption and reflection properties of objects.&nbsp; There are three main components of this model; Ambient color, Diffuse color, and Specular color.&nbsp;</p>
+
+<ul>
+    <li><strong>Diffuse </strong>color is the most straightforward of the three; this is the color of an object if it were to be hit square-on by a white light.&nbsp; The diffuse color of an object varies depending on the surface normal at the point being lit; thus, surfaces angled towards the light are more brightly lit than surfaces facing away, and faces that are back-to to the light are not lit at all.&nbsp; This relationship is known as <a href="http://en.wikipedia.org/wiki/Lambertian_reflectance" target="_blank">Lambert’s Cosine Law</a>. 
+    <li>Shiny objects have highlights or “glare” that can be seen if you are in a cone opposite from the direction of the light.&nbsp; <strong>Specular </strong>
+        color describes the color of this glare.&nbsp; Additionally, shiny objects typically have narrower, brighter reflections than matte objects, which have wider, dimmer reflections.&nbsp; We can control this shininess using what is commonly called the specular power and using it as an exponent in a modified version of Lambert’s law (more on this later). 
+    <li>In real scenes, not all the light that reaches an object comes directly from lights; some of it is bounced off multiple other objects first, which is why it is not pitch-black in an unlit room, for instance.&nbsp; Modeling these light bounces in a so-called global illumination model is massively expensive computationally; off-line rendering applications, such as movie CGI can perform this, because they can employ server farms of tens or hundreds of processors chugging along rendering a scene every few seconds or minutes(and even then, they typically only model two or three bounces), but in a real-time application we need to render a frame 30-60 times per second.&nbsp; <strong>Ambient</strong> color is a hack to achieve realistic-enough looking images without all this extra computation.&nbsp; It is typically a darker shade of the diffuse color, which is applied to approximate the ambient light that lights objects even when they are not fully lit by a direct light.</li>
+</ul>
+<p>With that background in material theory, we can build our Material class.&nbsp; We will assign each object in our scene (or sometime subportions of an object) a Material that will describe its surface properties.</p>
+<pre class="csharpcode">[StructLayout(LayoutKind.Sequential)]<br><span class="kwrd">public</span> <span class="kwrd">struct</span> Material {<br>    <span class="kwrd">public</span> Color4 Ambient;<br>    <span class="kwrd">public</span> Color4 Diffuse;<br>    <span class="kwrd">public</span> Color4 Specular;<br>    <span class="kwrd">public</span> Color4 Reflect;<br>}<br></pre>
+<p>Ignore the Reflect property for now.&nbsp; Also, note that we specify the Specular power as the Alpha component of the specular color, so that we can fit this structure nicely into the 128-bit registers common to most graphics cards; it doesn’t make a great deal of sense to have an alpha component for a specular highlight, in any case.&nbsp; In our shader code, this Material structure is represented as:</p>
+<pre class="csharpcode"><span class="kwrd">struct</span> Material<br>{<br>    float4 Ambient;<br>    float4 Diffuse;<br>    float4 Specular; <span class="rem">// .w = SpecPower</span><br>    float4 Reflect;<br>};<br></pre>
+<h3>Lights</h3>
+<p>Similar to our Materials, our lights will have Ambient, Diffuse and Specular components, describing the shades of light that they output.&nbsp; This enables us to have colored lights; for example, red emergency lights, or yellowish older-style lightbulbs in comparison to white halogens.&nbsp; Thus, we can have the same material appear differently depending on the light color – under a red light, a green object will appear gray, rather than green, as it would under a white light.</p>
+<p>We will implement three different varieties of light:</p>
+<ul>
+    <li>
+        <p>Directional Lights – These are lights that are so distant that we can consider the power and direction of the lights to be constant.&nbsp; The canonical example of a directional light would be the Sun, as seen from a point on earth.&nbsp; In addition to the light’s color properties, we will add a vector representing the incoming light angle.</p>
+        <li>
+            <p>
+                Point Lights – These are lights that are set a position in the scene, and radiate light equally in all directions.&nbsp; In real-life, light intensity declines according to an inverse-square law, like so: 
+                <a href="http://lh6.ggpht.com/-eSr-xfKZkuc/Ue8QpPCaeTI/AAAAAAAAC1g/FlvXAAjw9mY/s1600-h/CodeCogsEqn%25255B4%25255D.png"><img title="CodeCogsEqn" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; float: none; margin-left: auto; display: block; border-top-width: 0px; margin-right: auto" border="0" alt="CodeCogsEqn" src="http://lh6.ggpht.com/-GvRFSScCYsI/Ue8QpjG84SI/AAAAAAAAC1o/70Ck_ePpzT4/CodeCogsEqn_thumb%25255B2%25255D.png?imgmax=800" width="240" height="29"></a>
+                Typically, a different formula is used for more visually-pleasing results in games:
+                <a href="http://lh6.ggpht.com/-Obw6-WQUjAU/Ue8QpzCDLtI/AAAAAAAAC10/xUYwgfl9-mo/s1600-h/att2%25255B4%25255D.png"><img title="att2" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; float: none; margin-left: auto; display: block; border-top-width: 0px; margin-right: auto" border="0" alt="att2" src="http://lh5.ggpht.com/-yTngHpqDTrw/Ue8QqabswMI/AAAAAAAAC18/vn9hIGAyq48/att2_thumb%25255B2%25255D.png?imgmax=800" width="240" height="24"></a>
+                Further, although the attenuation equation will ensure that our light’s intensity will decline to nothing at a certain distance, if we specify an explicit range for the light, we can perform some optimizations by discarding lights that are too far away from our objects to be considered.
+            </p>
+            <li>
+                <p>Spot Lights – Last, we have lights which are located at a point, directed in a given angle, and only project light within a cone.&nbsp; A typical flashlight would be an example of a spotlight.&nbsp; A spotlight is very similar to a point light, with respect to attenuation, except that we add an additional power factor to scale the size of the spot light cone.</p>
+            </li>
+</ul>
+<p>From this description, we can create our C# structures for our lights.</p>
+<pre class="csharpcode">[StructLayout(LayoutKind.Sequential)]<br><span class="kwrd">public</span> <span class="kwrd">struct</span> DirectionalLight {<br>    <span class="kwrd">public</span> Color4 Ambient;<br>    <span class="kwrd">public</span> Color4 Diffuse;<br>    <span class="kwrd">public</span> Color4 Specular;<br>    <span class="kwrd">public</span> Vector3 Direction;<br>    <span class="kwrd">public</span> <span class="kwrd">float</span> Pad;<br>}<br>[StructLayout(LayoutKind.Sequential)]<br><span class="kwrd">public</span> <span class="kwrd">struct</span> PointLight {<br>    <span class="kwrd">public</span> Color4 Ambient;<br>    <span class="kwrd">public</span> Color4 Diffuse;<br>    <span class="kwrd">public</span> Color4 Specular;<br>    <span class="kwrd">public</span> Vector3 Position;<br>    <span class="kwrd">public</span> <span class="kwrd">float</span> Range;<br>    <span class="kwrd">public</span> Vector3 Attenuation;<br>    <span class="kwrd">public</span> <span class="kwrd">float</span> Pad;<br>}<br>[StructLayout(LayoutKind.Sequential)]<br><span class="kwrd">public</span> <span class="kwrd">struct</span> SpotLight {<br>    <span class="kwrd">public</span> Color4 Ambient;<br>    <span class="kwrd">public</span> Color4 Diffuse;<br>    <span class="kwrd">public</span> Color4 Specular;<br>    <span class="kwrd">public</span> Vector3 Position;<br>    <span class="kwrd">public</span> <span class="kwrd">float</span> Range;<br>    <span class="kwrd">public</span> Vector3 Direction;<br>    <span class="kwrd">public</span> <span class="kwrd">float</span> Spot;<br>    <span class="kwrd">public</span> Vector3 Attenuation;<br>    <span class="kwrd">public</span> <span class="kwrd">float</span> Pad;<br>}<br></pre>
+<p>Note the <span class="kwrd">float</span> Pad variables, and the way in which we have interleaved Vector3 and float variables.&nbsp; This is necessary because HLSL structures members need to be aligned on 16-byte boundaries, and cannot be split across a boundary, due to the way the GPUs registers are optimized for vector and matrix operations.&nbsp; You can run into some very tricky errors if you mess this up, particularly if you are uploading an array of C# structures to your shader code.&nbsp; Here are our resulting shader structures:</p>
+<pre class="csharpcode"><span class="kwrd">struct</span> DirectionalLight<br>{<br>    float4 Ambient;<br>    float4 Diffuse;<br>    float4 Specular;<br>    float3 Direction;<br>    <span class="kwrd">float</span> pad;<br>};<br><span class="kwrd">struct</span> PointLight<br>{ <br>    float4 Ambient;<br>    float4 Diffuse;<br>    float4 Specular;<br><br>    float3 Position;<br>    <span class="kwrd">float</span> Range;<br><br>    float3 Att;<br>    <span class="kwrd">float</span> pad;<br>};<br><span class="kwrd">struct</span> SpotLight<br>{<br>    float4 Ambient;<br>    float4 Diffuse;<br>    float4 Specular;<br><br>    float3 Position;<br>    <span class="kwrd">float</span> Range;<br><br>    float3 Direction;<br>    <span class="kwrd">float</span> Spot;<br><br>    float3 Att;<br>    <span class="kwrd">float</span> pad;<br>};<br></pre>
+<p>We’ll wrap up by discussing the shader functions that compute the per-pixel light for the different light types.&nbsp; This code can be found in FX/LightHelper.fx, which is split out from our main shader file for this example, so that we can resuse it going forward more easily by just #include’ing it.&nbsp; These shaders are relatively straight-forward implementations of the lighting equations discussed in the book.&nbsp; As a bonus, they are much more simple to understand than the corresponding Wikipedia entries…</p>
+<h3>Directional Light Shader</h3>
+<pre class="csharpcode"><span class="kwrd">void</span> ComputeDirectionalLight(Material mat, DirectionalLight L, <br>                             float3 normal, float3 toEye,<br>                             <span class="kwrd">out</span> float4 ambient,<br>                             <span class="kwrd">out</span> float4 diffuse,<br>                             <span class="kwrd">out</span> float4 spec)<br>{<br>    <span class="rem">// Initialize outputs.</span><br>    ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);<br><br>    <span class="rem">// The light vector aims opposite the direction the light rays travel.</span><br>    float3 lightVec = -L.Direction;<br><br>    <span class="rem">// Add ambient term.</span><br>    ambient = mat.Ambient * L.Ambient;    <br><br>    <span class="rem">// Add diffuse and specular term, provided the surface is in </span><br>    <span class="rem">// the line of site of the light.</span><br>    <br>    <span class="kwrd">float</span> diffuseFactor = dot(lightVec, normal);<br><br>    <span class="rem">// Flatten to avoid dynamic branching.</span><br>    [flatten]<br>    <span class="kwrd">if</span>( diffuseFactor &gt; 0.0f )<br>    {<br>        float3 v         = reflect(-lightVec, normal);<br>        <span class="kwrd">float</span> specFactor = pow(max(dot(v, toEye), 0.0f), mat.Specular.w);<br>                    <br>        diffuse = diffuseFactor * mat.Diffuse * L.Diffuse;<br>        spec    = specFactor * mat.Specular * L.Specular;<br>    }<br>}<br></pre>
+<h3>Point Light Shader</h3>
+<pre class="csharpcode"><span class="kwrd">void</span> ComputePointLight(Material mat, PointLight L, float3 pos, float3 normal, float3 toEye,<br>                   <span class="kwrd">out</span> float4 ambient, <span class="kwrd">out</span> float4 diffuse, <span class="kwrd">out</span> float4 spec)<br>{<br>    <span class="rem">// Initialize outputs.</span><br>    ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);<br><br>    <span class="rem">// The vector from the surface to the light.</span><br>    float3 lightVec = L.Position - pos;<br>        <br>    <span class="rem">// The distance from surface to light.</span><br>    <span class="kwrd">float</span> d = length(lightVec);<br>    <br>    <span class="rem">// Range test.</span><br>    <span class="kwrd">if</span>( d &gt; L.Range )<br>        <span class="kwrd">return</span>;<br>        <br>    <span class="rem">// Normalize the light vector.</span><br>    lightVec /= d; <br>    <br>    <span class="rem">// Ambient term.</span><br>    ambient = mat.Ambient * L.Ambient;    <br><br>    <span class="rem">// Add diffuse and specular term, provided the surface is in </span><br>    <span class="rem">// the line of site of the light.</span><br><br>    <span class="kwrd">float</span> diffuseFactor = dot(lightVec, normal);<br><br>    <span class="rem">// Flatten to avoid dynamic branching.</span><br>    [flatten]<br>    <span class="kwrd">if</span>( diffuseFactor &gt; 0.0f )<br>    {<br>        float3 v         = reflect(-lightVec, normal);<br>        <span class="kwrd">float</span> specFactor = pow(max(dot(v, toEye), 0.0f), mat.Specular.w);<br>                    <br>        diffuse = diffuseFactor * mat.Diffuse * L.Diffuse;<br>        spec    = specFactor * mat.Specular * L.Specular;<br>    }<br><br>    <span class="rem">// Attenuate</span><br>    <span class="kwrd">float</span> att = 1.0f / dot(L.Att, float3(1.0f, d, d*d));<br><br>    diffuse *= att;<br>    spec    *= att;<br>}<br></pre>
+<h3>Spot Light Shader</h3>
+<pre class="csharpcode"><span class="kwrd">void</span> ComputeSpotLight(Material mat, SpotLight L, float3 pos, float3 normal, float3 toEye,<br>                  <span class="kwrd">out</span> float4 ambient, <span class="kwrd">out</span> float4 diffuse, <span class="kwrd">out</span> float4 spec)<br>{<br>    <span class="rem">// Initialize outputs.</span><br>    ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);<br><br>    <span class="rem">// The vector from the surface to the light.</span><br>    float3 lightVec = L.Position - pos;<br>        <br>    <span class="rem">// The distance from surface to light.</span><br>    <span class="kwrd">float</span> d = length(lightVec);<br>    <br>    <span class="rem">// Range test.</span><br>    <span class="kwrd">if</span>( d &gt; L.Range )<br>        <span class="kwrd">return</span>;<br>        <br>    <span class="rem">// Normalize the light vector.</span><br>    lightVec /= d; <br>    <br>    <span class="rem">// Ambient term.</span><br>    ambient = mat.Ambient * L.Ambient;    <br><br>    <span class="rem">// Add diffuse and specular term, provided the surface is in </span><br>    <span class="rem">// the line of site of the light.</span><br><br>    <span class="kwrd">float</span> diffuseFactor = dot(lightVec, normal);<br><br>    <span class="rem">// Flatten to avoid dynamic branching.</span><br>    [flatten]<br>    <span class="kwrd">if</span>( diffuseFactor &gt; 0.0f )<br>    {<br>        float3 v         = reflect(-lightVec, normal);<br>        <span class="kwrd">float</span> specFactor = pow(max(dot(v, toEye), 0.0f), mat.Specular.w);<br>                    <br>        diffuse = diffuseFactor * mat.Diffuse * L.Diffuse;<br>        spec    = specFactor * mat.Specular * L.Specular;<br>    }<br>    <br>    <span class="rem">// Scale by spotlight factor and attenuate.</span><br>    <span class="kwrd">float</span> spot = pow(max(dot(-lightVec, L.Direction), 0.0f), L.Spot);<br><br>    <span class="rem">// Scale by spotlight factor and attenuate.</span><br>    <span class="kwrd">float</span> att = spot / dot(L.Att, float3(1.0f, d, d*d));<br><br>    ambient *= spot;<br>    diffuse *= att;<br>    spec    *= att;<br>}<br></pre>
+<h3>Next Time…</h3>
+<p>Whew…&nbsp; That was a lot of math and theory.&nbsp; Still, I’ve only done the briefest overview here, so I would encourage you to bone up and actually read the chapter if any of that went over your head.&nbsp; Next time around, we’ll get to actually implementing the demo and getting our beautifully lit pixels up on the screen.</p>
