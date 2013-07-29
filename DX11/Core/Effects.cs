@@ -42,6 +42,12 @@ namespace Core {
         public EffectTechnique Light2Tech;
         public EffectTechnique Light3Tech;
 
+        public EffectTechnique Light0TexTech;
+        public EffectTechnique Light1TexTech;
+        public EffectTechnique Light2TexTech;
+        public EffectTechnique Light3TexTech;
+
+        
         private EffectMatrixVariable WorldViewProj;
         private EffectMatrixVariable World;
         private EffectMatrixVariable WorldInvTranspose;
@@ -49,16 +55,27 @@ namespace Core {
         private EffectVariable DirLights;
         private EffectVariable Mat;
 
+        private EffectResourceVariable DiffuseMap;
+        private EffectMatrixVariable TexTransform;
+
         public BasicEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
             Light2Tech = FX.GetTechniqueByName("Light2");
             Light3Tech = FX.GetTechniqueByName("Light3");
+
+            Light0TexTech = FX.GetTechniqueByName("Light0Tex");
+            Light1TexTech = FX.GetTechniqueByName("Light1Tex");
+            Light2TexTech = FX.GetTechniqueByName("Light2Tex");
+            Light3TexTech = FX.GetTechniqueByName("Light3Tex");
+
             WorldViewProj = FX.GetVariableByName("gWorldViewProj").AsMatrix();
             World = FX.GetVariableByName("gWorld").AsMatrix();
             WorldInvTranspose = FX.GetVariableByName("gWorldInvTranspose").AsMatrix();
+            TexTransform = FX.GetVariableByName("gTexTransform").AsMatrix();
             EyePosW = FX.GetVariableByName("gEyePosW").AsVector();
             DirLights = FX.GetVariableByName("gDirLights");
             Mat = FX.GetVariableByName("gMaterial");
+            DiffuseMap = FX.GetVariableByName("gDiffuseMap").AsResource();
             
         }
         public void SetWorldViewProj(Matrix m) {
@@ -86,6 +103,14 @@ namespace Core {
         public void SetMaterial(Material m) {
             var d = Util.GetArray(m);
             Mat.SetRawValue(new DataStream(d, false, false), d.Length);
+        }
+
+        public void SetTexTransform(Matrix m) {
+            TexTransform.SetMatrix(m);
+        }
+
+        public void SetDiffuseMap(ShaderResourceView tex) {
+            DiffuseMap.SetResource(tex);
         }
     }
 
