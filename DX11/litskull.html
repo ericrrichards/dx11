@@ -1,0 +1,107 @@
+﻿<p>This time, we are going to take the scene that we used for the <a href="http://richardssoftware.blogspot.com/2013/07/shapes-demo-with-direct3d11-and-slimdx.html" target="_blank">Shapes Demo</a>, and apply a three-point lighting shader.&nbsp; We’ll replace the central sphere from the scene with the skull model that we loaded from a file in the <a href="http://richardssoftware.blogspot.com/2013/07/loading-mesh-from-file-skull-demo.html" target="_blank">Skull Demo</a>, to make the scene a little more interesting.&nbsp; We will also do some work encapsulating our shader in a C# class, as we will be using this shader effect as a basis that we will extend when we look at texturing, blending and other effects.&nbsp; As always, the full code for this example can be found at my Github repository <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>; the project for this example can be found in the DX11 solution under Examples/LitSkull.</p>
+<table cellspacing="0" cellpadding="2" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+                <p><a href="http://lh4.ggpht.com/-qb1w3TVpsXE/UfFYEMtO9XI/AAAAAAAAC28/nAYKVsWjAvA/s1600-h/litskull12.png">
+                    <img title="litskull1" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="litskull1" src="http://lh6.ggpht.com/-r34IVdKotuU/UfFYEhW-TuI/AAAAAAAAC3E/ODv2vdLlF4E/litskull1_thumb.png?imgmax=800" width="244" height="190"></a> </p>
+            </td>
+            <td valign="top">
+                <p><a href="http://lh5.ggpht.com/-1dcyN6f7iZo/UfFYFGwLtfI/AAAAAAAAC3M/c0bhDskVL00/s1600-h/litskull22.png">
+                    <img title="litskull2" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="litskull2" src="http://lh4.ggpht.com/-u0_a6KXOV7I/UfFYFtswgOI/AAAAAAAAC3U/yAEv-PuaTS0/litskull2_thumb.png?imgmax=800" width="244" height="190"></a> </p>
+            </td>
+            <td valign="top">
+                <p><a href="http://lh6.ggpht.com/-NKru2uWzw0s/UfFYF0mdm5I/AAAAAAAAC3c/QGB4xQLPUo4/s1600-h/litskull32.png">
+                    <img title="litskull3" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="litskull3" src="http://lh3.ggpht.com/-XRSP64eNgDs/UfFYGRgsfnI/AAAAAAAAC3k/d4ZBiAMt65I/litskull3_thumb.png?imgmax=800" width="244" height="190"></a> </p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top"><small>Rendering the LitSkull scene with 1 light (key lit)</small></td>
+            <td valign="top"><small>Rendering the LitSkull scene with 2 lights (key and fill lit)</small></td>
+            <td valign="top"><small>Rendering the LitSkull scene with 3 lights (key, fill and back lit)</small></td>
+        </tr>
+    </tbody>
+</table>
+<!--more-->
+<p>We'll start be writing our shader effect.&nbsp; We will make use of the light and material structures and the light computation functions that we <a href="http://richardssoftware.blogspot.com/2013/07/lighting-take-1.html" target="_blank">previously</a> defined in LightHelper.fx.&nbsp; We will support up to three directional lights, and provide three different techniques; one using just the first light, one using two lights, and one using all three lights.&nbsp; We select the number of lights to use in the pixel shader by passing in the uniform parameter gLightCount.</p>
+<pre class="csharpcode">#include <span class="str">"LightHelper.fx"</span><br> <br>cbuffer cbPerFrame<br>{<br>    DirectionalLight gDirLights[3];<br>    float3 gEyePosW;<br>};<br><br>cbuffer cbPerObject<br>{<br>    float4x4 gWorld;<br>    float4x4 gWorldInvTranspose;<br>    float4x4 gWorldViewProj;<br>    Material gMaterial;<br>}; <br><br><span class="kwrd">struct</span> VertexIn<br>{<br>    float3 PosL    : POSITION;<br>    float3 NormalL : NORMAL;<br>};<br><br><span class="kwrd">struct</span> VertexOut<br>{<br>    float4 PosH    : SV_POSITION;<br>    float3 PosW    : POSITION;<br>    float3 NormalW : NORMAL;<br>};<br><br>VertexOut VS(VertexIn vin)<br>{<br>    VertexOut vout;<br>    <br>    <span class="rem">// Transform to world space space.</span><br>    vout.PosW    = mul(float4(vin.PosL, 1.0f), gWorld).xyz;<br>    vout.NormalW = mul(vin.NormalL, (float3x3)gWorldInvTranspose);<br>        <br>    <span class="rem">// Transform to homogeneous clip space.</span><br>    vout.PosH = mul(float4(vin.PosL, 1.0f), gWorldViewProj);<br>    <br>    <span class="kwrd">return</span> vout;<br>}<br> <br>float4 PS(VertexOut pin, uniform <span class="kwrd">int</span> gLightCount) : SV_Target<br>{<br>    <span class="rem">// Interpolating normal can unnormalize it, so normalize it.</span><br>    pin.NormalW = normalize(pin.NormalW);<br><br>    <span class="rem">// The toEye vector is used in lighting.</span><br>    float3 toEye = gEyePosW - pin.PosW;<br><br>    <span class="rem">// Cache the distance to the eye from this surface point.</span><br>    <span class="kwrd">float</span> distToEye = length(toEye); <br><br>    <span class="rem">// Normalize.</span><br>    toEye /= distToEye;<br>    <br>    <span class="rem">//</span><br>    <span class="rem">// Lighting.</span><br>    <span class="rem">//</span><br><br><br>    <span class="rem">// Start with a sum of zero. </span><br>    float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);<br>    float4 spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);<br><br>    <span class="rem">// Sum the light contribution from each light source.  </span><br>    [unroll]<br>    <span class="kwrd">for</span>(<span class="kwrd">int</span> i = 0; i &lt; gLightCount; ++i)<br>    {<br>        float4 A, D, S;<br>        ComputeDirectionalLight(gMaterial, gDirLights[i], pin.NormalW, toEye, <br>            A, D, S);<br><br>        ambient += A;<br>        diffuse += D;<br>        spec    += S;<br>    }<br><br>    float4 litColor = ambient + diffuse + spec;<br><br>    <span class="rem">// Common to take alpha from diffuse material.</span><br>    litColor.a = gMaterial.Diffuse.a;<br><br>    <span class="kwrd">return</span> litColor;<br>}<br><br>technique11 Light1<br>{<br>    pass P0<br>    {<br>        SetVertexShader( CompileShader( vs_4_0, VS() ) );<br>        SetGeometryShader( NULL );<br>        SetPixelShader( CompileShader( ps_4_0, PS(1) ) );<br>    }<br>}<br><br>technique11 Light2<br>{<br>    pass P0<br>    {<br>        SetVertexShader( CompileShader( vs_4_0, VS() ) );<br>        SetGeometryShader( NULL );<br>        SetPixelShader( CompileShader( ps_4_0, PS(2) ) );<br>    }<br>}<br><br>technique11 Light3<br>{<br>    pass P0<br>    {<br>        SetVertexShader( CompileShader( vs_4_0, VS() ) );<br>        SetGeometryShader( NULL );<br>        SetPixelShader( CompileShader( ps_4_0, PS(3) ) );<br>    }<br>}<br></pre>
+<p>To make this shader easier to use, we are going to encapsulate it in a C# class.&nbsp; We’ll begin by creating a base class, that we can use for all of the shaders that we will create going forward.&nbsp; This base class will just contain the SlimDX Effect class, which will be created in the constructor using the passed-in Device and filename.&nbsp; We will also use our Disposable class (covered in <a href="http://richardssoftware.blogspot.com/2013/07/directx-11-initialization-with-slimdx.html" target="_blank">DirectX 11 Initialization with SlimDX</a>) as a base for this Effect class, so that we can easily and cleanly dispose of the Effect COM pointer.&nbsp; We declare the class as abstract to prevent this class from being used directly; without any public access to the Effect member, creating an instance of this class would be pretty useless.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">class</span> Effect : DisposableClass {<br>    <span class="kwrd">protected</span> SlimDX.Direct3D11.Effect FX;<br>    <span class="kwrd">private</span> <span class="kwrd">bool</span> _disposed;<br>    <span class="kwrd">protected</span> Effect(Device device, <span class="kwrd">string</span> filename) {<br>        ShaderBytecode compiledShader = <span class="kwrd">null</span>;<br>        <span class="kwrd">try</span> {<br>            compiledShader = <span class="kwrd">new</span> ShaderBytecode(<span class="kwrd">new</span> DataStream(File.ReadAllBytes(filename), <span class="kwrd">false</span>, <span class="kwrd">false</span>));<br>            FX = <span class="kwrd">new</span> SlimDX.Direct3D11.Effect(device, compiledShader);<br>        } <span class="kwrd">catch</span> (Exception ex) {<br>            MessageBox.Show(ex.Message);<br>        } <span class="kwrd">finally</span> {<br>            Util.ReleaseCom(compiledShader);<br>        }<br>    }<br>    <span class="kwrd">protected</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Dispose(<span class="kwrd">bool</span> disposing) {<br>        <span class="kwrd">if</span> (!_disposed) {<br>            <span class="kwrd">if</span> (disposing) {<br>                Util.ReleaseCom(FX);<br>            }<br>            _disposed = <span class="kwrd">true</span>;<br>        }<br>        <span class="kwrd">base</span>.Dispose(disposing);<br>    }<br>}<br></pre>
+<p>Now, we create the subclass for our shader effect, which we will call BasicEffect.&nbsp; This is inspired by the <a href="http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.graphics.basiceffect.aspx" target="_blank">XNA BasicEffect</a> class, which provides most of the functionality that we will eventually add to our Basic.fx shader.&nbsp; We will cache the pointers to our shader techniques and constant buffer variables, and provide methods to set the constant’s values.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> BasicEffect : Effect {<br>    <span class="kwrd">public</span> EffectTechnique Light1Tech;<br>    <span class="kwrd">public</span> EffectTechnique Light2Tech;<br>    <span class="kwrd">public</span> EffectTechnique Light3Tech;<br><br>    <span class="kwrd">private</span> EffectMatrixVariable WorldViewProj;<br>    <span class="kwrd">private</span> EffectMatrixVariable World;<br>    <span class="kwrd">private</span> EffectMatrixVariable WorldInvTranspose;<br>    <span class="kwrd">private</span> EffectVectorVariable EyePosW;<br>    <span class="kwrd">private</span> EffectVariable DirLights;<br>    <span class="kwrd">private</span> EffectVariable Mat;<br><br>    <span class="kwrd">public</span> BasicEffect(Device device, <span class="kwrd">string</span> filename) : <span class="kwrd">base</span>(device, filename) {<br>        Light1Tech = FX.GetTechniqueByName(<span class="str">"Light1"</span>);<br>        Light2Tech = FX.GetTechniqueByName(<span class="str">"Light2"</span>);<br>        Light3Tech = FX.GetTechniqueByName(<span class="str">"Light3"</span>);<br>        WorldViewProj = FX.GetVariableByName(<span class="str">"gWorldViewProj"</span>).AsMatrix();<br>        World = FX.GetVariableByName(<span class="str">"gWorld"</span>).AsMatrix();<br>        WorldInvTranspose = FX.GetVariableByName(<span class="str">"gWorldInvTranspose"</span>).AsMatrix();<br>        EyePosW = FX.GetVariableByName(<span class="str">"gEyePosW"</span>).AsVector();<br>        DirLights = FX.GetVariableByName(<span class="str">"gDirLights"</span>);<br>        Mat = FX.GetVariableByName(<span class="str">"gMaterial"</span>);<br>            <br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">void</span> SetWorldViewProj(Matrix m) {<br>        WorldViewProj.SetMatrix(m);<br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">void</span> SetWorld(Matrix m) {<br>        World.SetMatrix(m);<br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">void</span> SetWorldInvTranspose(Matrix m) {<br>        WorldInvTranspose.SetMatrix(m);<br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">void</span> SetEyePosW(Vector3 v) {<br>        EyePosW.Set(v);<br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">void</span> SetDirLights(DirectionalLight[] lights) {<br>        System.Diagnostics.Debug.Assert(lights.Length &lt;= 3, <span class="str">"BasicEffect only supports up to 3 lights"</span>);<br>        var array = <span class="kwrd">new</span> List&lt;<span class="kwrd">byte</span>&gt;();<br>        <span class="kwrd">foreach</span> (var light <span class="kwrd">in</span> lights) {<br>            var d = Util.GetArray(light);<br>            array.AddRange(d);<br>        }<br><br>        DirLights.SetRawValue(<span class="kwrd">new</span> DataStream(array.ToArray(), <span class="kwrd">false</span>, <span class="kwrd">false</span>), array.Count);<br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">void</span> SetMaterial(Material m) {<br>        var d = Util.GetArray(m);<br>        Mat.SetRawValue(<span class="kwrd">new</span> DataStream(d, <span class="kwrd">false</span>, <span class="kwrd">false</span>), d.Length);<br>    }<br>}<br></pre>
+<p>We will also create a static class called Effects, which will hold global instances of any shaders that we develop.&nbsp; Right now, we will only have our BasicEffect, but later on, we will develop other shaders for different effects.&nbsp; Global variables are generally considered poor practice, but this is a reasonable candidate, as we will only want to instantiate a single instance of each shader type, and as we delve into more complicated examples, we may end up having our drawing code broken up across different functions, so that it will be simpler to use a global, rather than creating the effect in our main class and passing it around.&nbsp; This also gives us a central point to manage the lifecycle of our shader objects, which we can create with the InitAll() function after we have created the Device, and clean up using the DestroyAll() function.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">class</span> Effects {<br>    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> InitAll(Device device) {<br>        BasicFX = <span class="kwrd">new</span> BasicEffect(device, <span class="str">"FX/Basic.fxo"</span>);<br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> DestroyAll() {<br>        BasicFX.Dispose();<br>        BasicFX = <span class="kwrd">null</span>;<br>    }<br><br>    <span class="kwrd">public</span> <span class="kwrd">static</span> BasicEffect BasicFX;<br>}<br></pre>
+<p>In a similar fashion, we will also centralize our InputLayouts for our various vertex formats using a static InputLayouts class.&nbsp; We will additionally create a static class to hold our InputElement arrays for each vertex structure.&nbsp; I was tempted to remove this class, and instead add the InputElement[] as a public static readonly member of the relevant vertex structure, but for the moment, I am following Mr. Luna’s example and using this static class.&nbsp; I suppose if we develop a shader which uses the same vertex format but different semantics, this would be the more flexible method in that case. </p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">class</span> InputLayoutDescriptions {<br>    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> InputElement[] PosNormal = <span class="kwrd">new</span>[] {<br>        <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),<br>        <span class="kwrd">new</span> InputElement(<span class="str">"NORMAL"</span>, 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), <br>    };<br>}<br><span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">class</span> InputLayouts {<br>    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> InitAll(Device device) {<br>        var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;<br>        PosNormal = <span class="kwrd">new</span> InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);<br><br>    }<br>    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> DestroyAll() {<br>        Util.ReleaseCom(PosNormal);<br>    }<br><br>    <span class="kwrd">public</span> <span class="kwrd">static</span> InputLayout PosNormal;<br>}<br></pre>
+<p>With this foundational work completed, we can move on to implement our demo application.&nbsp; We will use the Shape Demo as our starting point.&nbsp; The changes that we make to add lighting will be very similar to those we performed in the previous lighting demo.&nbsp; We will need to define our lights and materials in our constructor, as we did in the <a href="http://richardssoftware.blogspot.com/2013/07/lit-terrain-demo.html" target="_blank">LitTerrain Demo</a>.&nbsp; Our Init() function will change pretty significantly: we will create our effect using our new Effects.InitAll() function after we have created the device, and then initialize our global InputLayouts with its InitAll() function.&nbsp; We must do this after the BasicEffect has been created, as we will need the effect pass signature to get the appropriate semantics to bind to.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">bool</span> Init() {<br>    <span class="kwrd">if</span> (!<span class="kwrd">base</span>.Init()) {<br>        <span class="kwrd">return</span> <span class="kwrd">false</span>;<br>    }<br>    Effects.InitAll(Device);<br>    _fx =  Effects.BasicFX;<br>    InputLayouts.InitAll(Device);<br><br>    BuildShapeGeometryBuffers();<br>    BuildSkullGeometryBuffers();<br><br>    Window.KeyDown += SwitchLights;<br><br>    <span class="kwrd">return</span> <span class="kwrd">true</span>;<br>}<br></pre>
+<p>We will also add functionality to this demo to allow the user to switch between using 1, 2, or 3 lights using their keyboard.&nbsp; To do this, we need to add an event handler to our main application form to handle key down events, SwitchLights.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> SwitchLights(<span class="kwrd">object</span> sender, KeyEventArgs e) {<br>    <span class="kwrd">switch</span> (e.KeyCode) {<br>        <span class="kwrd">case</span> Keys.D0:<br>            _lightCount = 0;<br>            <span class="kwrd">break</span>;<br>        <span class="kwrd">case</span> Keys.D1:<br>            _lightCount = 1;<br>            <span class="kwrd">break</span>;<br>        <span class="kwrd">case</span> Keys.D2:<br>            _lightCount = 2;<br>            <span class="kwrd">break</span>;<br>        <span class="kwrd">case</span> Keys.D3:<br>            _lightCount = 3;<br>            <span class="kwrd">break</span>;<br>    }<br>}</pre>
+<p>Beyond that, there is not much to change from our base examples.&nbsp; You will need to set the appropriate shader variables in DrawScene, but that should be simple, after our <a href="http://richardssoftware.blogspot.com/2013/07/lit-terrain-demo.html" target="_blank">last demo</a>.</p>
+<p>That wraps up our demos for Chapter 7.&nbsp; Next time, we’ll move onto Chapter 8 and start adding textures to our objects.</p>
+<style type="text/css">
+    .csharpcode, .csharpcode pre
+    {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+    }
+
+        .csharpcode pre
+        {
+            margin: 0em;
+        }
+
+        .csharpcode .rem
+        {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd
+        {
+            color: #0000ff;
+        }
+
+        .csharpcode .str
+        {
+            color: #006080;
+        }
+
+        .csharpcode .op
+        {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc
+        {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp
+        {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html
+        {
+            color: #800000;
+        }
+
+        .csharpcode .attr
+        {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt
+        {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum
+        {
+            color: #606060;
+        }
+</style>
