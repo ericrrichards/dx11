@@ -293,7 +293,7 @@ namespace LightingDemo {
             var n = new Vector3(
                 -0.03f*z*MathF.Cos(0.1f*x) - 0.3f*MathF.Cos(0.1f*z), 
                 1.0f,
-                0.3f*MathF.Sin(0.1f*x) + 0.03f*x*MathF.Sin(0.1f*z)
+                -0.3f*MathF.Sin(0.1f*x) + 0.03f*x*MathF.Sin(0.1f*z)
                 );
             n.Normalize();
 
