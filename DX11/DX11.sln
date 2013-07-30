@@ -15,6 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShapesDemo", "ShapesDemo\Sh
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{177C5CB8-FF8B-4CBC-9D3F-25878D8E7501}"
 	ProjectSection(SolutionItems) = preProject
+		crate.html = crate.html
 		..\LICENSE.txt = ..\LICENSE.txt
 		litskull.html = litskull.html
 		..\README.md = ..\README.md

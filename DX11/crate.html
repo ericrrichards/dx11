@@ -1,0 +1,219 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre
+    {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre
+        {
+            margin: 0em;
+        }
+
+        .csharpcode .rem
+        {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd
+        {
+            color: #0000ff;
+        }
+
+        .csharpcode .str
+        {
+            color: #006080;
+        }
+
+        .csharpcode .op
+        {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc
+        {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp
+        {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html
+        {
+            color: #800000;
+        }
+
+        .csharpcode .attr
+        {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt
+        {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum
+        {
+            color: #606060;
+        }
+</style>
+<p>This time around, we are going to begin with a simple texturing example.&nbsp; We’ll draw a simple cube, and apply a crate-style texture to it.&nbsp; We’ll need to make some changes to our Basic.fx shader code, as well as the C# wrapper class, BasicEffect.&nbsp; Lastly, we’ll need to create a new vertex structure, which will contain, in addition to the position and normal information we have been using, a uv texture coordinate.&nbsp; If you are following along in <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Mr. Luna’s book</a>, this would be Chapter 8, the Crate Demo.&nbsp; You can see my full code for the demo at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>, under DX11/CrateDemo.</p>
+<a href="http://lh4.ggpht.com/-7wO2flBnjus/UfZLVrxLNgI/AAAAAAAAC4Q/AVVMb0CHXWg/s1600-h/crate%25255B3%25255D.png"><img title="crate" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="crate" src="http://lh3.ggpht.com/-UKUAuKApF3I/UfZLW0VFkbI/AAAAAAAAC4Y/XfxSLmuQwbs/crate_thumb%25255B1%25255D.png?imgmax=800" width="617" height="484"></a>
+
+<!--more-->
+<p>First, let’s define our new vertex structure.&nbsp; As I mentioned, this will now contain two Vector3’s and a Vector2, for the position, normal, and uv texture coordinates, which gives us a stride of 32 bytes.</p>
+<pre class="csharpcode">[StructLayout(LayoutKind.Sequential)]
+<span class="kwrd">public</span> <span class="kwrd">struct</span> Basic32 {
+    <span class="kwrd">public</span> Vector3 Position;
+    <span class="kwrd">public</span> Vector3 Normal;
+    <span class="kwrd">public</span> Vector2 Tex;
+
+    <span class="kwrd">public</span> Basic32(Vector3 position, Vector3 normal, Vector2 texC) {
+        Position = position;
+        Normal = normal;
+        Tex = texC;
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">static readonly</span> <span class="kwrd">int</span> Stride = Marshal.SizeOf(typeof(Basic32));
+}</pre>
+<p>We will also need to add this new vertex format to our global InputLayouts class.&nbsp; I’ve had to add a little more work to the InitAll function, as I want to be able to support both this updated version of Basic.fx, which supports texturing, without breaking or having to rewrite our previous lighting examples.&nbsp; When you run this CrateDemo, you should see a message logged to the console complaining that the PosNormal InputElement[] does not have a TEXCOORD element defined.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> InputLayoutDescriptions {
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> InputElement[] PosNormal = {
+        <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+        <span class="kwrd">new</span> InputElement(<span class="str">"NORMAL"</span>, 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
+    };
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> InputElement[] Basic32 = {
+        <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+        <span class="kwrd">new</span> InputElement(<span class="str">"NORMAL"</span>, 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
+        <span class="kwrd">new</span> InputElement(<span class="str">"TEXCOORD"</span>, 0, Format.R32G32_Float, 24, 0, InputClassification.PerVertexData, 0), 
+    };
+}
+<span class="kwrd">public</span> <span class="kwrd">class</span> InputLayouts {
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> InitAll(Device device) {
+        var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
+        <span class="kwrd">try</span> {
+            PosNormal = <span class="kwrd">new</span> InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
+        } <span class="kwrd">catch</span> (Direct3D11Exception dex) {
+            Console.WriteLine(dex.Message);
+            PosNormal = <span class="kwrd">null</span>;
+        }
+        <span class="kwrd">try</span> {
+        Basic32 = <span class="kwrd">new</span> InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
+        } <span class="kwrd">catch</span> (Direct3D11Exception dex) {
+            Console.WriteLine(dex.Message);
+            Basic32 = <span class="kwrd">null</span>;
+        }
+    }
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> DestroyAll() {
+        Util.ReleaseCom( ref PosNormal);
+        Util.ReleaseCom(ref Basic32);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">static</span> InputLayout PosNormal;
+    <span class="kwrd">public</span> <span class="kwrd">static</span> InputLayout Basic32;
+}</pre>
+<h3>Updated Basic.fx</h3>
+<p>We will need to add a couple of new shader constants to our Basic.fx file.&nbsp; First, we will add a Texture2D element called gDiffuseMap.&nbsp; We have to add this variable outside of our constant buffers.&nbsp; I would imagine that this is because our texture, which is essentially just a 2D array of 4D vectors, can be variably sized, depending on the dimensions of the texture we upload, and our constant buffers are fixed size.&nbsp; Next, we will add an additional per-object matrix, gTexTransform, which we will use to transform the texture coordinates of our vertices in the vertex shader.&nbsp; In this way, we can animate the texture mapped onto our triangles, or scale our textures to tile more effectively based on view distance, for instance.&nbsp; We also need to define a SamplerState, which will control how we sample a texel from our diffuse map in our pixel shader.&nbsp; There are a large number of options and different combinations that you may use (see <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ff476207(v=vs.85).aspx" target="_blank">D3D11_SAMPLER_DESC</a> for discussion of the options), but we will be using <a href="http://en.wikipedia.org/wiki/Anisotropic_filtering" target="_blank">anisotropic filtering</a>, and specifying an address mode that will repeat our texture if the coordinates exceed the [0,1] range.&nbsp; </p>
+<pre class="csharpcode">cbuffer cbPerObject
+{
+    <span class="rem">// Previous per-object constants omitted</span>
+    float4x4 gTexTransform;
+}; 
+
+<span class="rem">// Nonnumeric values cannot be added to a cbuffer.</span>
+Texture2D gDiffuseMap;
+
+SamplerState samAnisotropic
+{
+    Filter = ANISOTROPIC;
+    MaxAnisotropy = 4;
+
+    AddressU = WRAP;
+    AddressV = WRAP;
+};</pre>
+
+
+<h3>Shader</h3>
+<pre class="csharpcode">VertexOut VS(VertexIn vin)
+{
+    VertexOut vout;    
+    <span class="rem">// Transform position and normal as before...</span>
+    
+    <span class="rem">// Output vertex attributes for interpolation across triangle.</span>
+    vout.Tex = mul(float4(vin.Tex, 0.0f, 1.0f), gTexTransform).xy;
+
+    <span class="kwrd">return</span> vout;
+}
+ 
+float4 PS(VertexOut pin, uniform <span class="kwrd">int</span> gLightCount, uniform <span class="kwrd">bool</span> gUseTexure) : SV_Target
+{
+    <span class="rem">// Calculate to-eye vector as before...</span>
+
+    <span class="rem">// Default to multiplicative identity.</span>
+    float4 texColor = float4(1, 1, 1, 1);
+    <span class="kwrd">if</span>(gUseTexure)
+    {
+        <span class="rem">// Sample texture.</span>
+        texColor = gDiffuseMap.Sample( samAnisotropic, pin.Tex );
+    }     
+    <span class="rem">//</span>
+    <span class="rem">// Lighting.</span>
+    <span class="rem">//</span>
+    float4 litColor = texColor;
+    <span class="kwrd">if</span>( gLightCount &gt; 0  )
+    {  
+        <span class="rem">// Sum the light contribution from each light source, </span><span class="rem">as before...</span>
+
+        <span class="rem">// Modulate with late add.</span>
+        litColor = texColor*(ambient + diffuse) + spec;
+    }
+    <span class="rem">// Common to take alpha from diffuse material and texture.</span>
+    litColor.a = gMaterial.Diffuse.a * texColor.a;
+
+    <span class="kwrd">return</span> litColor;
+}</pre>
+<h3>Updating BasicEffect</h3>
+<p>To reflect the changes we have made to Basic.fx, we will need to add some additional EffectVariables to our BasicEffect class, along with setter functions for the new variables.&nbsp; We’ll also add handles to the new lit &amp; textured techniques that we have added to our effect.&nbsp; The new member variables and their setters are:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> EffectTechnique Light0TexTech;
+<span class="kwrd">public</span> EffectTechnique Light1TexTech;
+<span class="kwrd">public</span> EffectTechnique Light2TexTech;
+<span class="kwrd">public</span> EffectTechnique Light3TexTech;
+
+<span class="kwrd">private</span> EffectResourceVariable DiffuseMap;
+<span class="kwrd">private</span> EffectMatrixVariable TexTransform;
+
+<span class="kwrd">public</span> <span class="kwrd">void</span> SetTexTransform(Matrix m) {
+    TexTransform.SetMatrix(m);
+}
+
+<span class="kwrd">public</span> <span class="kwrd">void</span> SetDiffuseMap(ShaderResourceView tex) {
+    DiffuseMap.SetResource(tex);
+}</pre>
+<h3>Crate Demo</h3>
+<p>The actual implementation of the CrateDemo is very similar to our original <a href="http://richardssoftware.blogspot.com/2013/07/a-colored-cube-in-directx-11-and-slimdx.html" target="_blank">BoxDemo</a>.&nbsp; We will need to set up our lights and the material for our crate, so that we can properly light the scene, but that should be easy to understand after the last two lighting demos.&nbsp; Building the geometry for our crate should also be very understandable, as we will make use of our GeometryGenerator class, which has a function to create a 3D box with position, normal and texture coordinates for us already.&nbsp; In fact, the only new element comes in our Init() function, where we need to load the texture that we wish to apply into a ShaderResourceView, which can be bound to our gDiffuseMap shader texture.&nbsp; DX11 makes this very easy to do, using the D3DX11CreateShaderResourceViewFromFile() function, which is wrapped in SlimDX as the static factory method ShaderResourceView.FromFile().</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">bool</span> Init() {
+    <span class="kwrd">if</span> (!<span class="kwrd">base</span>.Init()) <span class="kwrd">return</span> <span class="kwrd">false</span>;
+
+    Effects.InitAll(Device);
+    _fx = Effects.BasicFX;
+    InputLayouts.InitAll(Device);
+
+    _diffuseMapSRV = ShaderResourceView.FromFile(Device, <span class="str">"Textures/WoodCrate01.dds"</span>) ;
+
+    BuildGeometryBuffers();
+    <span class="kwrd">return</span> <span class="kwrd">true</span>;
+}</pre>
+<p>To draw our crate, we follow the same procedure as before, being sure to set our new shader variables before we render the box, and voila, we have a nice textured crate, just waiting for somebody to smash it open with a crowbar to get at the health or ammo powerup inside…</p>
+<a href="http://lh4.ggpht.com/-zpw5lxDWdJw/UfcYJLTw-jI/AAAAAAAAC4o/Mkvmth4nSQw/s1600-h/crate2%25255B3%25255D.png">
+    <img title="crate2" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="crate2" src="http://lh6.ggpht.com/-UriwRDXLhS4/UfcYKNTy1kI/AAAAAAAAC4w/UAVrK8v_hW8/crate2_thumb%25255B1%25255D.png?imgmax=800" width="617" height="484">
+</a>
+<h3>Next time…</h3>
+<p>We’ll return to our old friend, the <a href="http://richardssoftware.blogspot.com/2013/07/hills-demo-with-slimdx-and-c.html" target="_blank">Hills</a>/<a href="http://richardssoftware.blogspot.com/2013/07/dynamic-vertex-buffers-waves-demo.html" target="_blank">Waves</a> <a href="http://richardssoftware.blogspot.com/2013/07/lit-terrain-demo.html" target="_blank">demo</a>, and add some textures to our land and water meshes.&nbsp; We’ll play with some different effects using the texture coordinate transform matrix that we mentioned earlier to implement tiling and animation.</p>
