@@ -56,6 +56,7 @@
     <Compile Include="Lights.cs" />
     <Compile Include="MathF.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TextureAtlas.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Vertex.cs" />
     <Compile Include="Waves.cs" />
