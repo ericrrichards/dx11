@@ -1,0 +1,194 @@
+﻿<p>
+    This time around, we are going to revisit our old friend, the <a href="http://richardssoftware.blogspot.com/2013/07/dynamic-vertex-buffers-waves-demo.html" target="_blank">Waves Demo</a>, and add textures to the land and water meshes.&nbsp; We will also be taking advantage of the gTexTransform matrix of our Basic.fx shader to tile our land texture multiple times across our mesh, to achieve more detail, and use tiling and translations on on our water mesh texture to create a simple but very visually appealing animation for our waves.&nbsp; This demo corresponds to the TexturedHillsAndWaves demo from Chapter 8 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>.&nbsp; You can download the full source for this example from my GitHub repository at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>.
+</p>
+<p>
+    Here is a still of our finished project this time:
+</p>
+<p>
+    <a href="http://lh4.ggpht.com/-JvtPvdZtTWc/UfltQuaol_I/AAAAAAAAC5A/iKmarJFX_ZE/s1600-h/texHills%25255B3%25255D.png">
+        <img title="texHills" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="texHills" src="http://lh6.ggpht.com/-vQLm7YdJTaA/UfltRfxDSpI/AAAAAAAAC5I/JUgCXuhc2uU/texHills_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484"></a>
+</p>
+<p>
+    I’m also going to try to upload a video of this demo in action, as the static screenshot doesn’t quite do justice:
+</p>
+<div id="scid:5737277B-5D6D-4f48-ABFC-DD9C333F4C5D:5ac39695-337e-4317-96d9-d1b854c4bc43" class="wlWriterEditableSmartContent" style="float: none; padding-bottom: 0px; padding-top: 0px; padding-left: 0px; margin: 0px; display: inline; padding-right: 0px">
+    <div id="0cd3956f-dbbf-4716-b815-b9e644e911b6" style="margin: 0px; padding: 0px; display: inline;">
+        <div>
+            <a href="http://www.youtube.com/watch?v=Xb5k3NxiPeo" target="_new">
+                <img src="http://lh5.ggpht.com/-B5-JAHSrh5Y/UfltR5R8KZI/AAAAAAAAC5M/0yElsYwxZIk/video59392fa701b3%25255B19%25255D.jpg?imgmax=800" style="border-style: none" galleryimg="no" onload="var downlevelDiv = document.getElementById('0cd3956f-dbbf-4716-b815-b9e644e911b6'); downlevelDiv.innerHTML = &quot;&lt;div&gt;&lt;object width=\&quot;425\&quot; height=\&quot;355\&quot;&gt;&lt;param name=\&quot;movie\&quot; value=\&quot;http://www.youtube.com/v/Xb5k3NxiPeo&amp;hl=en\&quot;&gt;&lt;\/param&gt;&lt;embed src=\&quot;http://www.youtube.com/v/Xb5k3NxiPeo&amp;hl=en\&quot; type=\&quot;application/x-shockwave-flash\&quot; width=\&quot;425\&quot; height=\&quot;355\&quot;&gt;&lt;\/embed&gt;&lt;\/object&gt;&lt;\/div&gt;&quot;;" alt=""></a>
+        </div>
+    </div>
+</div>
+<!--more-->
+<p>
+    There is actually not a great deal of change from our last iteration of this example, the <a href="http://richardssoftware.blogspot.com/2013/07/lit-terrain-demo.html" target="_blank">Lit Terrain Demo</a>.&nbsp; We will add the two new textures, as well as some member variables to control our water animation.&nbsp; We have already done the work to calculate the per-vertex texture coordinates for our meshes previously, although we did not highlight it at the time.&nbsp; Beyond that, we have merely to change our UpdateScene function to scroll the water texture, and be sure to set the correct texture effect variables in our DrawScene function.
+</p>
+<h3>New Members</h3>
+<p>
+    As I mentioned, we will be adding the two new textures as ShaderResourceViews.&nbsp; We will also need a matrix for each to transform the base texture coordinates of each mesh.&nbsp; Lastly, we will create a member to maintain the offset that we will scroll the water texture from frame to frame.
+</p>
+<pre class="csharpcode"><span class="kwrd">private</span> ShaderResourceView _grassMapSRV;
+<span class="kwrd">private</span> ShaderResourceView _wavesMapSRV;
+
+<span class="kwrd">private</span> Matrix _grassTexTransform;
+<span class="kwrd">private</span> Matrix _waterTexTransform;
+<span class="kwrd">private</span> Vector2 _waterTexOffset;
+</pre>
+<p>
+    We will create our _grassTexTransform and the _waterTexOffset in our constructor.&nbsp; We will tile our small grass texture 5x5 over our land mesh.&nbsp; This will give us a much nicer appearance than if we tried to stretch the texture over the entire mesh without tiling, as the texture would seem very blurry and without detail when we zoomed in.
+</p>
+<pre class="csharpcode">_waterTexOffset = <span class="kwrd">new</span> Vector2();
+_grassTexTransform = Matrix.Scaling(5.0f, 5.0f, 0.0f);</pre>
+<p>
+    We will create our textures in our Init() function in the same way that we created the crate texture for our previous texturing example, the <a href="http://richardssoftware.blogspot.com/2013/07/texturing-101crate-demo.html" target="_blank">CrateDemo</a>.
+</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">bool</span> Init() {
+<span class="kwrd">if</span> (! <span class="kwrd">base</span>.Init()) <span class="kwrd">return</span> <span class="kwrd">false</span>;
+
+    _waves = <span class="kwrd">new</span> Waves();
+    _waves.Init(160, 160, 1.0f, 0.03f, 3.25f, 0.4f);
+
+    Effects.InitAll(Device);
+    InputLayouts.InitAll(Device);
+
+    _grassMapSRV = ShaderResourceView.FromFile(Device, <span class="str">"Textures/grass.dds"</span>);
+    _wavesMapSRV = ShaderResourceView.FromFile(Device, <span class="str">"Textures/water2.dds"</span>);
+
+    BuildLandGeometryBuffers();
+    BuildWaveGeometryBuffers();
+
+    <span class="kwrd">return</span> <span class="kwrd">true</span>;
+}</pre>
+<h3>Creating the Land Mesh with Texture Coordinates</h3>
+<p>
+    Creating the mesh for this example with texturing is almost exactly the same as before.&nbsp; Our GeometryGenerator.CreateGrid() function already creates texture coordinates for each mesh suitable for stretching a texture once across the mesh, so we have only to change our vertex structure from VertexPN to Basic32 and supply the texture coordinate calculated by GeometryGenerator.&nbsp; Note that we also need to use the correct vertex stride when we create our BufferDescription for the vertex buffer; otherwise, you will receive errors about writing past the end of the buffer, as the Basic32 structure is larger than our VertexPN structure.
+</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> BuildLandGeometryBuffers() {
+    var grid = GeometryGenerator.CreateGrid(160.0f, 160.0f, 50, 50);
+    _landIndexCount = grid.Indices.Count;
+
+    var vertices = <span class="kwrd">new</span> List&lt;Basic32&gt;();
+    <span class="kwrd">foreach</span> (var v <span class="kwrd">in</span> grid.Vertices) {
+        var p = <span class="kwrd">new</span> Vector3(v.Position.X, GetHillHeight(v.Position.X, v.Position.Z), v.Position.Z);
+        var n = GetHillNormal(p.X, p.Z);
+        vertices.Add(<span class="kwrd">new</span> Basic32(p, n, v.TexC));
+    }
+    var vbd = <span class="kwrd">new</span> BufferDescription(Basic32.Stride * vertices.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+    _landVB = <span class="kwrd">new</span> Buffer(Device, <span class="kwrd">new</span> DataStream(vertices.ToArray(), <span class="kwrd">false</span>, <span class="kwrd">false</span>), vbd);
+
+    var ibd = <span class="kwrd">new</span> BufferDescription(<span class="kwrd">sizeof</span>(<span class="kwrd">int</span>) * grid.Indices.Count, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+    _landIB = <span class="kwrd">new</span> Buffer(Device, <span class="kwrd">new</span> DataStream(grid.Indices.ToArray(), <span class="kwrd">false</span>, <span class="kwrd">false</span>), ibd);
+}</pre>
+<h3>Animating the Water Mesh</h3>
+<p>
+    We will update our wave function through our Waves class in the same way that we did previously.&nbsp; We will need to calculate the texture coordinate for each vertex when we update the vertex buffer.&nbsp; Note that we offset by 0.5 texel units, since our wave mesh has its coordinates specified in the ranges [-width/2, width/2] and [-depth/2, depth/2].&nbsp; We will use the texture transform to scale the water texture 5x5 over the mesh, the same as with the land mesh and texture.&nbsp; Lastly we will scroll the texture diagonally across the mesh as a function of the time using a translation matrix.&nbsp; Since we are using AddressMode.Wrap for our texture sampler (See Basic.fx), this will be a continuous animation, and we don’t need to worry about “running out” of texture.&nbsp;
+</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> UpdateScene(<span class="kwrd">float</span> dt) {
+<span class="rem">// camera update code omitted...</span>
+
+<span class="rem">// update waves</span>
+<span class="kwrd">if</span> ((Timer.TotalTime - _tBase) &gt;= 0.25f) {
+        _tBase += 0.25f;
+
+        var i = 5 + MathF.Rand() % (_waves.RowCount - 10);
+        var j = 5 + MathF.Rand() % (_waves.ColumnCount - 10);
+        var r = MathF.Rand(1.0f, 2.0f);
+        _waves.Disturb(i, j, r);
+    }
+    _waves.Update(dt);
+    <span class="rem">// update waves vertex data</span>
+    var mappedData = ImmediateContext.MapSubresource(_waveVB, 0, MapMode.WriteDiscard, MapFlags.None);
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; _waves.VertexCount; i++) {
+        mappedData.Data.Write(<span class="kwrd">new</span> Basic32(
+            _waves[i], 
+            _waves.Normal(i), 
+            <span class="kwrd">new</span> Vector2(0.5f+_waves[i].X/_waves.Width, 0.5f - _waves[i].Z / _waves.Depth)));
+    }
+    ImmediateContext.UnmapSubresource(_waveVB, 0);
+
+    <span class="rem">// tile water texture</span>
+    var wavesScale = Matrix.Scaling(5.0f, 5.0f, 0.0f);
+    <span class="rem">// translate texture over time</span>
+    _waterTexOffset.Y += 0.05f * dt;
+    _waterTexOffset.X += 0.1f * dt;
+    var wavesOffset = Matrix.Translation(_waterTexOffset.X, _waterTexOffset.Y, 0);
+
+    _waterTexTransform = wavesScale * wavesOffset;
+}</pre>
+<p>
+    Lastly, note that we create the combined transform by multiplying the scale by the translation, and not vice-versa.&nbsp; This is important.&nbsp; Because the scaling matrix operates with respect to the origin, if we translate the object first, we will get a scaled object, but we will also scale the magnitude of the offsets from the origin as well, whereas if we scale the object first, then translate, we are essentially setting the size of the object, then positioning it.&nbsp; A picture makes this 1000 times clearer…
+</p>
+<p>
+    <a href="http://lh5.ggpht.com/-s35n_jSLjHQ/UfltSFxPdBI/AAAAAAAAC5Y/YlhnuJ5G4J8/s1600-h/scaleTranslate%25255B3%25255D.png">
+        <img title="scaleTranslate" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="scaleTranslate" src="http://lh3.ggpht.com/-2JeTXRRnCYE/UfltSpmTpzI/AAAAAAAAC5g/_RyC7CPmN7g/scaleTranslate_thumb%25255B1%25255D.png?imgmax=800" width="586" height="484"></a>
+</p>
+<h3>Drawing</h3>
+<p>
+    The last hitch is to remember to set the correct InputLayout for our vertex structure, Basic32, and to set the texture and texture transform before we render in DrawScene()
+</p>
+<pre class="csharpcode">Effects.BasicFX.SetTexTransform(_grassTexTransform);
+Effects.BasicFX.SetDiffuseMap(_grassMapSRV);
+
+var pass = activeTech.GetPassByIndex(p);
+pass.Apply(ImmediateContext);
+ImmediateContext.DrawIndexed(_landIndexCount, 0, 0);</pre>
+<h3>Next Time</h3>
+<p>
+    Up next, we’ll have a more original example, as we are finished with the book demos for Chapter 8.&nbsp; There is, however, an interesting exercise at the end of the chapter, which asks us to render our cube texture from the CrateDemo with a series of textures representing a flame animation.&nbsp; The exercise asks us to load each of the frames of this animation as a separate texture, and swap them each frame.&nbsp; This is horribly inefficient, however, as you would be constantly moving textures from the GPU to memory, so it is not a very realistic example.&nbsp; Instead, we will build a class to create and manage a <a href="http://en.wikipedia.org/wiki/Texture_atlas" target="_blank">texture atlas</a>, so that we can store all the frames of the animation in a single texture, and select the individual frames using our texture coordinate transform.&nbsp; It is perhaps overkill for what we are doing, given the way that we set the texture each frame anyway, but where this technique would shine is if we composed the textures for all of our objects into a single texture, as we could then render all objects in a rendering pass without switching textures.&nbsp; This is, in fact a technique that many commercial games have used, notably <a href="http://fabiensanglard.net/quake2/quake2_opengl_renderer.php" target="_blank">Id Software’s Quake II</a>.
+</p>
+
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>

@@ -177,8 +177,6 @@ namespace TexturedHills {
             var mappedData = ImmediateContext.MapSubresource(_waveVB, 0, MapMode.WriteDiscard, MapFlags.None);
             for (int i = 0; i < _waves.VertexCount; i++) {
                
-
-
                 mappedData.Data.Write(new Basic32(
                     _waves[i], 
                     _waves.Normal(i), 
