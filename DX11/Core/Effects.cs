@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -47,16 +48,39 @@ namespace Core {
         public EffectTechnique Light2TexTech;
         public EffectTechnique Light3TexTech;
 
+        public EffectTechnique Light0TexAlphaClipTech;
+        public EffectTechnique Light1TexAlphaClipTech;
+        public EffectTechnique Light2TexAlphaClipTech;
+        public EffectTechnique Light3TexAlphaClipTech;
+
+        public EffectTechnique Light1FogTech;
+        public EffectTechnique Light2FogTech;
+        public EffectTechnique Light3FogTech;
+
+        public EffectTechnique Light0TexFogTech;
+        public EffectTechnique Light1TexFogTech;
+        public EffectTechnique Light2TexFogTech;
+        public EffectTechnique Light3TexFogTech;
+
+        public EffectTechnique Light0TexAlphaClipFogTech;
+        public EffectTechnique Light1TexAlphaClipFogTech;
+        public EffectTechnique Light2TexAlphaClipFogTech;
+        public EffectTechnique Light3TexAlphaClipFogTech;
+
         
         private EffectMatrixVariable WorldViewProj;
         private EffectMatrixVariable World;
         private EffectMatrixVariable WorldInvTranspose;
+        private EffectMatrixVariable TexTransform;
         private EffectVectorVariable EyePosW;
+        private EffectVectorVariable FogColor;
+        private EffectScalarVariable FogStart;
+        private EffectScalarVariable FogRange;
         private EffectVariable DirLights;
         private EffectVariable Mat;
 
         private EffectResourceVariable DiffuseMap;
-        private EffectMatrixVariable TexTransform;
+        
 
         public BasicEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -68,11 +92,35 @@ namespace Core {
             Light2TexTech = FX.GetTechniqueByName("Light2Tex");
             Light3TexTech = FX.GetTechniqueByName("Light3Tex");
 
+            Light0TexAlphaClipTech = FX.GetTechniqueByName("Light0TexAlphaClip");
+            Light1TexAlphaClipTech = FX.GetTechniqueByName("Light1TexAlphaClip");
+            Light2TexAlphaClipTech = FX.GetTechniqueByName("Light2TexAlphaClip");
+            Light3TexAlphaClipTech = FX.GetTechniqueByName("Light3TexAlphaClip");
+
+            Light1FogTech = FX.GetTechniqueByName("Light1Fog");
+            Light2FogTech = FX.GetTechniqueByName("Light2Fog");
+            Light3FogTech = FX.GetTechniqueByName("Light3Fog");
+
+            Light0TexFogTech = FX.GetTechniqueByName("Light0TexFog");
+            Light1TexFogTech = FX.GetTechniqueByName("Light1TexFog");
+            Light2TexFogTech = FX.GetTechniqueByName("Light2TexFog");
+            Light3TexFogTech = FX.GetTechniqueByName("Light3TexFog");
+
+            Light0TexAlphaClipFogTech = FX.GetTechniqueByName("Light0TexAlphaClipFog");
+            Light1TexAlphaClipFogTech = FX.GetTechniqueByName("Light1TexAlphaClipFog");
+            Light2TexAlphaClipFogTech = FX.GetTechniqueByName("Light2TexAlphaClipFog");
+            Light3TexAlphaClipFogTech = FX.GetTechniqueByName("Light3TexAlphaClipFog");
+
             WorldViewProj = FX.GetVariableByName("gWorldViewProj").AsMatrix();
             World = FX.GetVariableByName("gWorld").AsMatrix();
             WorldInvTranspose = FX.GetVariableByName("gWorldInvTranspose").AsMatrix();
             TexTransform = FX.GetVariableByName("gTexTransform").AsMatrix();
             EyePosW = FX.GetVariableByName("gEyePosW").AsVector();
+
+            FogColor = FX.GetVariableByName("gFogColor").AsVector();
+            FogStart = FX.GetVariableByName("gFogStart").AsScalar();
+            FogRange = FX.GetVariableByName("gFogRange").AsScalar();
+
             DirLights = FX.GetVariableByName("gDirLights");
             Mat = FX.GetVariableByName("gMaterial");
             DiffuseMap = FX.GetVariableByName("gDiffuseMap").AsResource();
@@ -111,6 +159,16 @@ namespace Core {
 
         public void SetDiffuseMap(ShaderResourceView tex) {
             DiffuseMap.SetResource(tex);
+        }
+
+        public void SetFogColor(Color4 c) {
+            FogColor.Set(c);
+        }
+        public void SetFogStart(float f) {
+            FogStart.Set(f);
+        }
+        public void SetFogRange(float f) {
+            FogRange.Set(f);
         }
     }
 
