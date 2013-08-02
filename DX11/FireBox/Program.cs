@@ -94,18 +94,18 @@ namespace FireBox {
             base.Dispose(disposing);
         }
 
-        public override bool Init() {
-            if (!base.Init()) return false;
+public override bool Init() {
+    if (!base.Init()) return false;
 
-            Effects.InitAll(Device);
-            _fx = Effects.BasicFX;
-            InputLayouts.InitAll(Device);
+    Effects.InitAll(Device);
+    _fx = Effects.BasicFX;
+    InputLayouts.InitAll(Device);
 
-           _fireAtlas = new TextureAtlas(Device, Directory.GetFiles("Textures", "fire*.bmp"));
+    _fireAtlas = new TextureAtlas(Device, Directory.GetFiles("Textures", "fire*.bmp"));
 
-            BuildGeometryBuffers();
-            return true;
-        }
+    BuildGeometryBuffers();
+    return true;
+}
 
         public override void OnResize() {
             base.OnResize();
@@ -129,14 +129,12 @@ namespace FireBox {
 
             _eyePosW = pos;
 
-
+            // Update texture transform
             _t -= dt;
             if (_t < 0) {
                 _texTransform = _fireAtlas.GetTexTransform(i++ % _fireAtlas.NumCells);
                 _t = 0.05f;
             }
-
-            
         }
 
         public override void DrawScene() {

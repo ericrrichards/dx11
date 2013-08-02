@@ -1,0 +1,199 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre
+    {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre
+        {
+            margin: 0em;
+        }
+
+        .csharpcode .rem
+        {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd
+        {
+            color: #0000ff;
+        }
+
+        .csharpcode .str
+        {
+            color: #006080;
+        }
+
+        .csharpcode .op
+        {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc
+        {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp
+        {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html
+        {
+            color: #800000;
+        }
+
+        .csharpcode .attr
+        {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt
+        {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum
+        {
+            color: #606060;
+        }
+</style>
+<p>We’re going to wrap up our exploration of Chapter 8 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a> by implementing one of the exercises from the end of the chapter.&nbsp; This exercise asks us to render a cube, similar to our <a href="http://richardssoftware.blogspot.com/2013/07/texturing-101crate-demo.html" target="_blank">Crate Demo</a>, but this time to show a succession of different textures, in order to create an animation, similar to a child’s flip book.&nbsp; Mr. Luna suggests that we simply load an array of separate textures and swap them based on our simulation time, but we are going to go one step beyond, and implement a texture atlas, so that we will have all of the frames of animation composited into a single texture, and we can select the individual frames by changing our texture coordinate transform matrix.&nbsp; We’ll wrap this functionality up into a little utility class that we can then reuse.&nbsp; </p>
+<p><a href="http://lh4.ggpht.com/-zp-uRA3Vrtg/UfsHOoUilKI/AAAAAAAAC5w/CdpKp482qMs/s1600-h/firebox%25255B3%25255D.png"><img title="firebox" style="border-top: 0px; border-right: 0px; background-image: none; border-bottom: 0px; padding-top: 0px; padding-left: 0px; border-left: 0px; display: inline; padding-right: 0px" border="0" alt="firebox" src="http://lh5.ggpht.com/-LYICO3y21FE/UfsHQs6ntMI/AAAAAAAAC54/mhue3xj6gIY/firebox_thumb%25255B1%25255D.png?imgmax=800" width="617" height="484"></a></p>
+<div id="scid:5737277B-5D6D-4f48-ABFC-DD9C333F4C5D:6d5a61b3-e59d-4ada-a88a-0c89aee8fb34" class="wlWriterEditableSmartContent" style="float: none; padding-bottom: 0px; padding-top: 0px; padding-left: 0px; margin: 0px; display: inline; padding-right: 0px">
+    <embed src="http://www.youtube.com/v/6Q8o06YRxc0?hd=1" type="application/x-shockwave-flash" wmode="transparent" width="448" height="277"></embed></div>
+
+<!--more-->
+<h3>Animation Frames</h3>
+<p>As part of the downloadable book code, Mr. Luna provides a fire animation consisting of 120 separate bitmaps, named Fire001.bmp – Fire120.bmp.&nbsp; Uploading each of these frames individually is easier, but less efficient, so we are going to compose them into a single texture and use that instead, varying our texture transform matrix to select the correct frame.&nbsp; The full fire animation as a single image is below:</p>
+<p><a href="http://lh5.ggpht.com/-_OB-DC1dPHY/UfsHR7Me1DI/AAAAAAAAC6A/WqUYcX6M-no/s1600-h/fire_all%25255B1%25255D.png"><img title="fire_all" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="fire_all" src="http://lh5.ggpht.com/-Che28hJDGz8/UfsHS1aipII/AAAAAAAAC6I/9vAaoO58kbk/fire_all_thumb%25255B1%25255D.png?imgmax=800" width="484" height="484"></a></p>
+<h3>TextureAtlas Class</h3>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> TextureAtlas : DisposableClass {
+    <span class="kwrd">private</span> <span class="kwrd">bool</span> _disposed;
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> Matrix[] _texTransforms;
+    <span class="kwrd">private</span> ShaderResourceView _textureView;
+
+    <span class="kwrd">public</span> <span class="kwrd">int</span> Rows { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">int</span> Columns { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">int</span> NumCells { get; <span class="kwrd">private</span> set; }
+
+    <span class="kwrd">public</span> ShaderResourceView TextureView {
+        get { <span class="kwrd">return</span> _textureView; }
+        <span class="kwrd">private</span> set { _textureView = <span class="kwrd">value</span>; }
+    }
+
+    <span class="kwrd">public</span> Matrix GetTexTransform(<span class="kwrd">int</span> i) {
+        System.Diagnostics.Debug.Assert(i &gt;= 0 &amp;&amp; i &lt; NumCells);
+        <span class="kwrd">return</span> _texTransforms[i];
+    }
+
+    <span class="kwrd">public</span> TextureAtlas(Device device, ICollection&lt;<span class="kwrd">string</span>&gt; filenames) {
+        …  </pre>
+<pre class="csharpcode">    }      
+    <span class="kwrd">protected</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Dispose(<span class="kwrd">bool</span> disposing) {
+        <span class="kwrd">if</span> (!_disposed) {
+            <span class="kwrd">if</span> (disposing) {
+                Util.ReleaseCom(<span class="kwrd">ref</span> _textureView);
+            }
+            _disposed = <span class="kwrd">true</span>;
+        }
+        <span class="kwrd">base</span>.Dispose(disposing);
+    }
+}</pre>
+
+
+<p>We will make our TextureAtlas class a subclass of our <a href="http://richardssoftware.blogspot.com/2013/07/directx-11-initialization-with-slimdx.html" target="_blank">IDisposable base class</a>, so that we can cleanly dispose of its texture reference using our Util.ReleaseCom function.&nbsp; Our class maintains the combined texture, which will contain all the frames of animation, and an array of matrices, which will contain the transforms that will map the UV texture coordinates of our mesh to the requested frame.&nbsp; We create the texture atlas by passing in a pointer to our Direct3D device and a list of filenames.&nbsp; Our constructor does the bulk of the work, so we’ll examine that in more detail next.</p>
+<h3>TextureAtlas Constructor</h3>
+<p>First, we will store the number of frames of that will make up our atlas.&nbsp; This will come in handy later on when we are looping over our frames.&nbsp; Next, we load the first texture file from the filenames parameter.&nbsp; We’ll grab the dimensions of this image, so that we can calculate how large our composite texture will need to be.&nbsp; Note that all of the textures passed in will need to be the same dimensions; mashing together disparately sized textures into a single super texture is possible, but is more complicated, so we will live with this restriction.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> TextureAtlas(Device device, ICollection&lt;<span class="kwrd">string</span>&gt; filenames) {
+    NumCells = filenames.Count;
+
+    <span class="rem">// Note: all textures need to be the same size</span>
+    var tex = Texture2D.FromFile(device, filenames.First());
+    var w = tex.Description.Width;
+    var h = tex.Description.Height;
+    tex.Dispose();
+
+    // More...</pre>
+<p>Unless we are working with just a couple of textures, or very small textures, we are not going to be able to fit them all into a single strip.&nbsp; Now, it used to be (and I’m probably dating myself here…) that many graphics cards only supported texture sizes that were powers of two (256x256, 512x512, etc), or had shaky performance when using arbitrary texture sizes; however, nowadays that is not really an issue anymore, as graphics cards have generally moved beyond that restriction.&nbsp; The limiting factor these days is really the overall texture size, (8192x8192 for DirectX 10, bigger for DX11 cards).&nbsp; Still, it’s nicer to look at the combined texture if it is square, so I am going to lay out my animation frames in a square</p>
+<pre class="csharpcode">Columns = Math.Min(8192 / w, (<span class="kwrd">int</span>)Math.Ceiling(Math.Sqrt(NumCells)));
+Rows = Math.Min(8192 / h, (<span class="kwrd">int</span>)Math.Ceiling((<span class="kwrd">float</span>)NumCells/Columns));
+
+System.Diagnostics.Debug.Assert(Columns * Rows &gt;= NumCells);</pre>
+<p>After we’ve calculated the number of rows and columns that we will need in our final texture, we need to create the final texture, and blit each frame of animation into it.&nbsp; You could do this with Direct3D, but I found it easier to use the Windows Forms GDI API.&nbsp; It is probably a little bit slower, but this is a one-time initialization or loading-time operation, so we don’t need to be blazing fast, especially for an example.&nbsp; We also calculate the texture transform matrices as we draw each frame, using a scale to shrink the mesh’s texture coordinates and a translate to offset to the correct frame.</p>
+<pre class="csharpcode">var bitmap = <span class="kwrd">new</span> Bitmap(Columns * w, Rows * h);
+_texTransforms = <span class="kwrd">new</span> Matrix[NumCells];
+
+<span class="kwrd">using</span> (var g = Graphics.FromImage(bitmap)) {
+    g.Clear(Color.Black);
+    var r = 0;
+    var c = 0;
+    <span class="kwrd">foreach</span> (var filename <span class="kwrd">in</span> filenames) {
+        g.DrawImage(<span class="kwrd">new</span> Bitmap(filename), <span class="kwrd">new</span> Point(c*w, r*h) );
+
+        _texTransforms[r * Columns + c] =
+            Matrix.Scaling(1.0f/(Columns*2), 1.0f / (2*Rows), 0) * 
+            Matrix.Translation(c * w / (<span class="kwrd">float</span>)bitmap.Width, r * h / (<span class="kwrd">float</span>)bitmap.Width, 0);
+
+        c++;
+        <span class="kwrd">if</span> (c &gt;= Columns) {
+            c = 0;
+            r++;
+        }
+
+    }
+}</pre>
+<p>Lastly, we save the GDI Bitmap to a temporary file, and load it as a DirectX 11 ShaderResourceView.</p>
+<pre class="csharpcode">var tmpFile = Path.GetTempFileName() + <span class="str">".bmp"</span>;
+bitmap.Save(tmpFile);
+
+TextureView = ShaderResourceView.FromFile(device, tmpFile);</pre>
+<h3>Implementing the FireBox Demo</h3>
+<p>Our demo application code is very similar to our <a href="http://richardssoftware.blogspot.com/2013/07/texturing-101crate-demo.html" target="_blank">CrateDemo</a>.&nbsp; We simply need to create the TextureAtlas in our Init() function, and update to the correct texture transform matrix in our UpdateScene() function.&nbsp; We’ll loop the animation by modulus’ing our frame counter with the number of frames in the animation.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">bool</span> Init() {
+    <span class="kwrd">if</span> (!<span class="kwrd">base</span>.Init()) <span class="kwrd">return</span> <span class="kwrd">false</span>;
+
+    Effects.InitAll(Device);
+    _fx = Effects.BasicFX;
+    InputLayouts.InitAll(Device);
+
+    _fireAtlas = <span class="kwrd">new</span> TextureAtlas(Device, Directory.GetFiles(<span class="str">"Textures"</span>, <span class="str">"fire*.bmp"</span>));
+
+    BuildGeometryBuffers();
+    <span class="kwrd">return</span> <span class="kwrd">true</span>;
+}</pre>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">int</span> i = 0;
+<span class="kwrd">private</span> <span class="kwrd">float</span> _t = 0;
+<span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> UpdateScene(<span class="kwrd">float</span> dt) {
+    <span class="kwrd">base</span>.UpdateScene(dt);
+    <span class="rem">// Get camera position from polar coords</span>
+    var x = _radius * MathF.Sin(_phi) * MathF.Cos(_theta);
+    var z = _radius * MathF.Sin(_phi) * MathF.Sin(_theta);
+    var y = _radius * MathF.Cos(_phi);
+
+    <span class="rem">// Build the view matrix</span>
+    var pos = <span class="kwrd">new</span> Vector3(x, y, z);
+    var target = <span class="kwrd">new</span> Vector3(0);
+    var up = <span class="kwrd">new</span> Vector3(0, 1, 0);
+    _view = Matrix.LookAtLH(pos, target, up);
+
+    _eyePosW = pos;
+
+    <span class="rem">// Update texture transform</span>
+    _t -= dt;
+    <span class="kwrd">if</span> (_t &lt; 0) {
+        _texTransform = _fireAtlas.GetTexTransform(i++ % _fireAtlas.NumCells);
+        _t = 0.05f;
+    }
+}</pre>
+<h3>Other Applications</h3>
+<p>In addition to this type of frame-based animation, another common usage for a texture atlas would be for sprite sheets, either for ground and character tiles in a 2D game, or for small UI textures.&nbsp; In our example, where we are only drawing a single object which always shows the same frame of animation per drawing frame, we don’t really see the performance implications of combining the textures.&nbsp; If, however, we were drawing a number of objects that shared the same animation, we would see some speed up, as we could set the texture and incur the overhead of uploading the texture to the GPU once, and draw all the objects using the animation without switching textures.</p>
+<h3>Next Time</h3>
+<p>We’ll move on to the examples for Chapter 9 and investigate alpha blending, which will allow us to draw transparent and translucent objects.</p>
