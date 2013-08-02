@@ -114,7 +114,7 @@ namespace BlendDemo {
             };
             _wavesMat = new Material {
                 Ambient = new Color4(0.5f, 0.5f, 0.5f),
-                Diffuse = Color.White,
+                Diffuse = new Color4(0.6f, 1.0f, 1.0f, 1.0f),
                 Specular = new Color4(32.0f, 0.8f, 0.8f, 0.8f)
             };
             _boxMat = new Material {
