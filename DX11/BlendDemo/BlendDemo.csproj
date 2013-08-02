@@ -55,6 +55,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Content Include="blend.html" />
     <Content Include="Textures\grass.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -1,0 +1,125 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<p>This time around, we are going to dig into Chapter 9 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>.&nbsp; We will be implementing the BlendDemo in the next couple of posts.&nbsp; We will base this demo off our previous example, the <a href="http://richardssoftware.blogspot.com/2013/07/textured-hills-demo.html" target="_blank">Textured Hills Demo</a>.&nbsp; We will be adding transparency to our water mesh, a fog effect, and a box with a wire texture, with transparency implemented using pixel shader clipping.&nbsp; We’ll need to update our shader effect, Basic.fx, to support these additional effects, along with its C# wrapper class.&nbsp; We’ll also look at additional DirectX blend and rasterizer states, and build up a static class to manage our these for us, in the same fashion we used for our InputLayouts and Effects.&nbsp; The full code for this example can be found on GitHub at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>, under the BlendDemo project.&nbsp; Before we can get to the demo code, we need to cover some of the basics first, however.</p>
+<p><a href="http://lh4.ggpht.com/-okBi9CC6k3o/Ufv0kt72Q5I/AAAAAAAAC6Y/2jNJjtiQIjc/s1600-h/blendDemo%25255B3%25255D.png">        <img title="blendDemo" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="blendDemo" src="http://lh5.ggpht.com/-2ZUhqTbcCk8/Ufv0lAjBXMI/AAAAAAAAC6g/ThAQdSqLobc/blendDemo_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484">     </a>
+</p>
+<!--more-->
+<h3>Blending</h3>
+<p>So far, we have been been rendering only the closest pixel fragment to the camera, using the depth buffer.&nbsp; We have been implicitly using the default Direct3D blend state, which overwrites any existing pixel color with the newly calculated color.&nbsp; Direct3D allows us to modify this default behavior, however, to achieve different effects.&nbsp; DIrect3D uses the following equation to blend source and destination pixels:</p>
+<pre class="csharpcode">c = c_source*f_source (operation) c_dest * f_dest</pre>
+<p>where c_source is the new pixel color, c_dest is the current pixel in the back buffer, and f_source and f_dest are the blend factors (a 4D vector describing each of the color channels of the color) for the source and destination pixels.&nbsp; </p>
+<p>The previous equation is used to blend the RGB color components of the pixels.&nbsp; The alpha component of the pixel is blended using the following equation:</p>
+<pre class="csharpcode">a = a_source*fa_source (operation) a_dest*fa_dest</pre>
+<p>In the previous equations, (operation) is a binary operation that we specify from the BlendOperation enumeration, which tells the graphics hardware how to calculate the final pixel value.&nbsp; These operations are:</p>
+<ul>
+    <li><b>BlendOperation.Add</b> – c_source*f_source + c_dest * f_dest</li>
+    <li><b>BlendOperation.Subtract</b> – c_dest * f_dest - c_source*f_source</li>
+    <li><b>BlendOperation.ReverseSubtract</b> – c_source*f_source - c_dest * f_dest</li>
+    <li><b>BlendOperation.Maximum</b> – max(c_source, c_dest)</li>
+    <li><b>BlendOperation.Minimum</b> – min(c_source, c_dest)</li>
+</ul>
+<p>Direct3D specifies some of the most commonly used blend factors in the BlendOption enumeration.&nbsp; We’ll describe these options using f for the rgb blend factor and fa for the alpha blend factor.&nbsp; These are:</p>
+<ul>
+    <li><b>BlendOption.Zero</b> – f = (0,0,0), fa = 0.</li>
+    <li><b>BlendOption.One</b> – f = (1,1,1), fa = 1.</li>
+    <li><b>BlendOption.SourceColor</b> – f = (r_s, g_s, b_s)</li>
+    <li><b>BlendOption.InverseSourceColor</b> – f = (1 – r_s, 1 – g_s, 1 – b_s )</li>
+    <li><b>BlendOption.SourceAlpha</b> – f = (a_s, a_s, a_s), fa = a_s</li>
+    <li><b>BlendOption.InverseSourceAlpha</b> – f = (1 – a_s, 1 – a_s, 1 – a_s), fa = 1 – a_s</li>
+    <li><b>BlendOption.DestinationAlpha</b> – f = (a_d, a_d, a_d), fa = a_d</li>
+    <li><b>BlendOption.InverseDestinationAlpha</b> – f = (1 – a_d, 1 – a_d, 1 – a_d), fa = 1 – a_d</li>
+    <li><b>BlendOption.DestinationColor</b> – f = (r_d, g_d, b_d)</li>
+    <li><b>BlendOption.InverseDestinationColor</b> – f = (1 – r_d, 1 – g_d, 1 – b_d )</li>
+    <li><b>BlendOption.SourceAlphaSaturate</b> = f = (a_s’, a_s’, a_s’), fa = a_s’, where a_s’ = clamp(a_s, 0, 1)</li>
+</ul>
+<p>You can also specify the blend factor arbitrarily, using the BlendOption.BlendFactor and BlendOption.InverseBlendFactor flags.&nbsp; Note that you can use any of these blend factors for the RGB blend stage, but you cannot use the Color blend factors (those above without an fa term) for alpha blending.</p>
+<h3>BlendState Structure</h3>
+<p>SlimDX exposes a BlendStateDescription class which wraps the D3D11_BLEND_DESC structure from raw Direct3D.&nbsp; We will create our BlendStates that we will use in the example by creating and filling out the BlendStateDescription, and then creating the BlendState using the BlendState.FromDescription(Device, BlendStateDescription) function.</p>
+<p>The BlendStateDescription class exposes the following properties that we need to define:</p>
+<ul>
+    <li><b>AlphaToCoverageEnable</b> – True to enable Alpha-To-Coverage blending, which is a multi-sampling technique that requires multisampling to be enabling.&nbsp; We have not been using multisampling thus far (Enable4xMsaa in our D3DApp class), so we will specify false here.&nbsp; We will make use of this later, when we get to billboarding using the geometry shader.</li>
+    <li><b>IndependantBlendEnable</b> – Direct3D can render to up to 8 separate render targets at the same time.&nbsp; If we set this field to true, we can use different blend states for each render target.&nbsp; For now, we are only going to use one blend state, so we set this to false, and Direct3D will only use the blend state for the first render target.</li>
+    <li><b>RenderTargets[8]</b> – This array of RenderTargetBlendDescription structures allows us to specify the different blend settings if we have multiple render targets and IndependantBlendEnable is true.&nbsp; We will need to fill out at least the first element of this array.</li>
+</ul>
+<p>&nbsp;</p>
+<h4>RenderTargetBlendDescription Structure</h4>
+<p>The RenderTargetBlendDescription is where we specify the blend operations and blend factors for the blending equations above.&nbsp; We can specify the parameters for the RGB and Alpha blend operations separately.&nbsp; We can also apply a mask that will specify which color channels of the backbuffer to write to, so that we could modify just the red channel, for instance.&nbsp; The fields of the RenderTargetBlendDescription structure are:</p>
+<ul>
+    <li><b>BlendEnable</b> – true to use blending, false to disable blending.</li>
+    <li><b>SourceBlend</b> – One of the BlendOption elements, to control the source pixel blend factor in the RGB blending equation.</li>
+    <li><b>DestinationBlend</b> – One of the BlendOption elements, to control the destination pixel blend factor in the RGB blending equation.</li>
+    <li><b>BlendOperation</b> – One of the BlendOperation elements, to select the operation in the RGB blending equation.</li>
+    <li><b>SourceBlendAlpha</b> - One of the BlendOption elements, to control the source alpha blend factor in the alpha blending equation.</li>
+    <li><b>DestinationBlendAlpha</b> - One of the BlendOption elements, to control the destination alpha blend factor in the alpha blending equation.</li>
+    <li><b>BlendOperationAlpha</b> – One of the BlendOperation elements, to select the operation in the alpha blending equation.</li>
+    <li><b>RenderTargetWriteMask</b> – a combination of the ColorWriteMaskFlags, which are {None, All, Red, Green, Blue}, corresponding to the different color channels of the backbuffer.</li>
+</ul>
+<h3>Using a BlendState</h3>
+<p>Once we have created a BlendState object, we need to set our ImmediateContext to use it.&nbsp; In C++ Dirext3D, we can do this in one function call, but in SlimDX, we need to set three properties of our ImmediateContext.OutputMerger.</p>
+<pre class="csharpcode">var blendFactor = <span class="kwrd">new</span> Color4(0,0,0,0);
+ImmediateContext.OutputMerger.BlendState = RenderStates.TransparentBS;
+ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+ImmediateContext.OutputMerger.BlendSampleMask = (<span class="kwrd">int</span>) ~0; // or -1</pre>
+<p>First, we need to set the BlendState property to our newly created BlendState instance.&nbsp; Next, we need to supply a BlendFactor.&nbsp; If we were using BlendOptions.BlendFactor or BlendOption.InverseBlendFactor, this is where we would supply the custom blend factor.&nbsp; If we are using one of the predefined blend factors, we can just supply a null (all-black, 0 alpha) color.&nbsp; Lastly, we need to set the BlendSampleMask, which controls multisampling.&nbsp; If we wanted to ignore a particular multisample, we would zero the bit for the multisample we wished to disable.&nbsp; I’m not entirely sure that this is correct, as for whatever reason, SlimDX uses an int, rather than a uint, as in the C++ Direct3D library, so simply using 0xffffffff (to enable all samples) will not compile, but taking the complement of 0 should be the same bit representation.</p>
+<h3>Alpha Channels</h3>
+<p>If you have used an image editing program like Photoshop or Paint.NET, you are probably familiar with alpha channels.&nbsp; Typically, the alpha channel is used to control the transparency of a pixel in an image, with white representing fully opaque and black representing completely transparent.&nbsp; In our pixel shader, we will use the combination of the object material alpha value and the object’s texture alpha value to determine transparency in our pixel shader.&nbsp; We can use this, for instance, to render a picket fence by simply drawing a quad and applying an alpha-channeled texture of the fence, which will render the gaps in the fence transparent and show the scene behind.&nbsp; In our demo, we will use this to draw the wire box at the center of the scene in the screenshot above.</p>
+<h3>Pixel Clipping</h3>
+<p>Alpha blending is more expensive to calculate on the GPU than simply rendering a non-blended pixel.&nbsp; If we know that a pixel is going to be completely transparent, we don’t want to bother calculating the blend equations.&nbsp; HLSL lets us do this by using the clip() intrinsic function, which will cause the pixel shader to return early if the value passed is less than 0.&nbsp; In the example of the previous paragraph, if we sample our picket fence texture and the alpha channel for the texel is within some buffer of 0 (to account for texture filtering), we can skip it and save the calculations.</p>
+<h3>Fog</h3>
+<p>In the real world, we usually can’t see clearly all the way to whatever objects we see in the distance.&nbsp; Usually, there is some sort of haze that blurs distant objects.&nbsp; Modeling this in a physically realistic manner would be very difficult and computationally expensive, but we can apply a reasonable hack to emulate this phenomenon.&nbsp; This is typically called <a href="http://en.wikipedia.org/wiki/Distance_fog" target="_blank">Distance Fog</a>.&nbsp; If we supply a color for this fog effect, a threshold range to start showing fog, and a range at which the fog will completely obscure objects, we can apply this effect fairly easily, by linearly interpolating between the normal lit color of the scene and the fog color, based on the distance into the “fog zone” the object is from the viewpoint.&nbsp; You can see this effect at work in the screenshot above, as the nearest slopes of the hill are drawn at full brightness, whereas the more distant hills are progressively grayed out.</p>
+<h3>Next Time…</h3>
+<p>We’ll move onto the actual implementation of our BlendDemo.&nbsp; We’ll setup some new renderstates and build a static manager class to contain them.&nbsp; We’ll modify our shader effect to support blending, clipping, and fog.&nbsp; Then we’ll set up the necessary textures and materials to render some partially transparent water, a wire box, and add the fog effect to our scene.</p>

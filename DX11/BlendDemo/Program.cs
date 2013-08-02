@@ -327,7 +327,7 @@ namespace BlendDemo {
 
                 ImmediateContext.OutputMerger.BlendState = RenderStates.TransparentBS;
                 ImmediateContext.OutputMerger.BlendFactor = blendFactor;
-                ImmediateContext.OutputMerger.BlendSampleMask = (int) 0x7fffffff;
+                ImmediateContext.OutputMerger.BlendSampleMask = ~0;
                 pass.Apply(ImmediateContext);
                 ImmediateContext.DrawIndexed(3 * _waves.TriangleCount, 0, 0);
 
