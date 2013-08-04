@@ -255,10 +255,12 @@ namespace MirrorDemo {
             MarkMirrorOnStencil(activeTech, viewProj, blendFactor);
             DrawFloorReflection(activeTech, viewProj);
             DrawSkullReflection(activeSkullTech, viewProj);
-            DrawSkullShadow(activeSkullTech, viewProj, blendFactor);
+            
             DrawSkullShadowReflection(activeSkullTech, viewProj, blendFactor);
             DrawMirror(activeTech, viewProj, blendFactor);
-            
+
+            DrawSkullShadow(activeSkullTech, viewProj, blendFactor);
+
             SwapChain.Present(0, PresentFlags.None);
 
         }
