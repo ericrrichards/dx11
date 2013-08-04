@@ -424,22 +424,22 @@ namespace LitSkull {
                 MessageBox.Show(ex.Message);
             }
         }
-private void SwitchLights(object sender, KeyEventArgs e) {
-    switch (e.KeyCode) {
-        case Keys.D0:
-            _lightCount = 0;
-            break;
-        case Keys.D1:
-            _lightCount = 1;
-            break;
-        case Keys.D2:
-            _lightCount = 2;
-            break;
-        case Keys.D3:
-            _lightCount = 3;
-            break;
-    }
-}
+        private void SwitchLights(object sender, KeyEventArgs e) {
+            switch (e.KeyCode) {
+                case Keys.D0:
+                    _lightCount = 0;
+                    break;
+                case Keys.D1:
+                    _lightCount = 1;
+                    break;
+                case Keys.D2:
+                    _lightCount = 2;
+                    break;
+                case Keys.D3:
+                    _lightCount = 3;
+                    break;
+            }
+        }
     }
 
     class Program {

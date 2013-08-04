@@ -14,11 +14,7 @@ using MapFlags = SlimDX.Direct3D11.MapFlags;
 
 namespace BlendDemo {
 
-    enum RenderOptions {
-        Lighting,
-        Textures,
-        TexturesAndFog
-    }
+    
 
     public class BlendDemo : D3DApp {
 
@@ -92,7 +88,7 @@ namespace BlendDemo {
                     Ambient = new Color4(0.2f, 0.2f, 0.2f),
                     Diffuse = new Color4(0.5f, 0.5f, 0.5f),
                     Specular = new Color4(0.5f, 0.5f, 0.5f),
-                    Direction = new Vector3(0.57735f, -.057735f, 0.57735f)
+                    Direction = new Vector3(0.57735f, -0.57735f, 0.57735f)
                 }, 
                 new DirectionalLight {
                     Ambient = Color.Black,

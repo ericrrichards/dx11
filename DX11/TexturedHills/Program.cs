@@ -78,7 +78,7 @@ namespace TexturedHills {
                     Ambient = new Color4(0.2f, 0.2f, 0.2f),
                     Diffuse = new Color4(0.5f, 0.5f, 0.5f),
                     Specular = new Color4(0.5f, 0.5f, 0.5f),
-                    Direction = new Vector3(0.57735f, -.057735f, 0.57735f)
+                    Direction = new Vector3(0.57735f, -0.57735f, 0.57735f)
                 }, 
                 new DirectionalLight {
                     Ambient = Color.Black,
