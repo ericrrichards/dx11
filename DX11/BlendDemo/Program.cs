@@ -13,8 +13,7 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using MapFlags = SlimDX.Direct3D11.MapFlags;
 
 namespace BlendDemo {
-
-    
+    using Core.FX;
 
     public class BlendDemo : D3DApp {
 

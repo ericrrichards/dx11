@@ -9,6 +9,8 @@ namespace CrateDemo {
     using System.Drawing;
     using System.Windows.Forms;
 
+    using Core.FX;
+
     using SlimDX.Direct3D11;
     using SlimDX.DXGI;
 

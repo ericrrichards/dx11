@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlendDemo", "BlendDemo\Blen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MirrorDemo", "MirrorDemo\MirrorDemo.csproj", "{F7E85E28-BF80-4C31-9714-8C7A98718836}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeBillboardDemo", "TreeBillboardDemo\TreeBillboardDemo.csproj", "{6AF064DF-4713-4C85-961E-6C0FF4ED586E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -101,6 +103,10 @@ Global
 		{F7E85E28-BF80-4C31-9714-8C7A98718836}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F7E85E28-BF80-4C31-9714-8C7A98718836}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7E85E28-BF80-4C31-9714-8C7A98718836}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6AF064DF-4713-4C85-961E-6C0FF4ED586E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6AF064DF-4713-4C85-961E-6C0FF4ED586E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6AF064DF-4713-4C85-961E-6C0FF4ED586E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6AF064DF-4713-4C85-961E-6C0FF4ED586E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -119,5 +125,6 @@ Global
 		{B367EA40-1C5C-4113-B8E6-778198C463F9} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{982A55AD-535B-48C7-AC72-E077FBB76659} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{F7E85E28-BF80-4C31-9714-8C7A98718836} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+		{6AF064DF-4713-4C85-961E-6C0FF4ED586E} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 	EndGlobalSection
 EndGlobal

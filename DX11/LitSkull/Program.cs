@@ -9,6 +9,7 @@ namespace LitSkull {
     using System.Windows.Forms;
 
     using Core;
+    using Core.FX;
 
     using SlimDX;
     using SlimDX.DXGI;

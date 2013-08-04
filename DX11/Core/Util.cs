@@ -1,9 +1,15 @@
 ﻿using System;
 
 namespace Core {
+    using System.Linq;
     using System.Runtime.InteropServices;
 
-    using SlimDX;
+    using SlimDX.Direct3D11;
+    using SlimDX.DXGI;
+
+    using Device = SlimDX.Direct3D11.Device;
+    using MapFlags = SlimDX.Direct3D11.MapFlags;
+    using Resource = SlimDX.Direct3D11.Resource;
 
     public static class Util {
         public static byte[] GetArray(object o) {
@@ -38,41 +44,67 @@ namespace Core {
             return (GetAsyncKeyState((int)key) & 0x8000) != 0;
         }
 
-        public static Matrix Shadow(Vector4 lightDir , Plane shadowPlane) {
-            var dot = Vector3.Dot(shadowPlane.Normal, lightDir.ToVector3()) + shadowPlane.D* lightDir.W;
-            var x = -lightDir.X;
-            var y = -lightDir.Y;
-            var z = -lightDir.Z;
-            var w = -lightDir.W;
-            var n = shadowPlane.Normal;
-            var d = shadowPlane.D;
+        public static ShaderResourceView CreateTexture2DArraySRV(Device device, DeviceContext immediateContext, string[] filenames, Format format, FilterFlags filter=FilterFlags.None, FilterFlags mipFilter=FilterFlags.Linear) {
+            var srcTex = new Texture2D[filenames.Length];
+            for (int i = 0; i < filenames.Length; i++) {
+                var loadInfo = new ImageLoadInformation {
+                    FirstMipLevel = 0,
+                    Usage = ResourceUsage.Staging,
+                    BindFlags = BindFlags.None,
+                    CpuAccessFlags = CpuAccessFlags.Write | CpuAccessFlags.Read,
+                    OptionFlags = ResourceOptionFlags.None,
+                    Format = format,
+                    FilterFlags = filter,
+                    MipFilterFlags = mipFilter,
+                };
+                srcTex[i] = Texture2D.FromFile(device, filenames[i], loadInfo);
+            }
+            var texElementDesc = srcTex[0].Description;
 
-            var ret = new Matrix();
-            ret.M11 = dot + x * n.X;
-            ret.M12 = y * n.X;
-            ret.M13 = z * n.X;
-            ret.M14 = w * n.X;
+            var texArrayDesc = new Texture2DDescription {
+                Width = texElementDesc.Width,
+                Height = texElementDesc.Height,
+                MipLevels = texElementDesc.MipLevels,
+                ArraySize = srcTex.Length,
+                Format = texElementDesc.Format,
+                SampleDescription = new SampleDescription(1, 0),
+                Usage = ResourceUsage.Default,
+                BindFlags = BindFlags.ShaderResource,
+                CpuAccessFlags = CpuAccessFlags.None,
+                OptionFlags = ResourceOptionFlags.None
+            };
 
-            ret.M21 = x * n.Y;
-            ret.M22 = dot + y * n.Y;
-            ret.M23 = z * n.Y;
-            ret.M24 = w * n.Y;
+            var texArray = new Texture2D(device, texArrayDesc);
 
-            ret.M31 = x * n.Z;
-            ret.M32 = y * n.Z;
-            ret.M33 = dot + z * n.Z;
-            ret.M34 = w * n.Z;
+            for (int texElement = 0; texElement < srcTex.Length; texElement++) {
+                for (int mipLevel = 0; mipLevel < texElementDesc.MipLevels; mipLevel++) {
+                    var mappedTex2D = immediateContext.MapSubresource(srcTex[texElement], mipLevel, 0, MapMode.Read, MapFlags.None);
 
-            ret.M41 = x * d;
-            ret.M42 = y * d;
-            ret.M43 = z * d;
-            ret.M44 = Vector3.Dot(shadowPlane.Normal, lightDir.ToVector3());
+                    immediateContext.UpdateSubresource(
+                        mappedTex2D, 
+                        texArray, 
+                        Resource.CalculateSubresourceIndex(mipLevel, texElement, texElementDesc.MipLevels)
+                        );
+                    immediateContext.UnmapSubresource(srcTex[texElement], mipLevel);
+                }
+            }
+            var viewDesc = new ShaderResourceViewDescription {
+                Format = texArrayDesc.Format,
+                Dimension = ShaderResourceViewDimension.Texture2DArray, 
+                MostDetailedMip = 0,
+                MipLevels = texArrayDesc.MipLevels,
+                FirstArraySlice = 0,
+                ArraySize = srcTex.Length
+            };
 
-            return ret;
-        }
+            var texArraySRV = new ShaderResourceView(device, texArray, viewDesc);
 
-        public static Vector3 ToVector3(this Vector4 v) {
-            return new Vector3(v.X, v.Y, v.Z);
+            ReleaseCom(ref texArray);
+            for (int i = 0; i < srcTex.Length; i++) {
+                ReleaseCom(ref srcTex[i]);
+            }
+
+            return texArraySRV;
         }
     }
 }

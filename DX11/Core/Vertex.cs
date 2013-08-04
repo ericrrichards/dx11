@@ -5,6 +5,8 @@ using SlimDX;
 namespace Core {
     using System;
 
+    using Core.FX;
+
     using SlimDX.DXGI;
     using SlimDX.Direct3D11;
 
@@ -25,7 +27,7 @@ namespace Core {
             Color = color;
         }
 
-        public static readonly int Stride = Marshal.SizeOf(typeof (VertexPC));
+        public static readonly int Stride = Marshal.SizeOf(typeof(VertexPC));
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -56,15 +58,27 @@ namespace Core {
         public static readonly int Stride = Marshal.SizeOf(typeof(Basic32));
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TreePointSprite {
+        public Vector3 Pos;
+        public Vector2 Size;
+
+        public static readonly int Stride = Marshal.SizeOf(typeof(TreePointSprite));
+    }
+
     public static class InputLayoutDescriptions {
         public static readonly InputElement[] PosNormal = {
-        new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
-        new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
-    };
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0)
+        };
         public static readonly InputElement[] Basic32 = {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
-        new InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0, InputClassification.PerVertexData, 0), 
+            new InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0, InputClassification.PerVertexData, 0)
+        };
+        public static readonly InputElement[] TreePointSprite = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0 ),
+            new InputElement("SIZE", 0, Format.R32G32_Float, 12,0,InputClassification.PerVertexData, 0) 
         };
     }
     public static class InputLayouts {
@@ -82,13 +96,22 @@ namespace Core {
                 Console.WriteLine(dex.Message);
                 Basic32 = null;
             }
+            try {
+                passDesc = Effects.TreeSpriteFX.Light3Tech.GetPassByIndex(0).Description;
+                TreePointSprite = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TreePointSprite);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+                TreePointSprite = null;
+            }
         }
         public static void DestroyAll() {
             Util.ReleaseCom(ref PosNormal);
             Util.ReleaseCom(ref Basic32);
+            Util.ReleaseCom(ref TreePointSprite);
         }
 
         public static InputLayout PosNormal;
         public static InputLayout Basic32;
+        public static InputLayout TreePointSprite;
     }
 }

@@ -10,6 +10,7 @@ namespace TexturedHills {
     using System.Windows.Forms;
 
     using Core;
+    using Core.FX;
 
     using SlimDX;
     using SlimDX.Direct3D11;
