@@ -261,8 +261,10 @@ namespace MirrorDemo {
             DrawSkullShadowReflection(activeSkullTech, viewProj, blendFactor);
             DrawMirror(activeTech, viewProj, blendFactor);
 
-            DrawSkullShadow(activeSkullTech, viewProj, blendFactor);
+            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Stencil, 1.0f, 0);
 
+            DrawSkullShadow(activeSkullTech, viewProj, blendFactor);
+            //DrawSkullShadow2(activeSkullTech, viewProj, blendFactor);
             SwapChain.Present(0, PresentFlags.None);
 
         }
@@ -367,7 +369,7 @@ namespace MirrorDemo {
         }
 
         private void DrawSkullShadow(EffectTechnique activeSkullTech, Matrix viewProj, Color4 blendFactor) {
-            // draw skull shadow
+            // draw skull shadow on floor
             for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
                 var pass = activeSkullTech.GetPassByIndex(p);
 
@@ -395,6 +397,26 @@ namespace MirrorDemo {
 
                 ImmediateContext.OutputMerger.DepthStencilState = RenderStates.NoDoubleBlendDSS;
                 ImmediateContext.OutputMerger.DepthStencilReference = 0;
+                pass.Apply(ImmediateContext);
+
+                ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
+
+                // draw skull shadow on wall
+                shadowPlane = new Plane(new Vector3(0, 0, -1), 0.0f);
+                toMainLight = -_dirLights[0].Direction;
+
+                s = Matrix.Shadow(new Vector4(toMainLight, 0), shadowPlane);
+                shadowOffsetY = Matrix.Translation(0, 0, -0.001f);
+
+                world = _skullWorld * s * shadowOffsetY;
+                wit = MathF.InverseTranspose(world);
+                wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetMaterial(_shadowMat);
+
                 pass.Apply(ImmediateContext);
 
                 ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
