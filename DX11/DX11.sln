@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MirrorDemo", "MirrorDemo\Mi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeBillboardDemo", "TreeBillboardDemo\TreeBillboardDemo.csproj", "{6AF064DF-4713-4C85-961E-6C0FF4ED586E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CameraDemo", "CameraDemo\CameraDemo.csproj", "{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -107,6 +109,10 @@ Global
 		{6AF064DF-4713-4C85-961E-6C0FF4ED586E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6AF064DF-4713-4C85-961E-6C0FF4ED586E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6AF064DF-4713-4C85-961E-6C0FF4ED586E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -126,5 +132,9 @@ Global
 		{982A55AD-535B-48C7-AC72-E077FBB76659} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{F7E85E28-BF80-4C31-9714-8C7A98718836} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{6AF064DF-4713-4C85-961E-6C0FF4ED586E} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+		{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

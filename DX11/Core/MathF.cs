@@ -39,5 +39,13 @@ namespace Core {
         public static Matrix InverseTranspose(Matrix m) {
             return Matrix.Transpose(Matrix.Invert(m));
         }
+
+        public static float Tan(float a) {
+            return (float)Math.Tan(a);
+        }
+
+        public static float Atan(float f) {
+            return (float)Math.Atan(f);
+        }
     }
 }
