@@ -1,0 +1,344 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<p><a href="http://richardssoftware.blogspot.com/2013/08/blending-theory.html" target="_blank">Last time</a>, we covered some of the theory that underlies blending and distance fog.&nbsp; This time, we’ll go over the implementation of our demo that uses these effects, the BlendDemo.&nbsp; This will be based off of our previous demo, the <a href="http://richardssoftware.blogspot.com/2013/07/textured-hills-demo.html" target="_blank">Textured Hills Demo</a>, with an added box mesh and a wire fence texture applied to demonstrate pixel clipping using an alpha map.&nbsp; We’ll need to update our Basic.fx shader code to add support for blending and clipping, as well as the fog effect, and we’ll need to define some new render states to define our blending operations.&nbsp; You can find the full code for this example at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a> under the BlendDemo project.</p>
+<p><a href="http://lh6.ggpht.com/-BtSB7SJWCDI/Uf__SiDY7wI/AAAAAAAAC60/A-eSVXZOiiE/s1600-h/blendDemo2%25255B4%25255D.png"><img title="blendDemo2" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="blendDemo2" src="http://lh5.ggpht.com/-GAG9imR5OW0/Uf__TZV4jmI/AAAAAAAAC68/sXA-m2U88u4/blendDemo2_thumb%25255B2%25255D.png?imgmax=800" width="623" height="484"></a>
+</p>
+<!--more-->
+<h3>Basic.fx</h3>
+<p>We will need to make a few changes to our shader effect to support alpha clipping and the fog effect.&nbsp; First, we will need to define some new values for our per-frame constant buffer for the fog effect.&nbsp; These will control the final fog color, and the zone in which the fog will have effect.</p>
+<pre class="csharpcode">cbuffer cbPerFrame
+{
+    <span class="rem">// previous constants omitted...</span>
+
+    <span class="kwrd">float</span>  gFogStart;
+    <span class="kwrd">float</span>  gFogRange;
+    float4 gFogColor;
+};</pre>
+<p>
+    Next, we’ll need to alter our pixel shader function to support alpha clipping, based on the alpha channel of the diffuse map texture, and add the calculation of the fog color.&nbsp; We calculate the clip value prior to performing any lighting calculations, so that we can return early and save ourselves the cycles on the GPU if the pixel is going to be transparent.
+</p>
+<pre class="csharpcode">float4 PS(VertexOut pin, uniform <span class="kwrd">int</span> gLightCount, uniform <span class="kwrd">bool</span> gUseTexure, uniform <span class="kwrd">bool</span> gAlphaClip, uniform <span class="kwrd">bool</span> gFogEnabled) : SV_Target
+{
+    <span class="rem">// eye calculation omitted</span>
+    
+    <span class="rem">// Default to multiplicative identity.</span>
+    float4 texColor = float4(1, 1, 1, 1);
+    <span class="kwrd">if</span>(gUseTexure)
+    {
+        <span class="rem">// Sample texture.</span>
+        texColor = gDiffuseMap.Sample( samAnisotropic, pin.Tex );
+
+        <span class="kwrd">if</span>(gAlphaClip)
+        {
+            <span class="rem">// Discard pixel if texture alpha &lt; 0.1.  Note that we do this</span>
+            <span class="rem">// test as soon as possible so that we can potentially exit the shader </span>
+            <span class="rem">// early, thereby skipping the rest of the shader code.</span>
+            clip(texColor.a - 0.1f);
+        }
+    }
+     
+    <span class="rem">// Lighting omitted...</span>
+        
+    <span class="rem">// Fogging</span>
+    <span class="kwrd">if</span>( gFogEnabled )
+    {
+        <span class="kwrd">float</span> fogLerp = saturate( (distToEye - gFogStart) / gFogRange ); 
+
+        <span class="rem">// Blend the fog color and the lit color.</span>
+        litColor = lerp(litColor, gFogColor, fogLerp);
+    }
+
+    <span class="rem">// Common to take alpha from diffuse material and texture.</span>
+    litColor.a = gMaterial.Diffuse.a * texColor.a;
+
+    <span class="kwrd">return</span> litColor;
+}</pre>
+<p>We linearly interpolate between the lit, textured color and the fog color, based on the distance into the “fog zone” the pixel would be drawn in the scene.&nbsp; Thus, a pixel closer than gFogStart to the camera will be shown with its normal color, while a pixel &gt;= gFogStart + gFogRange would be shown as gFogColor.&nbsp; A pixel in the middle of the fog zone would be shown with 50% original color and 50% fog color.</p>
+<p>We will also add another batch of techniques, so that we have lit, lit &amp; textured and lit, textured &amp; alpha-clipped techniques with and without fog.</p>
+<h3>BasicEffect Class</h3>
+<p>In our C# wrapper class, we will define the necessary members to reference our new techniques and shader constants, along with some simple setter functions for the constants.</p>
+<pre class="csharpcode"><span class="rem">// new techinques</span>
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light1FogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light2FogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light3FogTech;
+
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light0TexFogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light1TexFogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light2TexFogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light3TexFogTech;
+
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light0TexAlphaClipFogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light1TexAlphaClipFogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light2TexAlphaClipFogTech;
+<span class="kwrd">public</span> <span class="kwrd">readonly</span> EffectTechnique Light3TexAlphaClipFogTech;
+
+<span class="rem">// new constants</span>
+<span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectVectorVariable _fogColor;
+<span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectScalarVariable _fogStart;
+<span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectScalarVariable _fogRange;
+
+<span class="rem">// Initialization</span>
+<span class="kwrd">public</span> BasicEffect(Device device, <span class="kwrd">string</span> filename) : <span class="kwrd">base</span>(device, filename) {
+    <span class="rem">///...</span>
+    Light1FogTech = FX.GetTechniqueByName(<span class="str">"Light1Fog"</span>);
+    Light2FogTech = FX.GetTechniqueByName(<span class="str">"Light2Fog"</span>);
+    Light3FogTech = FX.GetTechniqueByName(<span class="str">"Light3Fog"</span>);
+
+    Light0TexFogTech = FX.GetTechniqueByName(<span class="str">"Light0TexFog"</span>);
+    Light1TexFogTech = FX.GetTechniqueByName(<span class="str">"Light1TexFog"</span>);
+    Light2TexFogTech = FX.GetTechniqueByName(<span class="str">"Light2TexFog"</span>);
+    Light3TexFogTech = FX.GetTechniqueByName(<span class="str">"Light3TexFog"</span>);
+
+    Light0TexAlphaClipFogTech = FX.GetTechniqueByName(<span class="str">"Light0TexAlphaClipFog"</span>);
+    Light1TexAlphaClipFogTech = FX.GetTechniqueByName(<span class="str">"Light1TexAlphaClipFog"</span>);
+    Light2TexAlphaClipFogTech = FX.GetTechniqueByName(<span class="str">"Light2TexAlphaClipFog"</span>);
+    Light3TexAlphaClipFogTech = FX.GetTechniqueByName(<span class="str">"Light3TexAlphaClipFog"</span>);
+
+    _fogColor = FX.GetVariableByName(<span class="str">"gFogColor"</span>).AsVector();
+    _fogStart = FX.GetVariableByName(<span class="str">"gFogStart"</span>).AsScalar();
+    _fogRange = FX.GetVariableByName(<span class="str">"gFogRange"</span>).AsScalar();
+}</pre>
+<h3>RenderStates Class</h3>
+<p>We are going to be using the same render states time and again in the ensuing series of demos, so we’ll build a static class to manage them for us, rather than creating them for each demo.&nbsp; We’ll be including all of the Rasterizer, Blend and DepthStencil states that we develop as we go along, but for now, we only need a single RasterizerState, NoCullRS, and a single BlendState, TransparentBS.&nbsp; </p>
+<ul>
+    <li>NoCullRS – This is a state that we will use for our transparent wire-fence textured “cage” mesh at the center of our scene.&nbsp; It is very similar to the default render state, except that we have disabled front-face culling, so that we will see the back side of the far triangles through the transparent portions of the box.</li>
+    <li>TransparentBS – This blend state will blending the source and destination pixel based on their alphas, so that we can draw our water mesh partially transparent and see the ground mesh beneath it.</li>
+</ul>
+<p>We will follow the same template with out RenderStates class as we have previously followed with our Effects and InputLayouts static classes.&nbsp; We will implement an InitAll function, which will create the render states, which we will call after initializing Direct3D, and a DestroyAll function, which will release the COM pointers for the render states when we dispose of our application class.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">class</span> RenderStates {
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> InitAll(Device device) {
+        Debug.Assert(device != <span class="kwrd">null</span>);
+        var noCullDesc = <span class="kwrd">new</span> RasterizerStateDescription {
+            FillMode = FillMode.Solid,
+            CullMode = CullMode.None,
+            IsFrontCounterclockwise = <span class="kwrd">false</span>,
+            IsDepthClipEnabled = <span class="kwrd">true</span>
+        };
+        NoCullRS = RasterizerState.FromDescription(device, noCullDesc);
+
+        var transDesc = <span class="kwrd">new</span> BlendStateDescription {
+            AlphaToCoverageEnable = <span class="kwrd">false</span>,
+            IndependentBlendEnable = <span class="kwrd">false</span>
+        };
+        transDesc.RenderTargets[0].BlendEnable = <span class="kwrd">true</span>;
+        transDesc.RenderTargets[0].SourceBlend = BlendOption.SourceAlpha;
+        transDesc.RenderTargets[0].DestinationBlend = BlendOption.InverseSourceAlpha;
+        transDesc.RenderTargets[0].BlendOperation = BlendOperation.Add;
+        transDesc.RenderTargets[0].SourceBlendAlpha = BlendOption.One;
+        transDesc.RenderTargets[0].DestinationBlendAlpha = BlendOption.Zero;
+        transDesc.RenderTargets[0].BlendOperationAlpha = BlendOperation.Add;
+        transDesc.RenderTargets[0].RenderTargetWriteMask = ColorWriteMaskFlags.All;
+
+        TransparentBS = BlendState.FromDescription(device, transDesc);
+    }
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> DestroyAll() {
+        Util.ReleaseCom(<span class="kwrd">ref</span> NoCullRS);
+        Util.ReleaseCom(<span class="kwrd">ref</span> TransparentBS);
+    }
+    <span class="kwrd">public</span> <span class="kwrd">static</span> RasterizerState NoCullRS;
+    <span class="kwrd">public</span> <span class="kwrd">static</span> BlendState TransparentBS;
+}</pre>
+<h3>Demo Application</h3>
+<p>Our demo application will draw the scene from the screen shot above.&nbsp; We will need to add the cage geometry to the scene, but that is done in exactly the same fashion as in the <a href="http://richardssoftware.blogspot.com/2013/07/texturing-101crate-demo.html" target="_blank">CrateDemo</a>, so I will not go over it. We will modify our water mesh material so that it is partially transparent by setting the alpha component of its diffuse color to a value less than 1.0f.&nbsp; After some tweaking, I found that I liked the effect with an alpha value of 0.6f, but go ahead and experiment with other values.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> BlendDemo(IntPtr hInstance){
+    <span class="rem">//...</span>
+    _wavesMat = <span class="kwrd">new</span> Material {
+        Ambient = <span class="kwrd">new</span> Color4(0.5f, 0.5f, 0.5f),
+        Diffuse = <span class="kwrd">new</span> Color4(0.6f, 1.0f, 1.0f, 1.0f),
+        Specular = <span class="kwrd">new</span> Color4(32.0f, 0.8f, 0.8f, 0.8f)
+    };
+}</pre>
+<p>We will also add the option for the user to toggle between render modes using the keyboard number keys.&nbsp; We will provide three options: 1, for rendering the scene with just lighting, 2, for rendering the scene with lights and textures, and 3, for rendering with lights, textures, and fog.&nbsp; We do this by hooking our main application form’s KeyDown event, using a standard Windows.Forms event handler.&nbsp; Note that we have to add this event handler in our Init() function, after we have called the base D3DApp Init() function to create the window and initialize Direct3D.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">bool</span> Init() {
+    Window.KeyDown += SwitchRenderState;
+}
+
+<span class="kwrd">private</span> <span class="kwrd">void</span> SwitchRenderState(<span class="kwrd">object</span> sender, KeyEventArgs e) {
+    <span class="kwrd">switch</span> (e.KeyCode) {
+        <span class="kwrd">case</span> Keys.D1:
+            _renderOptions = RenderOptions.Lighting;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">case</span> Keys.D2:
+            _renderOptions = RenderOptions.Textures;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">case</span> Keys.D3:
+            _renderOptions = RenderOptions.TexturesAndFog;
+            <span class="kwrd">break</span>;
+    }
+}</pre>
+<p>Lastly, in our DrawScene function, we will need to select the appropriate effect technique for drawing our terrain and our box, render the box using the NoCullRS rasterizer state, render the land mesh, and then render the water mesh with the TransparentBS blend state.&nbsp; Note that we have to draw our blended wave mesh last; generally, we will always need to render our non-blended objects first, and then render our blended objects in back-to-front order for the proper effect.&nbsp; Note also that we can render our “cage” first, without worrying about draw order; this is because it is not actually blended, the pixels are either opaque or fully transparent, and we are using the alpha-clipping technique to simply not render those pixels that should be transparent.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> DrawScene() {
+    <span class="rem">// snip...</span>
+
+    var blendFactor = <span class="kwrd">new</span> Color4(0,0,0,0);
+
+    var viewProj = _view * _proj;
+
+    Effects.BasicFX.SetDirLights(_dirLights);
+    Effects.BasicFX.SetEyePosW(_eyePosW);
+    <span class="rem">// set fog parameters</span>
+    Effects.BasicFX.SetFogColor(Color.Silver);
+    Effects.BasicFX.SetFogStart(15.0f);
+    Effects.BasicFX.SetFogRange(175.0f);
+    <span class="rem">// select appropriate rendering techniques</span>
+    EffectTechnique landAndWavesTech;
+    EffectTechnique boxTech;
+    <span class="kwrd">switch</span> (_renderOptions) {
+        <span class="kwrd">case</span> RenderOptions.Lighting:
+            boxTech = Effects.BasicFX.Light3Tech;
+            landAndWavesTech = Effects.BasicFX.Light3Tech;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">case</span> RenderOptions.Textures:
+            boxTech = Effects.BasicFX.Light3TexAlphaClipTech;
+            landAndWavesTech = Effects.BasicFX.Light3TexTech;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">case</span> RenderOptions.TexturesAndFog:
+            boxTech = Effects.BasicFX.Light3TexAlphaClipFogTech;
+            landAndWavesTech = Effects.BasicFX.Light3TexFogTech;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">default</span>:
+            <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentOutOfRangeException();
+    }
+    <span class="rem">// draw the cage mesh</span>
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> p = 0; p &lt; boxTech.Description.PassCount; p++) {
+        ImmediateContext.InputAssembler.SetVertexBuffers(0, <span class="kwrd">new</span> VertexBufferBinding(_boxVB, Basic32.Stride, 0));
+        ImmediateContext.InputAssembler.SetIndexBuffer(_boxIB, Format.R32_UInt, 0);
+
+        var world = _boxWorld;
+        var wit = MathF.InverseTranspose(world);
+        var wvp = world*viewProj;
+
+        Effects.BasicFX.SetWorld(world);
+        Effects.BasicFX.SetWorldInvTranspose(wit);
+        Effects.BasicFX.SetWorldViewProj(wvp);
+        Effects.BasicFX.SetTexTransform(Matrix.Identity);
+        Effects.BasicFX.SetMaterial(_boxMat);
+        Effects.BasicFX.SetDiffuseMap(_boxMapSRV);
+
+        ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
+        boxTech.GetPassByIndex(p).Apply(ImmediateContext);
+        ImmediateContext.DrawIndexed(36, 0, 0);
+
+        ImmediateContext.Rasterizer.State = <span class="kwrd">null</span>;
+    }
+
+
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> p = 0; p &lt; landAndWavesTech.Description.PassCount; p++) {
+        <span class="rem">// Draw the land mesh</span>
+        ImmediateContext.InputAssembler.SetVertexBuffers(0, <span class="kwrd">new</span> VertexBufferBinding(_landVB, Basic32.Stride, 0));
+        ImmediateContext.InputAssembler.SetIndexBuffer(_landIB, Format.R32_UInt, 0);
+
+        var world = _landWorld;
+        var wit = MathF.InverseTranspose(world);
+        var wvp = world * viewProj;
+
+        Effects.BasicFX.SetWorld(world);
+        Effects.BasicFX.SetWorldInvTranspose(wit);
+        Effects.BasicFX.SetWorldViewProj(wvp);
+        Effects.BasicFX.SetTexTransform(_grassTexTransform);
+        Effects.BasicFX.SetMaterial(_landMat);
+        Effects.BasicFX.SetDiffuseMap(_grassMapSRV);
+
+        var pass = landAndWavesTech.GetPassByIndex(p);
+        pass.Apply(ImmediateContext);
+        ImmediateContext.DrawIndexed(_landIndexCount, 0, 0);
+        <span class="rem">// Draw the water mesh</span>
+        ImmediateContext.InputAssembler.SetVertexBuffers(0, <span class="kwrd">new</span> VertexBufferBinding(_waveVB, Basic32.Stride, 0));
+        ImmediateContext.InputAssembler.SetIndexBuffer(_waveIB, Format.R32_UInt, 0);
+
+        world = _wavesWorld;
+        wit = MathF.InverseTranspose(world);
+        wvp = world * viewProj;
+
+        Effects.BasicFX.SetWorld(world);
+        Effects.BasicFX.SetWorldInvTranspose(wit);
+        Effects.BasicFX.SetWorldViewProj(wvp);
+        Effects.BasicFX.SetTexTransform(_waterTexTransform);
+        Effects.BasicFX.SetMaterial(_wavesMat);
+        Effects.BasicFX.SetDiffuseMap(_wavesMapSRV);
+
+        <span class="rem">// enable alpha-blending</span>
+        ImmediateContext.OutputMerger.BlendState = RenderStates.TransparentBS;
+        ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+        ImmediateContext.OutputMerger.BlendSampleMask = ~0;
+        pass.Apply(ImmediateContext);
+        ImmediateContext.DrawIndexed(3 * _waves.TriangleCount, 0, 0);
+        <span class="rem">// reset the blend state</span>
+        ImmediateContext.OutputMerger.BlendState = <span class="kwrd">null</span>;
+    }
+    SwapChain.Present(0, PresentFlags.None);
+}</pre>
+
+
+<h3>Result</h3>
+<table cellspacing="0" cellpadding="2" width="400" border="0">
+    <tbody>
+        <tr>
+            <td valign="top" width="133"><a href="http://lh6.ggpht.com/-RabYzUjDjyg/Uf__T7g_iKI/AAAAAAAAC7A/r2S7DEGgTzE/s1600-h/blend-light-only%25255B5%25255D.png"><img title="blend-light-only" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="blend-light-only" src="http://lh5.ggpht.com/-n8fA4kvGiTg/Uf__UaIgMcI/AAAAAAAAC7M/e5fauqnZd8A/blend-light-only_thumb%25255B1%25255D.png?imgmax=800" width="244" height="190"></a></td>
+            <td valign="top" width="133"><a href="http://lh5.ggpht.com/-s_LmFqefUuI/Uf__U7PiIDI/AAAAAAAAC7U/HO1TpuIfbg4/s1600-h/blend-tex-nofog%25255B2%25255D.png"><img title="blend-tex-nofog" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="blend-tex-nofog" src="http://lh3.ggpht.com/-FfhF5AOUTCc/Uf__VZ-CSXI/AAAAAAAAC7c/E_QDB-lRLvA/blend-tex-nofog_thumb.png?imgmax=800" width="244" height="190"></a></td>
+            <td valign="top" width="133"><a href="http://lh5.ggpht.com/-GheE9ZLgMjo/Uf__V1PCeBI/AAAAAAAAC7k/UVYirEAfxxc/s1600-h/blend-tex-fog%25255B2%25255D.png"><img title="blend-tex-fog" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="blend-tex-fog" src="http://lh3.ggpht.com/-p74tzV8k550/Uf__WaCWegI/AAAAAAAAC7o/7WaHiNf112s/blend-tex-fog_thumb.png?imgmax=800" width="244" height="190"></a></td>
+        </tr>
+        <tr>
+            <td valign="top" width="133">Rendering with only lighting</td>
+            <td valign="top" width="133">Rendering with textures and lighting</td>
+            <td valign="top" width="133">Rendering with fog enabled</td>
+        </tr>
+    </tbody>
+</table>
+<iframe width="640" height="360" src="https://www.youtube.com/embed/W9VH_qPely8?feature=player_detailpage" frameborder="0" allowfullscreen></iframe>
+<h3>Next Time…</h3>
+<p>Next time around, we will be exploring Chapter 10 and the stencil buffer.&nbsp; We’ll talk about some theory around the stencil buffer and then move onto implementing planar reflections and shadows.</p>

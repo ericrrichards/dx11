@@ -56,6 +56,7 @@
     <None Include="app.config" />
     <None Include="packages.config" />
     <Content Include="blend.html" />
+    <Content Include="blend2.html" />
     <Content Include="Textures\grass.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
