@@ -71,7 +71,7 @@ namespace BlendDemo {
             _radius = 80;
 
             MainWindowCaption = "Blend Demo";
-            Enable4XMsaa = false;
+            Enable4xMsaa = false;
 
             _landWorld = Matrix.Identity;
             _wavesWorld = Matrix.Translation(0, -3.0f, 0);
