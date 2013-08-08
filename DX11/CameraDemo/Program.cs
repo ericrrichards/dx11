@@ -66,6 +66,7 @@ namespace CameraDemo {
 
         public CameraDemo(IntPtr hInstance) : base(hInstance) {
             _lightCount = 3;
+            Enable4xMsaa = true;
             MainWindowCaption = "Camera Demo";
 
             _lastMousePos = new Point();
@@ -279,7 +280,7 @@ namespace CameraDemo {
                     Effects.BasicFX.SetWorldViewProj(wvp);
                     Effects.BasicFX.SetTexTransform(Matrix.Identity);
                     Effects.BasicFX.SetMaterial(_cylinderMat);
-                    Effects.BasicFX.SetDiffuseMap(_stoneTexSRV);
+                    Effects.BasicFX.SetDiffuseMap(_brickTexSRV);
                     pass.Apply(ImmediateContext);
                     ImmediateContext.DrawIndexed(_cylinderIndexCount, _cylinderIndexOffset, _cylinderVertexOffset);
                 }
