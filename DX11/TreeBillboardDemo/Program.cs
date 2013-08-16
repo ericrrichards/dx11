@@ -482,51 +482,51 @@ namespace TreeBillboardDemo {
             _treeSpritesVB = new Buffer(Device, new DataStream(v, false, false), vbd);
         }
 
-        private void DrawTreeSprites(Matrix viewProj) {
-            Effects.TreeSpriteFX.SetDirLights(_dirLights);
-            Effects.TreeSpriteFX.SetEyePosW(_eyePosW);
-            Effects.TreeSpriteFX.SetFogColor(Color.Silver);
-            Effects.TreeSpriteFX.SetFogStart(15.0f);
-            Effects.TreeSpriteFX.SetFogRange(175.0f);
-            Effects.TreeSpriteFX.SetViewProj(viewProj);
-            Effects.TreeSpriteFX.SetMaterial(_treeMat);
-            Effects.TreeSpriteFX.SetTreeTextrueMapArray(_treeTextureMapArraySRV);
+private void DrawTreeSprites(Matrix viewProj) {
+    Effects.TreeSpriteFX.SetDirLights(_dirLights);
+    Effects.TreeSpriteFX.SetEyePosW(_eyePosW);
+    Effects.TreeSpriteFX.SetFogColor(Color.Silver);
+    Effects.TreeSpriteFX.SetFogStart(15.0f);
+    Effects.TreeSpriteFX.SetFogRange(175.0f);
+    Effects.TreeSpriteFX.SetViewProj(viewProj);
+    Effects.TreeSpriteFX.SetMaterial(_treeMat);
+    Effects.TreeSpriteFX.SetTreeTextrueMapArray(_treeTextureMapArraySRV);
 
-            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.PointList;
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.TreePointSprite;
+    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.PointList;
+    ImmediateContext.InputAssembler.InputLayout = InputLayouts.TreePointSprite;
 
-            EffectTechnique treeTech;
-            switch (_renderOptions) {
-                case RenderOptions.Lighting:
-                    treeTech = Effects.TreeSpriteFX.Light3Tech;
-                    break;
-                case RenderOptions.Textures:
-                    treeTech = Effects.TreeSpriteFX.Light3TexAlphaClipTech;
-                    break;
-                case RenderOptions.TexturesAndFog:
-                    treeTech = Effects.TreeSpriteFX.Light3TexAlphaClipFogTech;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-            for (int p = 0; p < treeTech.Description.PassCount; p++) {
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_treeSpritesVB, TreePointSprite.Stride, 0));
+    EffectTechnique treeTech;
+    switch (_renderOptions) {
+        case RenderOptions.Lighting:
+            treeTech = Effects.TreeSpriteFX.Light3Tech;
+            break;
+        case RenderOptions.Textures:
+            treeTech = Effects.TreeSpriteFX.Light3TexAlphaClipTech;
+            break;
+        case RenderOptions.TexturesAndFog:
+            treeTech = Effects.TreeSpriteFX.Light3TexAlphaClipFogTech;
+            break;
+        default:
+            throw new ArgumentOutOfRangeException();
+    }
+    for (int p = 0; p < treeTech.Description.PassCount; p++) {
+        ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_treeSpritesVB, TreePointSprite.Stride, 0));
 
-                var blendFactor = new Color4(0, 0, 0, 0);
-                if (_alphaToCoverageEnabled) {
-                    ImmediateContext.OutputMerger.BlendState = RenderStates.AlphaToCoverageBS;
-                    ImmediateContext.OutputMerger.BlendFactor = blendFactor;
-                    ImmediateContext.OutputMerger.BlendSampleMask = -1;
-                }
-                treeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                ImmediateContext.Draw(TreeCount, 0);
-
-                ImmediateContext.OutputMerger.BlendState = null;
-                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
-                ImmediateContext.OutputMerger.BlendSampleMask = -1;
-
-            }
+        var blendFactor = new Color4(0, 0, 0, 0);
+        if (_alphaToCoverageEnabled) {
+            ImmediateContext.OutputMerger.BlendState = RenderStates.AlphaToCoverageBS;
+            ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+            ImmediateContext.OutputMerger.BlendSampleMask = -1;
         }
+        treeTech.GetPassByIndex(p).Apply(ImmediateContext);
+        ImmediateContext.Draw(TreeCount, 0);
+
+        ImmediateContext.OutputMerger.BlendState = null;
+        ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+        ImmediateContext.OutputMerger.BlendSampleMask = -1;
+
+    }
+}
     }
 
 

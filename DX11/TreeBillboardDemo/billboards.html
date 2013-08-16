@@ -1,0 +1,372 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+<p>When I first learned about programming DirectX using shaders, it was back when DirectX 9 was the newest thing around.&nbsp; Back then, there were only two stages in the shader pipeline, the Vertex and Pixel shaders that we have been utilizing thus far.&nbsp; DirectX 10 introduced the geometry shader, which allows us to modify entire geometric primitives on the hardware, after they have gone through the vertex shader.</p>
+<p>One application of this capability is rendering billboards.&nbsp; Billboarding is a common technique for rendering far-off objects or minor scene details, by replacing a full 3D object with a texture drawn to a quad that is oriented towards the viewer.&nbsp; This is much less performance-intensive, and for far-off objects and minor details, provides a good-enough approximation.&nbsp; As an example, many games use billboarding to render grass or other foliage, and the Total War series renders far-away units as billboard sprites (In Medieval Total War II, you can see this by zooming in and out on a unit; at a certain point, you’ll see the unit “pop”, which is the point where the Total War engine switches from rendering sprite billboards to rendering the full 3D model).&nbsp; The older way of rendering billboards required one to maintain a dynamic vertex buffer of the quads for the billboards, and to transform the vertices to orient towards the viewer on the CPU whenever the camera moved.&nbsp; Dynamic vertex buffers have a lot of overhead, because it is necessary to re-upload the geometry to the GPU every time it changes, along with the additional overhead of uploading four vertices per billboard.&nbsp; Using the geometry shader, we can use a static vertex buffer of 3D points, with only a single vertex per billboard, and expand the point to a camera-aligned quad in the geometry shader.</p>
+<p>We’ll illustrate this technique by porting the TreeBillboard example from Chapter 11 of <a href="http://www.d3dcoder.net/d3d11.htm">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0.</a>&nbsp; This demo builds upon our previous <a href="http://richardssoftware.blogspot.com/2013/08/blend-demo.html" target="_blank">Alpha-blending example</a>, adding some tree billboards to the scene.&nbsp; You can download the full code for this example from my GitHub repository, at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a> under the TreeBillboardDemo project.</p>
+<p><a href="http://lh6.ggpht.com/-j8R7LMTt0Dw/Ug5h0za0soI/AAAAAAAADBQ/INGtoXGOe7o/s1600-h/billboard%25255B3%25255D.png">
+    <img title="billboard" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="billboard" src="http://lh5.ggpht.com/-KaaYRDxicvw/Ug5h1VpBqmI/AAAAAAAADBY/pLtisi7jDUI/billboard_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484"></a> </p>
+<!--more-->
+<h3>TreePointSprite Vertex Type</h3>
+<p>We will create a new vertex type for our tree billboards.&nbsp; Since we are using the vertex shader to expand out a point into a quad, we need only store the center-point of the billboard, and the height and width of the quad.&nbsp; Note that the SIZE semantic we use for the billboard size is not one that is defined to have any particular meaning in HLSL (<a href="http://msdn.microsoft.com/en-us/library/windows/desktop/bb509647(v=vs.85).aspx">http://msdn.microsoft.com/en-us/library/windows/desktop/bb509647(v=vs.85).aspx</a>); it’s primary role, so far as I have been able to determine, is simply to map the C# struct field with the HLSL struct field.</p>
+<p>HLSL struct:</p>
+<pre class="csharpcode"><span class="kwrd">struct</span> VertexIn
+{
+    float3 PosW  : POSITION;
+    float2 SizeW : SIZE;
+};</pre>
+<p>C# struct:</p>
+<pre class="csharpcode">[StructLayout(LayoutKind.Sequential)]
+<span class="kwrd">public</span> <span class="kwrd">struct</span> TreePointSprite {
+    <span class="kwrd">public</span> Vector3 Pos;
+    <span class="kwrd">public</span> Vector2 Size;
+
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> <span class="kwrd">int</span> Stride = Marshal.SizeOf(<span class="kwrd">typeof</span>(TreePointSprite));
+}
+<span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">class</span> InputLayoutDescriptions {
+    <span class="rem">// other inputLayouts omitted...</span>
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> InputElement[] TreePointSprite = {
+        <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0 ),
+        <span class="kwrd">new</span> InputElement(<span class="str">"SIZE"</span>, 0, Format.R32G32_Float, 12,0,InputClassification.PerVertexData, 0) 
+    };
+}</pre>
+<h3>TreeSprite.fx</h3>
+<p>We will need to create a new effect file to render our tree billboards.&nbsp; We’ll start by looking at the parameters we will need to set for our constant buffers.</p>
+<pre class="csharpcode">cbuffer cbPerFrame
+{
+    DirectionalLight gDirLights[3];
+    float3 gEyePosW;
+
+    <span class="kwrd">float</span>  gFogStart;
+    <span class="kwrd">float</span>  gFogRange;
+    float4 gFogColor;
+};
+
+cbuffer cbPerObject
+{
+    float4x4 gViewProj;
+    Material gMaterial;
+};
+
+cbuffer cbFixed
+{
+    <span class="rem">//</span>
+    <span class="rem">// Compute texture coordinates to stretch texture over quad.</span>
+    <span class="rem">//</span>
+
+    float2 gTexC[4] = 
+    {
+        float2(0.0f, 1.0f),
+        float2(0.0f, 0.0f),
+        float2(1.0f, 1.0f),
+        float2(1.0f, 0.0f)
+    };
+};
+
+<span class="rem">// Nonnumeric values cannot be added to a cbuffer.</span>
+Texture2DArray gTreeMapArray;
+
+SamplerState samLinear
+{
+    Filter   = MIN_MAG_MIP_LINEAR;
+    AddressU = CLAMP;
+    AddressV = CLAMP;
+};</pre>
+<p>Our per-frame parameters should look very familiar, as they are the same as we have been using in Basic.fx.&nbsp; Likewise, our perObject parameters should be self-explanatory, although we can dispense with the world transforms that we use in Basic.fx, as our points sprites will be defined in world-space, and we will create the quad vertices in world-space in our geometry shader.&nbsp; </p>
+<p>The cbFixed vertex buffer contains a constant float2 array that contains the standard texture coordinates we will use for mapping our billboard texture to the generated quad.&nbsp; Our gTreeMapArray is a new type for us, Texture2DArray, which is simply an array of textures that we can index into using a variable index.&nbsp; If we were to simply define an array of Texture2D, we would not be able to use a variable index into the array in our pixel shader, as the fxc compiler complains about any non-literal indexes when sampling a texture.&nbsp; Setting this parameter is a little more complicated than a normal texture, but we will get to that when we cover our wrapper class for this effect.&nbsp; Last, we define a linear filtering sampler state, which clamps texture coordinates to the [0,1] range in both the u and v directions.&nbsp; Strictly speaking, this isn’t really necessary, as we will not provide a way to change the texture coordinates in our gTexC array, so the texture coordinates will always be in the [0,1] range, but you would get an odd looking effect if you were to change the coordinates and ended up with tiled tree billboards.</p>
+<p>Our vertex shader is just a simple pass-through, as our point vertices are already defined in world-space, and we will do the view-projection transform in the geometry shader when we expand the point into a quad.</p>
+<pre class="csharpcode">VertexOut VS(VertexIn vin)
+{
+    VertexOut vout;
+
+    <span class="rem">// Just pass data over to geometry shader.</span>
+    vout.CenterW = vin.PosW;
+    vout.SizeW   = vin.SizeW;
+
+    <span class="kwrd">return</span> vout;
+}</pre>
+<p>Next up comes our geometry shader.&nbsp; First, we define the attribute [maxvertexcount(n)], which instructs the GPU the maximum number of vertices which will be generated for an input, so that it can allocate the necessary memory.&nbsp; We can output fewer vertices than this maximum, but we cannot output more; if we do, the GPU will ignore the excess vertices.&nbsp; Our geometry shader takes three parameters: </p>
+<ul>
+    <li><strong>point VertexOut gin[1]</strong> – This is the vertex which is output by our vertex shader.&nbsp; We declare this variable as type point, which indicates that the primitive is a point.&nbsp; Other options are line, triangle, lineadj, and triangleadj.&nbsp; The geometry shader only considers complete primitives, so, for instance, if we wanted to input a line primitive to our geometry shader, the declaration would be <strong>line VertexOut gin[2], </strong>or for a triangle, <strong>triangle VertexOut gin[3]</strong>.&nbsp; </li>
+    <li><strong>uint primID : SV_PrimitiveID</strong> – This parameter is a unique identifier auto-generated for each primitive in a draw call, starting from 0.&nbsp; These IDs are only unique across a single draw call, thus the ID sequence restarts for each call.</li>
+    <li><strong>inout TriangleStream&lt;GeoOut&gt; triStream – </strong>This parameter is the output of our geometry shader.&nbsp; Since the geometry shader can output an arbitrary number of vertices (up to maxvertexcount), this is a stream, which we can think of as a List&lt;T&gt;.&nbsp; We can define either a PointStream, LineStream, of TriangleStream, depending on whether we want to output points, lines, or triangles.&nbsp; We add vertices to the stream by using the Append function.&nbsp; For lines and triangles, the stream is interpreted as a strip, i.e. for a LineStream, three output points would be rendered as a line running from p1 to p2 to p3.&nbsp; We can, however, simulate line or triangle lists, by using the HLSL function RestartStrip().&nbsp; Using the previous three-point line, we would then need to Append p1 &amp; p2, then call RestartStrip, then append p2 &amp; p3.&nbsp; Note also that, if we output fewer vertices than are required for the output primitive type (2 vertices for a line, 3 for a triangle), the GPU will discard the incomplete primitives.</li>
+</ul>
+<p>In our geometry shader, we construct a 3D frame of reference centered on our point, with the Z-axis oriented towards the viewer.&nbsp; Then, we take the SIZE float2 and determine the half-dimensions, so that we can properly construct the corner vertices of our quad from the center position.&nbsp; Lastly, we create the four vertices for the quad, assigning the world position, projected position, normal (towards the viewer) and texture coordinates (from our constant gTexC array), and add the vertex to the output stream.&nbsp; We also attach the primitive ID to the vertex, which we will need in the pixel shader.</p>
+<pre class="csharpcode"> <span class="rem">// We expand each point into a quad (4 vertices), so the maximum number of vertices</span>
+ <span class="rem">// we output per geometry shader invocation is 4.</span>
+[maxvertexcount(4)]
+<span class="kwrd">void</span> GS(point VertexOut gin[1], 
+        <span class="kwrd">uint</span> primID : SV_PrimitiveID, 
+        inout TriangleStream&lt;GeoOut&gt; triStream)
+{    
+    <span class="rem">//</span>
+    <span class="rem">// Compute the local coordinate system of the sprite relative to the world</span>
+    <span class="rem">// space such that the billboard is aligned with the y-axis and faces the eye.</span>
+    <span class="rem">//</span>
+
+    float3 up = float3(0.0f, 1.0f, 0.0f);
+    float3 look = gEyePosW - gin[0].CenterW;
+    look.y = 0.0f; <span class="rem">// y-axis aligned, so project to xz-plane</span>
+    look = normalize(look);
+    float3 right = cross(up, look);
+
+    <span class="rem">//</span>
+    <span class="rem">// Compute triangle strip vertices (quad) in world space.</span>
+    <span class="rem">//</span>
+    <span class="kwrd">float</span> halfWidth  = 0.5f*gin[0].SizeW.x;
+    <span class="kwrd">float</span> halfHeight = 0.5f*gin[0].SizeW.y;
+    
+    float4 v[4];
+    v[0] = float4(gin[0].CenterW + halfWidth*right - halfHeight*up, 1.0f);
+    v[1] = float4(gin[0].CenterW + halfWidth*right + halfHeight*up, 1.0f);
+    v[2] = float4(gin[0].CenterW - halfWidth*right - halfHeight*up, 1.0f);
+    v[3] = float4(gin[0].CenterW - halfWidth*right + halfHeight*up, 1.0f);
+
+    <span class="rem">//</span>
+    <span class="rem">// Transform quad vertices to world space and output </span>
+    <span class="rem">// them as a triangle strip.</span>
+    <span class="rem">//</span>
+    GeoOut gout;
+    [unroll]
+    <span class="kwrd">for</span>(<span class="kwrd">int</span> i = 0; i &lt; 4; ++i)
+    {
+        gout.PosH     = mul(v[i], gViewProj);
+        gout.PosW     = v[i].xyz;
+        gout.NormalW  = look;
+        gout.Tex      = gTexC[i];
+        gout.PrimID   = primID;
+        
+        triStream.Append(gout);
+    }
+}</pre>
+<p>The pixel shader that we will use for our billboards is very similar to that which we use for our BasicEffect.&nbsp; The only difference is that we use the Primitive ID output by the vertex shader to select the texture that we will render on the billboard from our gTreeMapArray.&nbsp; We need to have a 3D texture coordinate to sample the correct texture; the first two coordinates are the same as for our normal texturing, while the third is the index of the texture in the texture array.&nbsp; We may draw more billboards in a single draw call than we have elements in the array, so we mod the primitive ID with the number of textures.&nbsp; Note that we also make use of alpha-clipping to “cut out” the pixels of the billboard that are transparent in the texture.</p>
+<pre class="csharpcode">float4 PS(GeoOut pin, uniform <span class="kwrd">int</span> gLightCount, uniform <span class="kwrd">bool</span> gUseTexure, uniform <span class="kwrd">bool</span> gAlphaClip, uniform <span class="kwrd">bool</span> gFogEnabled) : SV_Target
+{
+    <span class="rem">// snip...</span>
+    <span class="kwrd">if</span>(gUseTexure)
+    {
+        <span class="rem">// Sample texture.</span>
+        float3 uvw = float3(pin.Tex, pin.PrimID%4);
+        texColor = gTreeMapArray.Sample( samLinear, uvw );
+
+        <span class="kwrd">if</span>(gAlphaClip)
+        {
+            <span class="rem">// Discard pixel if texture alpha &lt; 0.05.  Note that we do this</span>
+            <span class="rem">// test as soon as possible so that we can potentially exit the shader </span>
+            <span class="rem">// early, thereby skipping the rest of the shader code.</span>
+            clip(texColor.a - 0.05f);
+        }
+    }
+                <span class="rem">// snip...  </span>
+}</pre>
+<h3>TreeSpriteEffect Wrapped Class</h3>
+<p>We will need to create a C# wrapper class for our new billboard effect.&nbsp; This is largely the same process that we used to create our <a href="http://richardssoftware.blogspot.com/2013/07/three-point-lighting-litskull-demo.html" target="_blank">BasicEffect class</a>, so I will not go into great detail on it.</p>
+<p>One wrinkle, however, is that we will need to write a function to create the texture array that we bind to the gTreeMapArray shader variable.&nbsp; Neither DirectX nor SlimDX provide functionality out-of-the-box to create a texture array, so we will need to do that ourselves.&nbsp; We’ll create a function to do this in our Util class, CreateTexture2DArraySRV, which will load an array of textures, create the texture array, and bind it to a ShaderResourceView that we can upload to our shader.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">static</span> ShaderResourceView CreateTexture2DArraySRV(Device device, DeviceContext immediateContext, <span class="kwrd">string</span>[] filenames, Format format, FilterFlags filter=FilterFlags.None, FilterFlags mipFilter=FilterFlags.Linear) {
+    var srcTex = <span class="kwrd">new</span> Texture2D[filenames.Length];
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; filenames.Length; i++) {
+        var loadInfo = <span class="kwrd">new</span> ImageLoadInformation {
+            FirstMipLevel = 0,
+            Usage = ResourceUsage.Staging,
+            BindFlags = BindFlags.None,
+            CpuAccessFlags = CpuAccessFlags.Write | CpuAccessFlags.Read,
+            OptionFlags = ResourceOptionFlags.None,
+            Format = format,
+            FilterFlags = filter,
+            MipFilterFlags = mipFilter,
+        };
+        srcTex[i] = Texture2D.FromFile(device, filenames[i], loadInfo);
+    }
+    var texElementDesc = srcTex[0].Description;
+
+    var texArrayDesc = <span class="kwrd">new</span> Texture2DDescription {
+        Width = texElementDesc.Width,
+        Height = texElementDesc.Height,
+        MipLevels = texElementDesc.MipLevels,
+        ArraySize = srcTex.Length,
+        Format = texElementDesc.Format,
+        SampleDescription = <span class="kwrd">new</span> SampleDescription(1, 0),
+        Usage = ResourceUsage.Default,
+        BindFlags = BindFlags.ShaderResource,
+        CpuAccessFlags = CpuAccessFlags.None,
+        OptionFlags = ResourceOptionFlags.None
+    };
+
+    var texArray = <span class="kwrd">new</span> Texture2D(device, texArrayDesc);
+
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> texElement = 0; texElement &lt; srcTex.Length; texElement++) {
+        <span class="kwrd">for</span> (<span class="kwrd">int</span> mipLevel = 0; mipLevel &lt; texElementDesc.MipLevels; mipLevel++) {
+            var mappedTex2D = immediateContext.MapSubresource(srcTex[texElement], mipLevel, 0, MapMode.Read, MapFlags.None);
+
+            immediateContext.UpdateSubresource(
+                mappedTex2D, 
+                texArray, 
+                Resource.CalculateSubresourceIndex(mipLevel, texElement, texElementDesc.MipLevels)
+                );
+            immediateContext.UnmapSubresource(srcTex[texElement], mipLevel);
+        }
+    }
+    var viewDesc = <span class="kwrd">new</span> ShaderResourceViewDescription {
+        Format = texArrayDesc.Format,
+        Dimension = ShaderResourceViewDimension.Texture2DArray, 
+        MostDetailedMip = 0,
+        MipLevels = texArrayDesc.MipLevels,
+        FirstArraySlice = 0,
+        ArraySize = srcTex.Length
+    };
+
+    var texArraySRV = <span class="kwrd">new</span> ShaderResourceView(device, texArray, viewDesc);
+
+    ReleaseCom(<span class="kwrd">ref</span> texArray);
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; srcTex.Length; i++) {
+        ReleaseCom(<span class="kwrd">ref</span> srcTex[i]);
+    }
+
+    <span class="kwrd">return</span> texArraySRV;
+}</pre>
+<p>First, we will load in the textures from the array of filenames into a temporary array, using the provided format, min/mag filter and mip filter.&nbsp; We use ResourceUsage.Staging and CpuAccessFlags Read &amp; Write, as we are going to read from these textures.&nbsp; Next, we’ll grab the Texture2DDescription from the first element of the array of textures.&nbsp; We’ll use this description as a basis for the Texture2DDescription of our texture array.&nbsp; Note that we are assuming that the source textures all have the same dimensions; you will get odd results if the textures have differing dimensions.&nbsp; We set the ArraySize to the number of source textures, to indicate that this is a texture array.&nbsp; Then we create the new texture array from the description.</p>
+<p>Once we have create the texture array, we need to copy the source textures into the array.&nbsp; We do this using the DeviceContext.MapSubresource() function, to read the source texture, and the DeviceContext.UpdateSubresouce() method to copy the texture data into the array.&nbsp; We need to copy each source texture, as well as all the mipmap levels for the source texture into our array.&nbsp; Each texture of our texture array has its own mipmap chain.&nbsp; Logically, we can visualize this as a 2D matrix, with the top row being each full-size texture element, and each column being the mipmap chain of the texture element; however, we cannot assume that this logical representation matches the actual memory allocation of the elements.&nbsp; To properly update the texture array, we need to match up the mipmap level of the source texture that we are updating with the mipmap level of the appropriate texture element in our array.&nbsp; To make this easier, we can use the Resource.CalculateSubResourceIndex() method.</p>
+<p>Finally, once we have copied all the source textures and their mipmap chains into our texture array, we can bind the texture array to a ShaderResourceView, which we will return.&nbsp; We also need to free the memory allocated to the source textures, as well as the texture array, so that we do not leak memory.</p>
+<h3>Implementing the Demo</h3>
+<p>Starting from our previously implemented BlendDemo, there are very few changes that need to be made.&nbsp; In our Init() function, we need to create the tree texture array, using the Util.CreateTexture2DArraySRV function just discussed.&nbsp; Then, we will need to create the vertex buffer for our tree billboards, in our BuildTreeSpriteGeometryBuffers() function.&nbsp; This is very simple, as this geometry only consists of a vertex buffer of points.&nbsp; We set the position of our billboards such that they are properly situated on our land mesh, using the GetHillHeight function for the Y-coordinate of the point sprite, plus an offset to account for the height of the billboard.&nbsp; I have added a tweak to this code to ensure that the tree billboards are only located at points which are above the level of our water mesh, and below the upper slopes of our hill tops.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> BuildTreeSpritesBuffers() {
+    var v = <span class="kwrd">new</span> TreePointSprite[TreeCount];
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; TreeCount; i++) {
+        <span class="kwrd">float</span> y;
+        <span class="kwrd">float</span> x;
+        <span class="kwrd">float</span> z;
+        <span class="kwrd">do</span> {
+            x = MathF.Rand(-75.0f, 75.0f);
+            z = MathF.Rand(-75.0f, 75.0f);
+            y = GetHillHeight(x, z);
+        } <span class="kwrd">while</span> (y &lt; -3 || y &gt; 15.0f); 
+        y += 10.0f;
+
+        v[i].Pos = <span class="kwrd">new</span> Vector3(x,y,z);
+        v[i].Size = <span class="kwrd">new</span> Vector2(24.0f,24.0f);
+    }
+    var vbd = <span class="kwrd">new</span> BufferDescription {
+        Usage = ResourceUsage.Immutable,
+        SizeInBytes = TreePointSprite.Stride * TreeCount,
+        BindFlags = BindFlags.VertexBuffer,
+        CpuAccessFlags = CpuAccessFlags.None,
+        OptionFlags = ResourceOptionFlags.None,
+    };
+    _treeSpritesVB = <span class="kwrd">new</span> Buffer(Device, <span class="kwrd">new</span> DataStream(v, <span class="kwrd">false</span>, <span class="kwrd">false</span>), vbd);
+}</pre>
+<p>Since our tree billboards to not use alpha-blending (only alpha-clipping), we can draw them before we draw our land mesh in our DrawScene() function.&nbsp; I have split this code out into a helper function, DrawTreeSprites().&nbsp; Drawing the tree billboards is relatively straightforward.&nbsp; We set out shader variables, set the PrimitiveTopology (be sure to use PrimitiveTopology.PointList) and InputLayout, then select the appropriate technique from our shader effect, based on the user’s display choice, then bind our point sprite vertex buffer and draw the billboards.&nbsp; The only wrinkle here is that we have the option of setting a BlendState for an effect known as Alpha-To-Coverage.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> DrawTreeSprites(Matrix viewProj) {
+    Effects.TreeSpriteFX.SetDirLights(_dirLights);
+    Effects.TreeSpriteFX.SetEyePosW(_eyePosW);
+    Effects.TreeSpriteFX.SetFogColor(Color.Silver);
+    Effects.TreeSpriteFX.SetFogStart(15.0f);
+    Effects.TreeSpriteFX.SetFogRange(175.0f);
+    Effects.TreeSpriteFX.SetViewProj(viewProj);
+    Effects.TreeSpriteFX.SetMaterial(_treeMat);
+    Effects.TreeSpriteFX.SetTreeTextrueMapArray(_treeTextureMapArraySRV);
+
+    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.PointList;
+    ImmediateContext.InputAssembler.InputLayout = InputLayouts.TreePointSprite;
+
+    EffectTechnique treeTech;
+    <span class="kwrd">switch</span> (_renderOptions) {
+        <span class="kwrd">case</span> RenderOptions.Lighting:
+            treeTech = Effects.TreeSpriteFX.Light3Tech;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">case</span> RenderOptions.Textures:
+            treeTech = Effects.TreeSpriteFX.Light3TexAlphaClipTech;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">case</span> RenderOptions.TexturesAndFog:
+            treeTech = Effects.TreeSpriteFX.Light3TexAlphaClipFogTech;
+            <span class="kwrd">break</span>;
+        <span class="kwrd">default</span>:
+            <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentOutOfRangeException();
+    }
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> p = 0; p &lt; treeTech.Description.PassCount; p++) {
+        ImmediateContext.InputAssembler.SetVertexBuffers(0, <span class="kwrd">new</span> VertexBufferBinding(_treeSpritesVB, TreePointSprite.Stride, 0));
+
+        var blendFactor = <span class="kwrd">new</span> Color4(0, 0, 0, 0);
+        <span class="kwrd">if</span> (_alphaToCoverageEnabled) {
+            ImmediateContext.OutputMerger.BlendState = RenderStates.AlphaToCoverageBS;
+            ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+            ImmediateContext.OutputMerger.BlendSampleMask = -1;
+        }
+        treeTech.GetPassByIndex(p).Apply(ImmediateContext);
+        ImmediateContext.Draw(TreeCount, 0);
+
+        ImmediateContext.OutputMerger.BlendState = <span class="kwrd">null</span>;
+        ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+        ImmediateContext.OutputMerger.BlendSampleMask = -1;
+
+    }
+}</pre>
+<h3>Alpha-To-Coverage</h3>
+<p>If we render the tree billboards without Alpha-to-Coverage enabled, you will notice that the farther-away billboards will be rendered with a blocky black outline.</p>
+<p><a href="http://lh5.ggpht.com/-CSHfkQjL0Gk/Ug5h2C3u06I/AAAAAAAADBg/YhCAsxQ8L7s/s1600-h/billboard-no-atc%25255B3%25255D.png"><img title="billboard-no-atc" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="billboard-no-atc" src="http://lh4.ggpht.com/-1tHR_n-mXV4/Ug5h2tQTdMI/AAAAAAAADBo/NyXmVTJplfY/billboard-no-atc_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484"></a> </p>
+<p>This is because we are using the alpha-clipping function, along with linear mip-map filtering.&nbsp; For the closest tree billboards, we are rendering the full-size mipmap of the texture, but for the farther away billboards, we are rendering one of the smaller mipmap textures.&nbsp; Because of the way the linear mipmap filter works, the crisp edges of the alpha channel in the full-size texture are blended in the smaller mipmaps, so that a texel that would be fully transparent in the full-size mipmap may become partially transparent, if it is adjacent to opaque pixels, which results in the pixel passing the clip() function in the pixel shader.&nbsp; Because the background of our tree textures is black, this results in the black outline in the screenshot above.</p>
+<p>We could resolve this by rendering with alpha-blending enabled, however, that would require that we draw our billboards in back-to-front order, for proper blending, which results in a lot of overhead to maintain that sorting, if we have a large number of billboards, as well as a great deal of overdraw (with blending, we cannot rely on the z-buffer to discard opaque pixels early, that will never be output to the screen).</p>
+<p>We can use MSAA anti-aliasing to alleviate this problem with the alpha-clipping method.&nbsp; This will determine the color for the pixel based on the depth/stencil value of each subpixel, along with the coverage value (whether the subpixel is within or without the polygon).&nbsp; For solid geometry, this would work fine, however, for our billboards, the coverage value is determined using the edges of the entire quad, not just the portion that we are displaying using the alpha channel.&nbsp; However, DirectX provides functionality to instruct the GPU to consider the coverage value of a subpixel based on it’s alpha value, which is known as Alpha-to-Coverage, which can be enabled as part of a BlendState.&nbsp; We’ll add a new blend state to our RenderStates class, to handle Alpha-To-Coverage:</p>
+<pre class="csharpcode">var atcDesc = <span class="kwrd">new</span> BlendStateDescription {
+    AlphaToCoverageEnable = <span class="kwrd">true</span>,
+    IndependentBlendEnable = <span class="kwrd">false</span>,
+};
+atcDesc.RenderTargets[0].BlendEnable = <span class="kwrd">false</span>;
+atcDesc.RenderTargets[0].RenderTargetWriteMask = ColorWriteMaskFlags.All;
+AlphaToCoverageBS = BlendState.FromDescription(device, atcDesc);</pre>
+<p>Using Alpha-to-Coverage, we get a much smoother effect at the edges of our tree billboards:</p>
+<p>
+    <a href="http://lh6.ggpht.com/-AObtHDZOA9A/Ug5h3T3qEiI/AAAAAAAADBw/SUaEOPSGY2Q/s1600-h/billboard-atc%25255B3%25255D.png"><img title="billboard-atc" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="billboard-atc" src="http://lh3.ggpht.com/-pYySncYXKSY/Ug5h4FR4NII/AAAAAAAADB4/bhyMJAkHync/billboard-atc_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484"></a></p>
+<h3>Next Time…</h3>
+<p>I’m going to skip over a few chapters in the book, covering the Compute Shader and the Tesselation Stages, as I’m not particularly interested in the examples for those chapters; I may get back to them later, but for my purposes (eventually programming an RTS/TBS game), they are not particularly interesting.&nbsp; So I will be skipping ahead to the third section of the book, Chapter 14, and implementing the FPS camera demo.</p>
