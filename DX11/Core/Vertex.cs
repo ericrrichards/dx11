@@ -80,6 +80,16 @@ namespace Core {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0 ),
             new InputElement("SIZE", 0, Format.R32G32_Float, 12,0,InputClassification.PerVertexData, 0) 
         };
+        public static readonly InputElement[] InstancedBasic32 = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0), 
+            new InputElement("TEXCOORD", 0, Format.R32G32_Float, 24, 0, InputClassification.PerVertexData, 0),
+            new InputElement("WORLD", 0, Format.R32G32B32A32_Float, 0, 1, InputClassification.PerInstanceData, 1 ), 
+            new InputElement("WORLD", 1, Format.R32G32B32A32_Float, 16, 1, InputClassification.PerInstanceData, 1 ),
+            new InputElement("WORLD", 2, Format.R32G32B32A32_Float, 32, 1, InputClassification.PerInstanceData, 1 ),
+            new InputElement("WORLD", 3, Format.R32G32B32A32_Float, 48, 1, InputClassification.PerInstanceData, 1 ),
+            new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 64, 1, InputClassification.PerInstanceData, 1 )
+        };
     }
     public static class InputLayouts {
         public static void InitAll(Device device) {
@@ -103,15 +113,18 @@ namespace Core {
                 Console.WriteLine(ex.Message);
                 TreePointSprite = null;
             }
+            
         }
         public static void DestroyAll() {
             Util.ReleaseCom(ref PosNormal);
             Util.ReleaseCom(ref Basic32);
             Util.ReleaseCom(ref TreePointSprite);
+            Util.ReleaseCom(ref InstancedBasic32);
         }
 
         public static InputLayout PosNormal;
         public static InputLayout Basic32;
         public static InputLayout TreePointSprite;
+        public static InputLayout InstancedBasic32;
     }
 }

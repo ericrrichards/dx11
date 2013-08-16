@@ -2,12 +2,10 @@
 
 namespace MirrorDemo {
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.Diagnostics;
     using System.Drawing;
     using System.IO;
     using System.Linq;
-    using System.Runtime.InteropServices;
     using System.Windows.Forms;
 
     using Core.FX;
@@ -31,13 +29,13 @@ namespace MirrorDemo {
         private ShaderResourceView _wallDiffuseMapSRV;
         private ShaderResourceView _mirrorDiffuseMapSRV;
 
-        private DirectionalLight[] _dirLights;
-        private Material _roomMat;
-        private Material _skullMat;
-        private Material _mirrorMat;
-        private Material _shadowMat;
+        private readonly DirectionalLight[] _dirLights;
+        private readonly Material _roomMat;
+        private readonly Material _skullMat;
+        private readonly Material _mirrorMat;
+        private readonly Material _shadowMat;
 
-        private Matrix _roomWorld;
+        private readonly Matrix _roomWorld;
         private Matrix _skullWorld;
 
         private int _skullIndexCount;
@@ -111,7 +109,7 @@ namespace MirrorDemo {
                 Diffuse = new Color4(0.5f, 1,1,1),
                 Specular = new Color4(16.0f, 0.4f, 0.4f, 0.4f)
             };
-            _shadowMat = new Material() {
+            _shadowMat = new Material {
                 Ambient = Color.Black,
                 Diffuse = new Color4(0.5f, 0,0,0),
                 Specular = new Color4(16.0f, 0, 0, 0)
@@ -213,7 +211,6 @@ namespace MirrorDemo {
 
         public override void DrawScene() {
             base.DrawScene();
-            base.DrawScene();
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Black);
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
@@ -264,9 +261,90 @@ namespace MirrorDemo {
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Stencil, 1.0f, 0);
 
             DrawSkullShadow(activeSkullTech, viewProj, blendFactor);
-            //DrawSkullShadow2(activeSkullTech, viewProj, blendFactor);
             SwapChain.Present(0, PresentFlags.None);
 
+        }
+
+        private void DrawRoom(EffectTechnique activeTech, Matrix viewProj) {
+            // Draw floor and walls
+            for (int p = 0; p < activeTech.Description.PassCount; p ++) {
+                var pass = activeTech.GetPassByIndex(p);
+
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_roomVB, Basic32.Stride, 0));
+
+                var world = _roomWorld;
+                var wit = MathF.InverseTranspose(world);
+                var wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetTexTransform(Matrix.Identity);
+                Effects.BasicFX.SetMaterial(_roomMat);
+
+                Effects.BasicFX.SetDiffuseMap(_floorDiffuseMapSRV);
+                pass.Apply(ImmediateContext);
+                ImmediateContext.Draw(6, 0);
+
+                Effects.BasicFX.SetDiffuseMap(_wallDiffuseMapSRV);
+                pass.Apply(ImmediateContext);
+                ImmediateContext.Draw(18, 6);
+            }
+        }
+
+        private void DrawSkull(EffectTechnique activeSkullTech, Matrix viewProj) {
+            // Draw skull
+            for (int p = 0; p < activeSkullTech.Description.PassCount; p ++) {
+                var pass = activeSkullTech.GetPassByIndex(p);
+
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, Basic32.Stride, 0));
+                ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
+
+                var world = _skullWorld;
+                var wit = MathF.InverseTranspose(world);
+                var wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetMaterial(_skullMat);
+
+                pass.Apply(ImmediateContext);
+                ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
+            }
+        }
+
+        private void MarkMirrorOnStencil(EffectTechnique activeTech, Matrix viewProj, Color4 blendFactor) {
+            // Draw mirror to stencil
+            for (int p = 0; p < activeTech.Description.PassCount; p++) {
+                var pass = activeTech.GetPassByIndex(p);
+
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_roomVB, Basic32.Stride, 0));
+
+                var world = _roomWorld;
+                var wit = MathF.InverseTranspose(world);
+                var wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetTexTransform(Matrix.Identity);
+
+                ImmediateContext.OutputMerger.BlendState = RenderStates.NoRenderTargetWritesBS;
+                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+                ImmediateContext.OutputMerger.BlendSampleMask = -1;
+
+                ImmediateContext.OutputMerger.DepthStencilState = RenderStates.MarkMirrorDSS;
+                ImmediateContext.OutputMerger.DepthStencilReference = 1;
+
+                pass.Apply(ImmediateContext);
+                ImmediateContext.Draw(6, 24);
+                ImmediateContext.OutputMerger.DepthStencilState = null;
+                ImmediateContext.OutputMerger.DepthStencilReference = 0;
+                ImmediateContext.OutputMerger.BlendState = null;
+                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+                ImmediateContext.OutputMerger.BlendSampleMask = -1;
+            }
         }
 
         private void DrawFloorReflection(EffectTechnique activeTech, Matrix viewProj) {
@@ -368,69 +446,6 @@ namespace MirrorDemo {
             }
         }
 
-        private void DrawSkullShadow(EffectTechnique activeSkullTech, Matrix viewProj, Color4 blendFactor) {
-            // draw skull shadow on floor
-            for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
-                var pass = activeSkullTech.GetPassByIndex(p);
-
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, Basic32.Stride, 0));
-                ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
-
-                var shadowPlane = new Plane(new Vector3(0, 1, 0), 0.0f);
-                var toMainLight = -_dirLights[0].Direction;
-
-                var s = Matrix.Shadow(new Vector4(toMainLight, 0), shadowPlane);
-                var shadowOffsetY = Matrix.Translation(0, 0.001f, 0);
-
-                var world = _skullWorld * s * shadowOffsetY;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world * viewProj;
-
-                Effects.BasicFX.SetWorld(world);
-                Effects.BasicFX.SetWorldInvTranspose(wit);
-                Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetMaterial(_shadowMat);
-
-                ImmediateContext.OutputMerger.BlendState = RenderStates.TransparentBS;
-                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
-                ImmediateContext.OutputMerger.BlendSampleMask = -1;
-
-                ImmediateContext.OutputMerger.DepthStencilState = RenderStates.NoDoubleBlendDSS;
-                ImmediateContext.OutputMerger.DepthStencilReference = 0;
-                pass.Apply(ImmediateContext);
-
-                ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
-
-                // draw skull shadow on wall
-                shadowPlane = new Plane(new Vector3(0, 0, -1), 0.0f);
-                toMainLight = -_dirLights[0].Direction;
-
-                s = Matrix.Shadow(new Vector4(toMainLight, 0), shadowPlane);
-                shadowOffsetY = Matrix.Translation(0, 0, -0.001f);
-
-                world = _skullWorld * s * shadowOffsetY;
-                wit = MathF.InverseTranspose(world);
-                wvp = world * viewProj;
-
-                Effects.BasicFX.SetWorld(world);
-                Effects.BasicFX.SetWorldInvTranspose(wit);
-                Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetMaterial(_shadowMat);
-
-                pass.Apply(ImmediateContext);
-
-                ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
-
-                ImmediateContext.Rasterizer.State = null;
-                ImmediateContext.OutputMerger.DepthStencilState = null;
-                ImmediateContext.OutputMerger.DepthStencilReference = 0;
-
-                ImmediateContext.OutputMerger.BlendState = null;
-                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
-                ImmediateContext.OutputMerger.BlendSampleMask = -1;
-            }
-        }
-
         private void DrawSkullShadowReflection(EffectTechnique activeSkullTech, Matrix viewProj, Color4 blendFactor) {
             // draw skull shadow
             for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
@@ -521,85 +536,66 @@ namespace MirrorDemo {
             }
         }
 
-        private void MarkMirrorOnStencil(EffectTechnique activeTech, Matrix viewProj, Color4 blendFactor) {
-            // Draw mirror to stencil
-            for (int p = 0; p < activeTech.Description.PassCount; p++) {
-                var pass = activeTech.GetPassByIndex(p);
-
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_roomVB, Basic32.Stride, 0));
-
-                var world = _roomWorld;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world * viewProj;
-
-                Effects.BasicFX.SetWorld(world);
-                Effects.BasicFX.SetWorldInvTranspose(wit);
-                Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetTexTransform(Matrix.Identity);
-
-                ImmediateContext.OutputMerger.BlendState = RenderStates.NoRenderTargetWritesBS;
-                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
-                ImmediateContext.OutputMerger.BlendSampleMask = -1;
-
-                ImmediateContext.OutputMerger.DepthStencilState = RenderStates.MarkMirrorDSS;
-                ImmediateContext.OutputMerger.DepthStencilReference = 1;
-
-                pass.Apply(ImmediateContext);
-                ImmediateContext.Draw(6, 24);
-                ImmediateContext.OutputMerger.DepthStencilState = null;
-                ImmediateContext.OutputMerger.DepthStencilReference = 0;
-                ImmediateContext.OutputMerger.BlendState = null;
-                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
-                ImmediateContext.OutputMerger.BlendSampleMask = -1;
-            }
-        }
-
-        private void DrawSkull(EffectTechnique activeSkullTech, Matrix viewProj) {
-            // Draw skull
-            for (int p = 0; p < activeSkullTech.Description.PassCount; p ++) {
+        private void DrawSkullShadow(EffectTechnique activeSkullTech, Matrix viewProj, Color4 blendFactor) {
+            // draw skull shadow on floor
+            for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
                 var pass = activeSkullTech.GetPassByIndex(p);
 
                 ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, Basic32.Stride, 0));
                 ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
-                var world = _skullWorld;
+                var shadowPlane = new Plane(new Vector3(0, 1, 0), 0.0f);
+                var toMainLight = -_dirLights[0].Direction;
+
+                var s = Matrix.Shadow(new Vector4(toMainLight, 0), shadowPlane);
+                var shadowOffsetY = Matrix.Translation(0, 0.001f, 0);
+
+                var world = _skullWorld * s * shadowOffsetY;
                 var wit = MathF.InverseTranspose(world);
                 var wvp = world * viewProj;
 
                 Effects.BasicFX.SetWorld(world);
                 Effects.BasicFX.SetWorldInvTranspose(wit);
                 Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetMaterial(_skullMat);
+                Effects.BasicFX.SetMaterial(_shadowMat);
 
+                ImmediateContext.OutputMerger.BlendState = RenderStates.TransparentBS;
+                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+                ImmediateContext.OutputMerger.BlendSampleMask = -1;
+
+                ImmediateContext.OutputMerger.DepthStencilState = RenderStates.NoDoubleBlendDSS;
+                ImmediateContext.OutputMerger.DepthStencilReference = 0;
                 pass.Apply(ImmediateContext);
+
                 ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
-            }
-        }
 
-        private void DrawRoom(EffectTechnique activeTech, Matrix viewProj) {
-            // Draw floor and walls
-            for (int p = 0; p < activeTech.Description.PassCount; p ++) {
-                var pass = activeTech.GetPassByIndex(p);
+                // draw skull shadow on wall
+                shadowPlane = new Plane(new Vector3(0, 0, -1), 0.0f);
+                toMainLight = -_dirLights[0].Direction;
 
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_roomVB, Basic32.Stride, 0));
+                s = Matrix.Shadow(new Vector4(toMainLight, 0), shadowPlane);
+                shadowOffsetY = Matrix.Translation(0, 0, -0.001f);
 
-                var world = _roomWorld;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world * viewProj;
+                world = _skullWorld * s * shadowOffsetY;
+                wit = MathF.InverseTranspose(world);
+                wvp = world * viewProj;
 
                 Effects.BasicFX.SetWorld(world);
                 Effects.BasicFX.SetWorldInvTranspose(wit);
                 Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetTexTransform(Matrix.Identity);
-                Effects.BasicFX.SetMaterial(_roomMat);
+                Effects.BasicFX.SetMaterial(_shadowMat);
 
-                Effects.BasicFX.SetDiffuseMap(_floorDiffuseMapSRV);
                 pass.Apply(ImmediateContext);
-                ImmediateContext.Draw(6, 0);
 
-                Effects.BasicFX.SetDiffuseMap(_wallDiffuseMapSRV);
-                pass.Apply(ImmediateContext);
-                ImmediateContext.Draw(18, 6);
+                ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
+
+                ImmediateContext.Rasterizer.State = null;
+                ImmediateContext.OutputMerger.DepthStencilState = null;
+                ImmediateContext.OutputMerger.DepthStencilReference = 0;
+
+                ImmediateContext.OutputMerger.BlendState = null;
+                ImmediateContext.OutputMerger.BlendFactor = blendFactor;
+                ImmediateContext.OutputMerger.BlendSampleMask = -1;
             }
         }
 

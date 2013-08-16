@@ -47,8 +47,8 @@ namespace Core {
         public void SetLens(float fovY, float aspect, float zn, float zf) {
             FovY = fovY;
             Aspect = aspect;
-            NearZ = NearZ;
-            FarZ = FarZ;
+            NearZ = zn;
+            FarZ = zf;
 
             NearWindowHeight = 2.0f * NearZ * MathF.Tan(0.5f * FovY);
             FarWindowHeight = 2.0f * FarZ * MathF.Tan(0.5f * FovY);
@@ -100,7 +100,7 @@ namespace Core {
             var z = -Vector3.Dot(p, l);
 
             Right = r;
-            Up = Up;
+            Up = u;
             Look = l;
 
             var v = new Matrix();
@@ -121,6 +121,8 @@ namespace Core {
 
             v[0, 3] = v[1, 3] = v[2, 3] = 0;
             v[3, 3] = 1;
+
+            View = v;
         }
     }
 }
