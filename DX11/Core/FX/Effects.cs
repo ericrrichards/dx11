@@ -16,15 +16,21 @@
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+            try {
+                InstancedBasicFX = new InstancedBasicEffect(device, "FX/InstancedBasic.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
         }
         public static void DestroyAll() {
             Util.ReleaseCom(ref BasicFX);
             Util.ReleaseCom(ref TreeSpriteFX);
-
+            Util.ReleaseCom(ref InstancedBasicFX);
 
         }
 
         public static BasicEffect BasicFX;
         public static TreeSpriteEffect TreeSpriteFX;
+        public static InstancedBasicEffect InstancedBasicFX;
     }
 }

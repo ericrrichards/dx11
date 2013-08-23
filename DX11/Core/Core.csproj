@@ -54,6 +54,7 @@
     <Compile Include="FX\BasicEffect.cs" />
     <Compile Include="FX\Effect.cs" />
     <Compile Include="FX\Effects.cs" />
+    <Compile Include="FX\InstancedBasicEffect.cs" />
     <Compile Include="FX\TreeSpriteEffect.cs" />
     <Compile Include="GameTimer.cs" />
     <Compile Include="GeometryGenerator.cs" />
