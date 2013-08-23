@@ -38,10 +38,10 @@ namespace Core {
             }
         }
         [DllImport("user32.dll")]
-        static extern short GetAsyncKeyState(int vKey);
+        static extern short GetAsyncKeyState(System.Windows.Forms.Keys vKey);
 
         public static bool IsKeyDown(System.Windows.Forms.Keys key) {
-            return (GetAsyncKeyState((int)key) & 0x8000) != 0;
+            return (GetAsyncKeyState(key) & 0x8000) != 0;
         }
 
         public static ShaderResourceView CreateTexture2DArraySRV(Device device, DeviceContext immediateContext, string[] filenames, Format format, FilterFlags filter=FilterFlags.None, FilterFlags mipFilter=FilterFlags.Linear) {

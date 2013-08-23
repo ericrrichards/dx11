@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Core {
     using SlimDX;
 
-    public class Camera : DisposableClass {
+    public class Camera  {
         public Vector3 Position { get; set; }
         public Vector3 Right { get; private set; }
         public Vector3 Up { get; private set; }

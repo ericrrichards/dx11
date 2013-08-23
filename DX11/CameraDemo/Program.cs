@@ -210,18 +210,18 @@ namespace CameraDemo {
 
         }
 
-        public override void DrawScene() {
-            ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+public override void DrawScene() {
+    ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
+    ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+    ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
+    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-            _cam.UpdateViewMatrix();
+    _cam.UpdateViewMatrix();
 
-            var view = _cam.View;
-            var proj = _cam.Proj;
-            var viewProj = _cam.ViewProj;
+    var view = _cam.View;
+    var proj = _cam.Proj;
+    var viewProj = _cam.ViewProj;
 
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetEyePosW(_cam.Position);

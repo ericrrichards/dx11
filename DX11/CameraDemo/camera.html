@@ -1,0 +1,261 @@
+﻿<p>Up until now, we have been using a fixed, orbiting camera to view our demo applications.&nbsp; This style of camera works adequately for our purposes, but for a real game project, you would probably want a more flexible type of camera implementation.&nbsp; Additionally, thus far we have been including our camera-specific code directly in our main application classes, which, again, works, but does not scale well to a real game application.&nbsp; Therefore, we will be splitting out our camera-related code out into a new class (Camera.cs) that we will add to our Core library.&nbsp; This example maps to the CameraDemo example from Chapter 14 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>.&nbsp; The full code for this example can be downloaded from my GitHub repository, <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>, under the CameraDemo project.</p>
+<p>We will be implementing a traditional First-Person style camera, as one sees in many FPS’s and RPG games.&nbsp; Conceptually, we can think of this style of camera as consisting of a position in our 3D world, typically located as the position of the eyes of the player character, along with a vector frame-of-reference, which defines the direction the character is looking.&nbsp; In most cases, this camera is constrained to only rotate about its X and Y axes, thus we can pitch up and down, or yaw left and right.&nbsp; For some applications, such as a space or aircraft simulation, you would also want to support rotation on the Z (roll) axis.&nbsp; Our camera will support two degrees of motion; back and forward in the direction of our camera’s local Z (Look) axis, and left and right strafing along our local X (Right) axis.&nbsp; Depending on your game type, you might also want to implement methods to move the camera up and down on its local Y axis, for instance for jumping, or climbing ladders.&nbsp; For now, we are not going to implement any collision detection with our 3D objects; our camera will operate very similarly to the Half-Life or Quake camera when using the noclip cheat.</p>
+<p>Our camera class will additionally manage its view and projection matrices, as well as storing information that we can use to extract the <a href="http://en.wikipedia.org/wiki/Viewing_frustum" target="_blank">view frustum</a>.&nbsp; Below is a screenshot of our scene rendered using the viewpoint of our Camera class (This scene is the same as our scene from the <a href="http://richardssoftware.blogspot.com/2013/07/lighting-take-1.html" target="_blank">LitSkull Demo</a>, with textures applied to the shapes).</p>
+<p><a href="http://lh6.ggpht.com/-ZYOenfcfuMg/UhTQ3Bap1AI/AAAAAAAADCI/rvFckGghbSQ/s1600-h/camera%25255B3%25255D.png"><img title="camera" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="camera" src="http://lh4.ggpht.com/-tL7cjdhc3aA/UhTQ300U4ZI/AAAAAAAADCQ/clCPfbfMaAM/camera_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484"></a> </p>
+<!--more-->
+<p>The member properties of our Camera class are shown in the listing below:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> Camera  {
+    <span class="kwrd">public</span> Vector3 Position { get; set; }
+    <span class="kwrd">public</span> Vector3 Right { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> Vector3 Up { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> Vector3 Look { get; <span class="kwrd">private</span> set; }
+
+    <span class="kwrd">public</span> <span class="kwrd">float</span> NearZ { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FarZ { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> Aspect { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FovY { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FovX {
+        get {
+            var halfWidth = 0.5f * NearWindowWidth;
+            <span class="kwrd">return</span> 2.0f * MathF.Atan(halfWidth / NearZ);
+        }
+    }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> NearWindowWidth { get { <span class="kwrd">return</span> Aspect * NearWindowHeight; }}
+    <span class="kwrd">public</span> <span class="kwrd">float</span> NearWindowHeight { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FarWindowWidth{ get { <span class="kwrd">return</span> Aspect * FarWindowHeight; }}
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FarWindowHeight { get; <span class="kwrd">private</span> set; }
+
+    <span class="kwrd">public</span> Matrix View { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> Matrix Proj { get; <span class="kwrd">private</span> set; }
+    <span class="kwrd">public</span> Matrix ViewProj { get { <span class="kwrd">return</span> View * Proj; }}
+}</pre>
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<ul>
+    <li><strong>Position, Right(X), Up(Y), Look(Z)</strong> – These vectors represent the position and orientation of our Camera’s local frame of reference.&nbsp; Only the Position property is exposed for editing by the user of the Camera class; the other three vectors are internally managed by the class, as we need to ensure that these vectors represent an <a href="http://en.wikipedia.org/wiki/Orthonormality" target="_blank">orthonormal basis</a>.</li>
+    <li><strong>NearZ, FarZ</strong> – These variables store the distance in view space to the near and far clipping planes of the Camera’s view frustum.</li>
+    <li><strong>Aspect, FovY, FovX</strong> – These properties control the field-of-view angle, in radians, of the camera, accounting for the aspect ratio of the rendering viewport.&nbsp; </li>
+    <li><strong>NearWindowWidth, NearWindowHeight, FarWindowWidth, FarWindowHeight</strong> – These properties store the height/width dimensions of the near and far clipping planes in view space.&nbsp; Together with NearZ and FarZ, we can use these properties to calculate the the extents of the view frustum, which will come in handy when we come to the next chapter, and implement <a href="http://www.lighthouse3d.com/tutorials/view-frustum-culling/" target="_blank">frustum culling</a>.</li>
+    <li><strong>View, Proj and ViewProj</strong> – The Camera class manages its own view and projection matrices, which we will create helper functions to compute in a bit.&nbsp; The ViewProj property is provided for convenience, since we typically want to pass the combined matrix, rather than just the view or projection matrices, into our shaders.</li>
+</ul>
+<h4>Constructor</h4>
+<p>Our constructor for the Camera class is very simple.&nbsp; We setup the camera at the world origin, pointed down the Z axis.&nbsp; Then we use the SetLens() function ,which we will cover shortly, to create our projection matrix with a 45 degree field-of-view angle, an aspect ratio of 1, and our default near and far Z distances.&nbsp; Don’t be overly concerned with these values, as you will want to call SetLens on your application camera during the OnResize virtual function of your D3DApp-derived class, so that you can pass in the correct aspect ratio when the screen or viewport is resized.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> Camera() {
+    Position = <span class="kwrd">new</span> Vector3();
+    Right = <span class="kwrd">new</span> Vector3(1, 0, 0);
+    Up = <span class="kwrd">new</span> Vector3(0, 1, 0);
+    Look = <span class="kwrd">new</span> Vector3(0, 0, 1);
+
+    View = Matrix.Identity;
+    Proj = Matrix.Identity;
+
+    SetLens(0.25f * MathF.PI, 1.0f, 1.0f, 1000.0f);
+}</pre>
+<h4>SetLens()</h4>
+<p>The SetLens() function computes the view frustum dimensions and creates the camera projection matrix, using the same Matrix.PerspectiveFovLH static function that we have been using in our previous examples.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> SetLens(<span class="kwrd">float</span> fovY, <span class="kwrd">float</span> aspect, <span class="kwrd">float</span> zn, <span class="kwrd">float</span> zf) {
+    FovY = fovY;
+    Aspect = aspect;
+    NearZ = zn;
+    FarZ = zf;
+
+    NearWindowHeight = 2.0f * NearZ * MathF.Tan(0.5f * FovY);
+    FarWindowHeight = 2.0f * FarZ * MathF.Tan(0.5f * FovY);
+
+    Proj = Matrix.PerspectiveFovLH(FovY, Aspect, NearZ, FarZ);
+}</pre>
+<p>A picture helps to visualize the geometry here:</p>
+<p><a href="http://lh3.ggpht.com/-37MxY5KR-n4/UheMI8dgPfI/AAAAAAAADCg/RlpzFRl8TVk/s1600-h/frustum%25255B3%25255D.png"><img title="frustum" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="frustum" src="http://lh6.ggpht.com/-GP1qf97Gnuo/UheMJR3ZZmI/AAAAAAAADCk/8EZJ8Rr8vtU/frustum_thumb%25255B1%25255D.png?imgmax=800" width="532" height="484"></a>
+</p>
+<h4>LookAt()</h4>
+<p>We’ll provide a public method that allows you to set the camera and point it at something, which we’ll call LookAt().&nbsp; We also need to pass in an up vector; in our usage, this will almost always be your standard (0,1,0) Y axis vector, but if you support rolling your camera on the Z axis, you’ll have need to pass in your current Up vector or a new computed Up vector.&nbsp; Essentially, what this function does is to recalculate our camera’s orthonormal basis.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> LookAt(Vector3 pos, Vector3 target, Vector3 up) {
+    Position = pos;
+    Look = Vector3.Normalize(target - pos);
+    Right = Vector3.Normalize(Vector3.Cross(up, Look));
+    Up = Vector3.Cross(Look, Right);
+}</pre>
+<h4>UpdateViewMatrix()</h4>
+<p>Whenever the camera moves or rotates, we will need to recreate our view matrix.&nbsp; Typically, we will do this every frame, in our DrawScene method.&nbsp; We could use the SlimDX Matrix.LookAtLH(eye, target, up) function to create our view matrix, if we calculated the target point from our camera Look vector and our FarZ property.&nbsp; (At least, I think that that would work, though I haven’t experimented with it yet.)&nbsp; However, Mr. Luna illustrates how one would generate a view matrix based on the camera position and basis vectors, so that is the method I am following.&nbsp; First, we re-normalize our basis vectors, in case they have become non-orthonormal.&nbsp; Next, we fill out our new view matrix, using the derivation of the view-to-world space transform presented in Section 14.1, reproduced below, then set the new view matrix to our View property.</p>
+<p><a href="http://lh6.ggpht.com/-OMh66GNVLEA/UheMLRSJSsI/AAAAAAAADCw/QmUAT8dLB3I/s1600-h/viewMatrix%25255B4%25255D.png"><img title="viewMatrix" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="viewMatrix" src="http://lh6.ggpht.com/-ssHRzFIdy98/UheMM4RfMCI/AAAAAAAADC4/mwiMjxakxTA/viewMatrix_thumb%25255B2%25255D.png?imgmax=800" width="640" height="200"></a></p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> UpdateViewMatrix() {
+    var r = Right;
+    var u = Up;
+    var l = Look;
+    var p = Position;
+
+    l = Vector3.Normalize(l);
+    u = Vector3.Normalize(Vector3.Cross(l, r));
+
+    r = Vector3.Cross(u, l);
+
+    var x = -Vector3.Dot(p, r);
+    var y = -Vector3.Dot(p, u);
+    var z = -Vector3.Dot(p, l);
+
+    Right = r;
+    Up = u;
+    Look = l;
+
+    var v = <span class="kwrd">new</span> Matrix();
+    v[0, 0] = Right.X;
+    v[1, 0] = Right.Y;
+    v[2, 0] = Right.Z;
+    v[3, 0] = x;
+
+    v[0, 1] = Up.X;
+    v[1, 1] = Up.Y;
+    v[2, 1] = Up.Z;
+    v[3, 1] = y;
+
+    v[0, 2] = Look.X;
+    v[1, 2] = Look.Y;
+    v[2, 2] = Look.Z;
+    v[3, 2] = z;
+
+    v[0, 3] = v[1, 3] = v[2, 3] = 0;
+    v[3, 3] = 1;
+
+    View = v;
+}</pre>
+<h4>Camera Movement</h4>
+<p>We will provide helper methods to move our camera in the X &amp; Z planes, and to rotate the camera about the Right and Up basis vectors.&nbsp; In the context of an FPS game, these actions are typically referred to as Walk, Strafe, Pitch and Yaw, respectively.&nbsp; We will constrain the Yaw function to only rotate about the Y axis, as the effect tends to look better that way.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> Strafe(<span class="kwrd">float</span> d) {
+    Position += Right * d;
+}
+
+<span class="kwrd">public</span> <span class="kwrd">void</span> Walk(<span class="kwrd">float</span> d) {
+    Position += Look * d;
+}
+
+<span class="kwrd">public</span> <span class="kwrd">void</span> Pitch(<span class="kwrd">float</span> angle) {
+    var r = Matrix.RotationAxis(Right, angle);
+    Up = Vector3.TransformNormal(Up, r);
+    Look = Vector3.TransformNormal(Look, r);
+}
+
+<span class="kwrd">public</span> <span class="kwrd">void</span> Yaw(<span class="kwrd">float</span> angle) {
+    var r = Matrix.RotationY(angle);
+    Right = Vector3.TransformNormal(Right, r);
+    Up = Vector3.TransformNormal(Up, r);
+    Look = Vector3.TransformNormal(Look, r);
+}</pre>
+<h3>Using the Camera Class</h3>
+<p>In our demo application, we will replace our previous camera variables (_phi, _theta, _radius, _view, _proj), with an instance of our new Camera class.&nbsp; We construct the camera in our constructor, like so:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> CameraDemo(IntPtr hInstance) : <span class="kwrd">base</span>(hInstance) {
+           <span class="rem">// snip...</span>
+            _cam = <span class="kwrd">new</span> Camera();
+            _cam.Position = <span class="kwrd">new</span> Vector3(0, 2, -15);
+           <span class="rem">// snip...</span>
+}</pre>
+<p>We must reconstruct the Camera’s projection matrix in our OnResize() function, by calling the Camera’s SetLens() method, like so:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> OnResize() {
+    <span class="kwrd">base</span>.OnResize();
+    _cam.SetLens(0.25f*MathF.PI, AspectRatio, 1.0f, 1000.0f);
+}</pre>
+<p>To move our camera around the scene, we add the following code to our UpdateScene() method.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> UpdateScene(<span class="kwrd">float</span> dt) {
+    <span class="kwrd">base</span>.UpdateScene(dt);
+
+    <span class="kwrd">if</span> (Util.IsKeyDown(Keys.Up)){
+        _cam.Walk(10.0f*dt);
+    }
+    <span class="kwrd">if</span> (Util.IsKeyDown(Keys.Down)) {
+        _cam.Walk(-10.0f * dt);
+    }
+
+    <span class="kwrd">if</span> (Util.IsKeyDown(Keys.Left)) {
+        _cam.Strafe(-10.0f*dt);
+    }
+    <span class="kwrd">if</span> (Util.IsKeyDown(Keys.Right)) {
+        _cam.Strafe(10.0f * dt);
+    }
+}</pre>
+<p>Because we want to use the elapsed frame time to control the amount of movement, we cannot use our previous method of binding to the Form.KeyDown method to catch the keystrokes.&nbsp; For a more full-fledged example, we would probably want to write an input handling class, wrapping DirectInput, but for our purposes, we can just use the Windows API function GetAsyncKeyState().&nbsp; The .Net framework does not provide (at least as far as I know…) a direct analog of this function; however, we can import the native Win32 library user32.dll (which contains GetAsyncKeyState()) using <a href="http://pinvoke.net/default.aspx/user32/GetAsyncKeyState.html" target="_blank">DllImport</a> and writing a wrapper around the native function, which I have added to our Util class.</p>
+<pre class="csharpcode">[DllImport(<span class="str">"user32.dll"</span>)]
+<span class="kwrd">static</span> <span class="kwrd">extern</span> <span class="kwrd">short</span> GetAsyncKeyState(System.Windows.Forms.Keys vKey);
+
+<span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">bool</span> IsKeyDown(System.Windows.Forms.Keys key) {
+    <span class="kwrd">return</span> (GetAsyncKeyState(key) &amp; 0x8000) != 0;
+}</pre>
+<p>We can pan our camera using the mouse by adding the following code to our OnMouseMove function:</p>
+<pre class="csharpcode"><span class="kwrd">protected</span> <span class="kwrd">override</span> <span class="kwrd">void</span> OnMouseMove(<span class="kwrd">object</span> sender, MouseEventArgs e) {
+    <span class="kwrd">if</span> (e.Button == MouseButtons.Left) {
+        var dx = MathF.ToRadians(0.25f * (e.X - _lastMousePos.X));
+        var dy = MathF.ToRadians(0.25f * (e.Y - _lastMousePos.Y));
+
+        _cam.Pitch(dy);
+        _cam.Yaw(dx);
+    } 
+    _lastMousePos = e.Location;
+}</pre>
+<p>Lastly, when we draw our scene, we need to update the camera’s view matrix, and grab the view and projection matrices to be input to our shader variables.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> DrawScene() {
+    <span class="rem">// ...snip</span>
+    _cam.UpdateViewMatrix();
+
+    var view = _cam.View;
+    var proj = _cam.Proj;
+    var viewProj = _cam.ViewProj;
+
+    <span class="rem">// ..snip</span>
+}</pre>
+<p>The CameraDemo application in action:</p>
+    <div id="scid:5737277B-5D6D-4f48-ABFC-DD9C333F4C5D:b3384207-5a79-4714-a644-303ad7099236" class="wlWriterEditableSmartContent" style="float: none; padding-bottom: 0px; padding-top: 0px; padding-left: 0px; margin: 0px; display: inline; padding-right: 0px">
+        <embed src="http://www.youtube.com/v/-OkMh2CIoPU" type="application/x-shockwave-flash" wmode="transparent" width="425" height="355"></embed></div>
+<h3>Next Time…</h3>
+<p>We’ll move on to Chapter 15, and take a look at view-frustum culling, to avoid drawing objects that will be clipped out of the viewing volume, and at hardware-instanced geometry, which will allow us to render multiple copies of the same geometry more efficiently.</p>
