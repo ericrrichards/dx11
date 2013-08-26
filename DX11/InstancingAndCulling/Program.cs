@@ -181,7 +181,7 @@ namespace InstancingAndCulling {
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.InstancedBasic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-            var stride = new[] {Basic32.Stride, Marshal.SizeOf(typeof (InstanceData))};
+            var stride = new[] {Basic32.Stride, Marshal.SizeOf(typeof (InstancedData))};
             var offset = new[] {0, 0};
             
             var view = _cam.View;
@@ -235,6 +235,9 @@ namespace InstancingAndCulling {
 
         private void BuildSkullGeometryBuffers() {
             try {
+
+                var min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+                var max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
                 var vertices = new List<Basic32>();
                 var indices = new List<int>();
                 var vcount = 0;
@@ -261,12 +264,10 @@ namespace InstancingAndCulling {
                         input = reader.ReadLine();
                         if (input != null) {
                             var vals = input.Split(new[] { ' ' });
+                            var position = new Vector3(Convert.ToSingle(vals[0].Trim()), Convert.ToSingle(vals[1].Trim()), Convert.ToSingle(vals[2].Trim()));
                             vertices.Add(
                                 new Basic32(
-                                    new Vector3(
-                                        Convert.ToSingle(vals[0].Trim()),
-                                        Convert.ToSingle(vals[1].Trim()),
-                                        Convert.ToSingle(vals[2].Trim())),
+                                    position,
                                     new Vector3(
                                         Convert.ToSingle(vals[3].Trim()),
                                         Convert.ToSingle(vals[4].Trim()),
@@ -274,8 +275,12 @@ namespace InstancingAndCulling {
                                     new Vector2()
                                 )
                             );
+                            min = Vector3.Minimize(min, position);
+                            max = Vector3.Maximize(max, position);
                         }
                     }
+                    _skullBox = new BoundingBox(min, max);
+
                     // skip ahead to the index data
                     do {
                         input = reader.ReadLine();
@@ -319,7 +324,7 @@ namespace InstancingAndCulling {
             var dx = width/(n - 1);
             var dy = height/(n - 1);
             var dz = depth/(n - 1);
-
+            _instancedData = new List<InstancedData>();
             for (int k = 0; k< n; k++) {
                 for (int i = 0; i < n; i++) {
                     for (int j = 0; j < n; j++) {
@@ -330,7 +335,7 @@ namespace InstancingAndCulling {
                     }
                 }
             }
-            var vbd = new BufferDescription(Marshal.SizeOf(typeof (InstanceData)), ResourceUsage.Dynamic, BindFlags.VertexBuffer, CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
+            var vbd = new BufferDescription(Marshal.SizeOf(typeof(InstancedData)) * n * n * n, ResourceUsage.Dynamic, BindFlags.VertexBuffer, CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
             _instanceBuffer = new Buffer(Device, new DataStream(_instancedData.ToArray(), false, true), vbd);
         }
     }

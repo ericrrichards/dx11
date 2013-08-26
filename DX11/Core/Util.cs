@@ -1,4 +1,5 @@
 ﻿using System;
+using SlimDX;
 
 namespace Core {
     using System.Linq;
@@ -25,6 +26,9 @@ namespace Core {
 
         public static int LowWord(this int i) {
             return i & 0xFFFF;
+        }
+        public static Vector3 ToVector3(this Vector4 v) {
+            return new Vector3(v.X, v.Y, v.Z);
         }
 
         public static int HighWord(this int i) {

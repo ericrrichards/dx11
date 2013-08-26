@@ -93,27 +93,29 @@ namespace Core {
     }
     public static class InputLayouts {
         public static void InitAll(Device device) {
-            var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
+            
             try {
+                var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
                 PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
-            } catch (Direct3D11Exception dex) {
+            } catch (Exception dex) {
                 Console.WriteLine(dex.Message);
                 PosNormal = null;
             }
             try {
+                var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
                 Basic32 = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
-            } catch (Direct3D11Exception dex) {
+            } catch (Exception dex) {
                 Console.WriteLine(dex.Message);
                 Basic32 = null;
             }
             try {
                 InstancedBasic32 = new InputLayout(device, Effects.InstancedBasicFX.Light1Tech.GetPassByIndex(0).Description.Signature, InputLayoutDescriptions.InstancedBasic32);
-            } catch (Direct3D11Exception dex) {
+            } catch (Exception dex) {
                 Console.WriteLine(dex.Message);
                 InstancedBasic32 = null;
             }
             try {
-                passDesc = Effects.TreeSpriteFX.Light3Tech.GetPassByIndex(0).Description;
+                var passDesc = Effects.TreeSpriteFX.Light3Tech.GetPassByIndex(0).Description;
                 TreePointSprite = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TreePointSprite);
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
