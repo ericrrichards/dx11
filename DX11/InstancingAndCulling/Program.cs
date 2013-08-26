@@ -28,7 +28,6 @@ namespace InstancingAndCulling {
         private Buffer _instanceBuffer;
 
         private BoundingBox _skullBox;
-        private Frustum _cameraFrustum;
 
         private int _visibleObjectCount;
         private List<InstancedData> _instancedData;
@@ -114,7 +113,6 @@ namespace InstancingAndCulling {
         public override void OnResize() {
             base.OnResize();
             _cam.SetLens(0.25f*MathF.PI, AspectRatio, 1.0f, 1000.0f);
-            _cameraFrustum = Frustum.FromProjection(_cam.Proj);
         }
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
@@ -139,21 +137,14 @@ namespace InstancingAndCulling {
             _cam.UpdateViewMatrix();
             _visibleObjectCount = 0;
             if (_frustumCullingEnabled) {
-                var invView = Matrix.Invert(_cam.View);
                 
                 var db = ImmediateContext.MapSubresource(_instanceBuffer, MapMode.WriteDiscard, MapFlags.None);
                 
                 foreach (var instancedData in _instancedData) {
                     var w = instancedData.World;
-                    var invWorld = Matrix.Invert(w);
-                    var toLocal = invView*invWorld;
-                    Vector3 scale;
-                    Quaternion rotQuat;
-                    Vector3 translation;
-                    toLocal.Decompose(out scale, out rotQuat, out translation);
+                    var box = new BoundingBox(Vector3.TransformCoordinate(_skullBox.Minimum, w), Vector3.TransformCoordinate(_skullBox.Maximum, w));
 
-                    var localSpaceFrustum = Frustum.Transform(_cameraFrustum, scale.X, rotQuat, translation);
-                    if (localSpaceFrustum.Intersect(_skullBox) != 0) {
+                    if (_cam.Visible(box)) {
                         db.Data.Write(instancedData);
                         _visibleObjectCount++;
                     }

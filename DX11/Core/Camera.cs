@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Core {
     using SlimDX;
 
-    public class Camera  {
+    public class Camera {
         public Vector3 Position { get; set; }
         public Vector3 Right { get; private set; }
         public Vector3 Up { get; private set; }
@@ -23,14 +23,16 @@ namespace Core {
                 return 2.0f * MathF.Atan(halfWidth / NearZ);
             }
         }
-        public float NearWindowWidth { get { return Aspect * NearWindowHeight; }}
+        public float NearWindowWidth { get { return Aspect * NearWindowHeight; } }
         public float NearWindowHeight { get; private set; }
-        public float FarWindowWidth{ get { return Aspect * FarWindowHeight; }}
+        public float FarWindowWidth { get { return Aspect * FarWindowHeight; } }
         public float FarWindowHeight { get; private set; }
 
         public Matrix View { get; private set; }
         public Matrix Proj { get; private set; }
-        public Matrix ViewProj { get { return View * Proj; }}
+        public Matrix ViewProj { get { return View * Proj; } }
+
+        private Frustum _frustum;
 
         public Camera() {
             Position = new Vector3();
@@ -123,6 +125,12 @@ namespace Core {
             v[3, 3] = 1;
 
             View = v;
+
+            _frustum = Frustum.FromViewProj(ViewProj);
+        }
+
+        public bool Visible(BoundingBox box) {
+            return _frustum.Intersect(box) > 0;
         }
     }
 }
