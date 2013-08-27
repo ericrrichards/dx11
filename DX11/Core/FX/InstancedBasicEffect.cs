@@ -34,8 +34,6 @@ namespace Core.FX {
 
 
         private readonly EffectMatrixVariable _viewProj;
-        private readonly EffectMatrixVariable _world;
-        private readonly EffectMatrixVariable _worldInvTranspose;
         private readonly EffectMatrixVariable _texTransform;
         private readonly EffectVectorVariable _eyePosW;
         private readonly EffectVectorVariable _fogColor;
@@ -49,12 +47,7 @@ namespace Core.FX {
         public void SetViewProj(Matrix m) {
             _viewProj.SetMatrix(m);
         }
-        public void SetWorld(Matrix m) {
-            _world.SetMatrix(m);
-        }
-        public void SetWorldInvTranspose(Matrix m) {
-            _worldInvTranspose.SetMatrix(m);
-        }
+        
         public void SetEyePosW(Vector3 v) {
             _eyePosW.Set(v);
         }
@@ -120,8 +113,6 @@ namespace Core.FX {
             Light3TexAlphaClipFogTech = FX.GetTechniqueByName("Light3TexAlphaClipFog");
 
             _viewProj = FX.GetVariableByName("gViewProj").AsMatrix();
-            _world = FX.GetVariableByName("gWorld").AsMatrix();
-            _worldInvTranspose = FX.GetVariableByName("gWorldInvTranspose").AsMatrix();
             _texTransform = FX.GetVariableByName("gTexTransform").AsMatrix();
             _eyePosW = FX.GetVariableByName("gEyePosW").AsVector();
 

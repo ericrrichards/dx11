@@ -194,8 +194,8 @@ namespace InstancingAndCulling {
                 var world = _skullWorld;
                 var wit = MathF.InverseTranspose(world);
 
-                Effects.InstancedBasicFX.SetWorld(world);
-                Effects.InstancedBasicFX.SetWorldInvTranspose(wit);
+                //Effects.InstancedBasicFX.SetWorld(world);
+                //Effects.InstancedBasicFX.SetWorldInvTranspose(wit);
                 Effects.InstancedBasicFX.SetViewProj(viewProj);
                 Effects.InstancedBasicFX.SetMaterial(_skullMat);
 

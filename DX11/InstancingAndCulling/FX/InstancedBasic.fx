@@ -18,8 +18,6 @@ cbuffer cbPerFrame
 
 cbuffer cbPerObject
 {
-	float4x4 gWorld;
-	float4x4 gWorldInvTranspose;
 	float4x4 gViewProj;
 	float4x4 gTexTransform;
 	Material gMaterial;
