@@ -4,11 +4,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Forms;
 using Core;
+using Core.Camera;
 using Core.FX;
 using SlimDX;
 using SlimDX.DXGI;
@@ -35,13 +34,13 @@ namespace InstancingAndCulling {
         private bool _frustumCullingEnabled;
 
         private readonly DirectionalLight[] _dirLights;
-        private Material _skullMat;
+        private readonly Material _skullMat;
 
-        private Matrix _skullWorld;
+        private readonly Matrix _skullWorld;
 
         private int _skullIndexCount;
 
-        private Camera _cam;
+        private readonly FpsCamera _cam;
         private Point _lastMousePos;
 
         private bool _disposed;
@@ -54,8 +53,9 @@ namespace InstancingAndCulling {
 
             _lastMousePos = new Point();
 
-            _cam = new Camera();
-            _cam.Position = new Vector3(0, 2, -15);
+            _cam = new FpsCamera {
+                Position = new Vector3(0, 2, -15)
+            };
 
             _skullWorld = Matrix.Scaling(0.5f, 0.5f, 0.5f)*Matrix.Translation(0, 1, 0);
 
@@ -174,9 +174,7 @@ namespace InstancingAndCulling {
 
             var stride = new[] {Basic32.Stride, Marshal.SizeOf(typeof (InstancedData))};
             var offset = new[] {0, 0};
-            
-            var view = _cam.View;
-            var proj = _cam.Proj;
+
             var viewProj = _cam.ViewProj;
 
             Effects.InstancedBasicFX.SetDirLights(_dirLights);

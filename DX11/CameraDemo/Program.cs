@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Core.Camera;
 
 namespace CameraDemo {
     using System.Diagnostics;
@@ -15,7 +14,6 @@ namespace CameraDemo {
 
     using SlimDX;
     using SlimDX.Direct3D11;
-    using SlimDX.DirectInput;
     using SlimDX.DXGI;
 
     public class CameraDemo : D3DApp {
@@ -59,7 +57,9 @@ namespace CameraDemo {
         private int _skullIndexCount;
 
         private int _lightCount;
-        private Camera _cam;
+        private readonly FpsCamera _cam;
+        private readonly LookAtCamera _cam2;
+        private bool _useFpsCamera;
 
         private Point _lastMousePos;
         private bool _disposed;
@@ -70,8 +70,15 @@ namespace CameraDemo {
             MainWindowCaption = "Camera Demo";
 
             _lastMousePos = new Point();
-            _cam = new Camera();
-            _cam.Position = new Vector3(0, 2, -15);
+
+            _useFpsCamera = true;
+
+            _cam = new FpsCamera {
+                Position = new Vector3(0, 2, -15)
+            };
+
+            _cam2 = new LookAtCamera();
+            _cam2.LookAt( new Vector3(0, 2, -15),new Vector3(), Vector3.UnitY );
 
             _gridWorld = Matrix.Identity;
 
@@ -189,42 +196,86 @@ namespace CameraDemo {
         public override void OnResize() {
             base.OnResize();
             _cam.SetLens(0.25f*MathF.PI, AspectRatio, 1.0f, 1000.0f);
+            _cam2.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
         }
 
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
 
             if (Util.IsKeyDown(Keys.Up)){
-                _cam.Walk(10.0f*dt);
+                if (_useFpsCamera) {
+                    _cam.Walk(10.0f*dt);
+                } else {
+                    _cam2.Walk(10.0f*dt);
+                }
             }
             if (Util.IsKeyDown(Keys.Down)) {
-                _cam.Walk(-10.0f * dt);
+                if (_useFpsCamera) {
+                    _cam.Walk(-10.0f*dt);
+                } else {
+                    _cam2.Walk(-10.0f*dt);
+                }
             }
 
             if (Util.IsKeyDown(Keys.Left)) {
-                _cam.Strafe(-10.0f*dt);
+                if (_useFpsCamera) {
+                    _cam.Strafe(-10.0f*dt);
+                } else {
+                    _cam2.Strafe(-10.0f*dt);
+                }
             }
             if (Util.IsKeyDown(Keys.Right)) {
-                _cam.Strafe(10.0f * dt);
+                if (_useFpsCamera) {
+                    _cam.Strafe(10.0f*dt);
+                } else {
+                    _cam2.Strafe(10.0f*dt);
+                }
             }
+            if (Util.IsKeyDown(Keys.L)) {
+                _useFpsCamera = false;
+            }
+            if (Util.IsKeyDown(Keys.F)) {
+                _useFpsCamera = true;
+            }
+            if (!_useFpsCamera) {
+                if (Util.IsKeyDown(Keys.PageUp)) {
+                    _cam2.Zoom(-10.0f*dt);
+                }
+                if (Util.IsKeyDown(Keys.PageDown)) {
+                    _cam2.Zoom(10.0f * dt);
+                }
+            }
+
 
         }
 
-public override void DrawScene() {
-    ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-    ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+        public override void DrawScene() {
+            ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
+            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
-    ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
+            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            Matrix view;
+            Matrix proj;
+            Matrix viewProj;
+            if (_useFpsCamera) {
+                _cam.UpdateViewMatrix();
 
-    _cam.UpdateViewMatrix();
+                view = _cam.View;
+                proj = _cam.Proj;
+                viewProj = _cam.ViewProj;
+                Effects.BasicFX.SetEyePosW(_cam.Position);
+            } else {
+                _cam2.UpdateViewMatrix();
 
-    var view = _cam.View;
-    var proj = _cam.Proj;
-    var viewProj = _cam.ViewProj;
+                view = _cam2.View;
+                proj = _cam2.Proj;
+                viewProj = _cam2.ViewProj;
+                Effects.BasicFX.SetEyePosW(_cam2.Position);
+            }
 
             Effects.BasicFX.SetDirLights(_dirLights);
-            Effects.BasicFX.SetEyePosW(_cam.Position);
+            
 
             var activeTexTech = Effects.BasicFX.Light1TexTech;
             var activeSkullTech = Effects.BasicFX.Light1Tech;
@@ -330,9 +381,13 @@ public override void DrawScene() {
             if (e.Button == MouseButtons.Left) {
                 var dx = MathF.ToRadians(0.25f * (e.X - _lastMousePos.X));
                 var dy = MathF.ToRadians(0.25f * (e.Y - _lastMousePos.Y));
-
-                _cam.Pitch(dy);
-                _cam.Yaw(dx);
+                if (_useFpsCamera) {
+                    _cam.Pitch(dy);
+                    _cam.Yaw(dx);
+                } else {
+                    _cam2.Pitch(dy);
+                    _cam2.Yaw(dx);
+                }
             } 
             _lastMousePos = e.Location;
         }
