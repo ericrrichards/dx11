@@ -63,6 +63,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="culling.html" />
+    <Content Include="FX\Basic.fx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="FX\InstancedBasic.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -80,7 +84,8 @@
   <PropertyGroup>
     <PostBuildEvent>cd FX 
 
-fxc /O0 /Fc /Zi /T  fx_5_0 /Fo InstancedBasic.fxo InstancedBasic.fx</PostBuildEvent>
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo InstancedBasic.fxo InstancedBasic.fx
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Basic.fxo Basic.fx</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

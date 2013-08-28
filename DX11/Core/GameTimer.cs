@@ -3,7 +3,7 @@
     using System.Diagnostics;
 
     public class GameTimer {
-        private double _secondsPerCount;
+        private readonly double _secondsPerCount;
         private double _deltaTime;
 
         private long _baseTime;

@@ -1,0 +1,321 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+<p>One of the main bottlenecks to the speed of a Direct3D application is the number of Draw calls that are issued to the GPU, along with the overhead of switching shader constants for each object that is drawn.&nbsp; Today, we are going to look at two methods of optimizing our drawing code.&nbsp; Hardware instancing allows us to minimize the overhead of drawing identical geometry in our scene, by batching the draw calls for our objects and utilizing per-instance data to avoid the overhead in uploading our per-object world matrices.&nbsp; Frustum culling enables us to determine which objects will be seen by our camera, and to skip the Draw calls for objects that will be clipped by the GPU during projection.&nbsp; Together, the two techniques reap a significant increase in frame rate.</p>
+<p>The source code for this example was adapted from the InstancingAndCulling demo from Chapter 15 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>.&nbsp; Additionally, the frustum culling code for this example was adapted from Chapter 5 of <a href="http://www.cjgraphic.com/?page=rts-book" target="_blank">Carl Granberg’s Programming an RTS Game with Direct3D</a> (Luna’s implementation of frustum culling relied heavily on xnacollision.h, which isn’t really included in the base SlimDX).&nbsp; You can download the full source for this example from my GitHub repository at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a> under the InstancingAndCulling project.</p>
+<p>
+    <a href="http://lh6.ggpht.com/-JNSZS7qGpn4/Uh5jjjfVH5I/AAAAAAAADDQ/fqdDFJWzONQ/s1600-h/instancing_and_culling%25255B3%25255D.png">
+        <img title="instancing_and_culling" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="instancing_and_culling" src="http://lh6.ggpht.com/-CyTOlq5ecQw/Uh5jkord3UI/AAAAAAAADDY/VkIzwAofc54/instancing_and_culling_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484"></a>
+</p>
+<!--more-->
+<h3>Hardware Instancing</h3>
+<p>While we have been able to re-use geometry that is the same in our scenes by utilizing a single vertex buffer and individual world matrices (See the <a href="http://richardssoftware.blogspot.com/2013/07/shapes-demo-with-direct3d11-and-slimdx.html" target="_blank">Shapes Demo</a>), drawing an instance of the geometry still requires that we issue a draw call for each object, along with submitting a constant buffer for each object to the GPU.&nbsp; Drawing a large number of identical objects in this way becomes dependant on the through-put of the CPU and the memory bus between the CPU and GPU.&nbsp; Since Direct3D 10, we are able to take advantage of a feature of newer graphics cards called <em>hardware instancing</em>.&nbsp; This enables us to use two vertex buffers, one containing the vertex data for the object we wish to draw, which remains the same for all instances, and a second buffer containing the per-instance data, which varies per instance of the geometry that we draw.</p>
+<p>To illustrate this we will create a new version of our BasicEffect.fx shader, InstancedBasic.fx.&nbsp; First off, you will notice that our cbPerObject constant buffer no longer contains the gWorld and gWorldInverseTranspose matrices.&nbsp; Instead, we have added a world matrix to our VertexIn structure instead.</p>
+<pre class="csharpcode">cbuffer cbPerObject<br>{<br>    float4x4 gViewProj;<br>    float4x4 gTexTransform;<br>    Material gMaterial;<br>};<br><br><span class="kwrd">struct</span> VertexIn<br>{<br>    float3 PosL     : POSITION;<br>    float3 NormalL  : NORMAL;<br>    float2 Tex      : TEXCOORD;<br>    row_major float4x4 World  : WORLD;<br>    float4 Color    : COLOR;<br>    <span class="kwrd">uint</span> InstanceId : SV_InstanceID;<br>};</pre>
+<p>The <strong>row_major</strong> modifier on World is significant.&nbsp; <a href="http://www.gamedev.net/topic/608875-row-major/" target="_blank">Apparently</a>, HLSL defaults to using <a href="http://en.wikipedia.org/wiki/Row-major_order" target="_blank">column-major</a> matrices, whereas DirectX uses row-major matrices.&nbsp; The Effects Framework, (which is wrapped up by the SlimDX Effect class we have been using) automatically transposes matrices from one form to the other, but for our vertex data, where we are going to be essentially blitting data to a vertex buffer without the Effects Framework, specifying the order saves us having to do the transpose ourselves.</p>
+<p>You’ll also note that we have added a Color member, and an InstanceId member.&nbsp; The Color member will simply allow us to render each instance with a different color, so that we can tell them apart more easily.&nbsp; The InstanceId member is automatically generated by the GPU; starting from 0, this is incremented for each instance of the geometry that we draw.</p>
+<p>With the new shader vertex structure, we need to define a new InputLayout to match, in our InputLayouts class.&nbsp; The InputElement array that we use to create this InputLayout is as follows (from Core.InputLayoutDescriptions):</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> InputElement[] InstancedBasic32 = {<br>    <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),<br>    <span class="kwrd">new</span> InputElement(<span class="str">"NORMAL"</span>, 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), <br>    <span class="kwrd">new</span> InputElement(<span class="str">"TEXCOORD"</span>, 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),<br>    <span class="kwrd">new</span> InputElement(<span class="str">"WORLD"</span>, 0, Format.R32G32B32A32_Float, 0, 1, InputClassification.PerInstanceData, 1 ), <br>    <span class="kwrd">new</span> InputElement(<span class="str">"WORLD"</span>, 1, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),<br>    <span class="kwrd">new</span> InputElement(<span class="str">"WORLD"</span>, 2, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),<br>    <span class="kwrd">new</span> InputElement(<span class="str">"WORLD"</span>, 3, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),<br>    <span class="kwrd">new</span> InputElement(<span class="str">"COLOR"</span>, 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 )<br>};</pre>
+<p>Before examining the new Input Elements we have defined for the InputLayout, let’s review the InputElement constructor (<a href="http://slimdx.org/docs/html/M_SlimDX_Direct3D11_InputElement__ctor_2.htm" target="_blank">see the InputElement Constructor documentation</a>).&nbsp; The parameters, in order, are:</p>
+<ul>
+    <li><strong>string name</strong> – This is the HLSL shader semantic of the element defined for the vertex shader input structure.</li>
+    <li><strong>int index</strong> – this enables us to determine which element with the previous semantic this InputElement refers to.&nbsp; In the case of our float4x4 World matrix, we can only set one row of the matrix per InputElement, so index 0 refers to the first row, index 1 to the second, and so forth.</li>
+    <li><strong>Format format</strong> – the data type of the element, from the Format enumeration.</li>
+    <li><strong>int offset</strong> – The offset in bytes from the start of the structure for this element.&nbsp; We can use InputElement.AppendAligned to automatically calculate this for us when using sequential elements.</li>
+    <li><strong>int slot</strong> – this indicates which vertex buffer bound to the InputAssembler the data should be drawn from.&nbsp; This value must be in the range [0, 15] – up to 16 vertex buffers are supported.</li>
+    <li><strong>InputClassification slotClass</strong> – One of either InputClassification.PerInstanceData or InputClassification.PerVertexData.&nbsp; PerVertexData indicates that each vertex will have a distinct value for this element, while PerInstanceData indicates that all vertices of an instance will share this element data.</li>
+    <li><strong>int stepRate</strong> – This value indicates the number of instances that will share the per-instance data.&nbsp; For per-vertex elements, we must specify 0 here.&nbsp; For per-instance data, we will typically use 1, that is, each instance will have a copy of the per-instance data.</li>
+</ul>
+<p>Here, we have the same first three elements as with our Basic32 vertex structure (See the <a href="http://richardssoftware.blogspot.com/2013/07/texturing-101crate-demo.html" target="_blank">Crate Demo</a>).&nbsp; After that, come the elements for the World and Color members of our VertexIn structure, which are per-instance.&nbsp; We are going to use two vertex buffers, so the normal geometry is assigned to slot 0, while the per-instance data is assigned to slot 1.</p>
+<p>Creating the InputLayout in our InputLayouts.InitAll() function follows the same pattern as we have been using previously.&nbsp; Note that we need to be sure to use the effect signature of a technique from our new InstancedBasicFX effect wrapper class, rather than the BasicFX class.&nbsp; I won’t go into much detail on the InstancedBasicFX class, as it is very similar to our previous effect wrappers; just handles to the different shader techniques and variables.</p>
+<pre class="csharpcode"><span class="kwrd">try</span> {
+    var signature = Effects.InstancedBasicFX.Light1Tech.GetPassByIndex(0).Description.Signature;
+    InstancedBasic32 = <span class="kwrd">new</span> InputLayout(device, signature, InputLayoutDescriptions.InstancedBasic32);
+} <span class="kwrd">catch</span> (Exception dex) {
+    Console.WriteLine(dex.Message);
+    InstancedBasic32 = <span class="kwrd">null</span>;
+}</pre>
+<h4>Creating the Instance Buffer</h4>
+<p>As I have mentioned, we will be using two vertex buffers to contain: A.) a single copy of our base, per-vertex geometry, in this case, our old friend the skull mesh, and B) the per-instance world matrices and colors.&nbsp; For A, we can continue to use our Basic32 vertex structure, but for B, we need to define a new structure to contain this data.&nbsp; </p>
+<pre class="csharpcode"><span class="kwrd">struct</span> InstancedData {<br>    <span class="kwrd">public</span> Matrix World;<br>    <span class="kwrd">public</span> Color4 Color;<br>}</pre>
+<p>We’ll create the vertex buffer for this data in our application’s Init() method, using a new helper function, BuildInstancedBuffer.&nbsp; For our demo, we are going to render a 5x5x5 cube of skull models.&nbsp; With each skull model containing over 60,000 triangles, we would be hard pressed to draw 125 instances separately at all, let alone with an acceptable frame rate.&nbsp; Creating the index buffer itself should be familiar by now, though you should note that we create the buffer as a dynamic buffer, with CPU write access, as we will be altering the buffer for our frustum culling code.&nbsp; We also cache a memory copy of the instance data in the _instancedData list, despite the memory duplication, as it is more efficient to operate on the in-memory copy and write the data to the GPU than to read the data back from the GPU vertex buffer when we want to modify the positions of the instances.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> BuildInstancedBuffer() {
+    <span class="kwrd">const</span> <span class="kwrd">int</span> n = 5;
+    var width = 200.0f;
+    var height = 200.0f;
+    var depth = 200.0f;
+
+    var x = -0.5f*width;
+    var y = -0.5f*height;
+    var z = -0.5f*depth;
+    var dx = width/(n - 1);
+    var dy = height/(n - 1);
+    var dz = depth/(n - 1);
+    _instancedData = <span class="kwrd">new</span> List&lt;InstancedData&gt;();
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> k = 0; k&lt; n; k++) {
+        <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; n; i++) {
+            <span class="kwrd">for</span> (<span class="kwrd">int</span> j = 0; j &lt; n; j++) {
+                _instancedData.Add(<span class="kwrd">new</span> InstancedData() {
+                    World = Matrix.Translation(x+j*dx, y+i*dy, z+k*dz),
+                    Color = <span class="kwrd">new</span> Color4(MathF.Rand(0,1), MathF.Rand(0,1), MathF.Rand(0,1))
+                });
+            }
+        }
+    }
+    var vbd = <span class="kwrd">new</span> BufferDescription(
+        Marshal.SizeOf(<span class="kwrd">typeof</span>(InstancedData)) * n * n * n, 
+        ResourceUsage.Dynamic, 
+        BindFlags.VertexBuffer, 
+        CpuAccessFlags.Write, 
+        ResourceOptionFlags.None, 
+        0
+    );
+    _instanceBuffer = <span class="kwrd">new</span> Buffer(Device, <span class="kwrd">new</span> DataStream(_instancedData.ToArray(), <span class="kwrd">false</span>, <span class="kwrd">true</span>), vbd);
+}</pre>
+<p>To draw the skull models using the instanced data, we modify our typical draw sequence slightly.&nbsp; We need to bind both vertex buffers to the ImmediateContext.InputAssembler using SetVertexBuffers().&nbsp; We also need to use the ImmediateContext.DrawIndexedInstanced() method, instead of the ImmediateContext.DrawIndexed() method.&nbsp; The DrawIndexedInstanced() method takes the following parameters:</p>
+<ul>
+    <li><strong>int indexCountPerInstance</strong> – the number of indices in our index buffer.&nbsp; This will be the same as we have previously used.</li>
+    <li><strong>int instanceCount</strong> – The number of instances to draw.</li>
+    <li><strong>int startIndexCount</strong> – The index of the index buffer to start drawing from.&nbsp; This will be 0, unless we have combined multiple pieces of geometry into a single index buffer.</li>
+    <li><strong>int baseIndexVertexLocation</strong> – Again, if we concatenated multiple objects into a single vertex buffer, we would need to supply the start vertex index for the piece of geometry we are drawing.</li>
+    <li><strong>int startInstanceLocation</strong> – If we have concatenated multiple instance buffers, we can use this to set the start position in the instance buffer for the piece of geometry we are rendering.</li>
+</ul>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> DrawScene() {
+    <span class="kwrd">base</span>.DrawScene();
+    ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
+    ImmediateContext.ClearDepthStencilView(
+        DepthStencilView, 
+        DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil,
+        1.0f, 
+        0 
+    );
+
+    ImmediateContext.InputAssembler.InputLayout = InputLayouts.InstancedBasic32;
+    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+
+    var stride = <span class="kwrd">new</span>[] {Basic32.Stride, Marshal.SizeOf(<span class="kwrd">typeof</span> (InstancedData))};
+    var offset = <span class="kwrd">new</span>[] {0, 0};
+
+    var viewProj = _cam.ViewProj;
+
+    Effects.InstancedBasicFX.SetDirLights(_dirLights);
+    Effects.InstancedBasicFX.SetEyePosW(_cam.Position);
+    var activeTech = Effects.InstancedBasicFX.Light3Tech; 
+
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> p = 0; p &lt; activeTech.Description.PassCount; p++) {
+        ImmediateContext.InputAssembler.SetVertexBuffers(
+            0, 
+            <span class="kwrd">new</span> VertexBufferBinding(_skullVB, stride[0], offset[0]), 
+            <span class="kwrd">new</span> VertexBufferBinding(_instanceBuffer, stride[1], offset[1])
+        );
+        ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
+
+        Effects.InstancedBasicFX.SetViewProj(viewProj);
+        Effects.InstancedBasicFX.SetMaterial(_skullMat);
+
+        activeTech.GetPassByIndex(p).Apply(ImmediateContext);
+        ImmediateContext.DrawIndexedInstanced(_skullIndexCount, _visibleObjectCount, 0, 0, 0);
+    }
+    SwapChain.Present(0, PresentFlags.None);
+}</pre>
+<p>The results of using instancing are very interesting.&nbsp; At least on the hardware I am currently using (an older junk integrated graphics chipset), instancing was actually slower than using individual draw calls when rendering the high-poly skull mesh.&nbsp; Switching to a much simpler cube mesh with only 12 polygons, however, the instanced method was orders of magnitude faster than the non-instanced version.&nbsp; You can see the results in the table below.&nbsp; I bumped up the number of instances to 1000 (10x10x10 grid), to amplify the effect; the frametime for the skull screenshots is from the command-line output, as the time was greater than the 1 second maximum that the in-application frame timer can handle.</p>
+<table cellspacing="0" cellpadding="2" width="600" border="0">
+    <tbody>
+        <tr>
+            <td valign="top" >&nbsp;</td>
+            <td valign="top" align="center" >Instanced</td>
+            <td valign="top" align="center" >Non-Instanced</td>
+        </tr>
+        <tr>
+            <td valign="middle">Skull</td>
+            <td valign="top" ><a href="http://lh5.ggpht.com/-aPLxisOUo2M/Uh5jlKWSW9I/AAAAAAAADDg/ZdaH1nZuf3s/s1600-h/skulls-1000-instancing%25255B2%25255D.png">
+                <img title="skulls-1000-instancing" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="skulls-1000-instancing" src="http://lh6.ggpht.com/-QV9ZWnOt8IU/Uh5jlYHSX7I/AAAAAAAADDo/H9DkuYphqQc/skulls-1000-instancing_thumb.png?imgmax=800" ></a><br>
+                Frame Time: 1850 msec </td>
+            <td valign="top" ><a href="http://lh6.ggpht.com/-mNklWMooFO8/Uh5jmFpn19I/AAAAAAAADDw/Gtbk2-SpvLY/s1600-h/skull-no-instancing%25255B2%25255D.png">
+                <img title="skull-no-instancing" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="skull-no-instancing" src="http://lh6.ggpht.com/-OIwSQbNGRaY/Uh5jmQfC80I/AAAAAAAADD4/Ss8sqqZpjRE/skull-no-instancing_thumb.png?imgmax=800" width="244" height="190"></a><br>
+                Frame Time:&nbsp; 1450 msec</td>
+        </tr>
+        <tr>
+            <td valign="middle" >Box</td>
+            <td valign="top" ><a href="http://lh3.ggpht.com/-J5vFixXJIWo/Uh5jm2g1DLI/AAAAAAAADEA/FfrpJJBQn2U/s1600-h/box-instancing%25255B2%25255D.png">
+                <img title="box-instancing" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="box-instancing" src="http://lh6.ggpht.com/-F4dewLc4Rt0/Uh5jnaiCTqI/AAAAAAAADEI/8xHlP7Ik2mI/box-instancing_thumb.png?imgmax=800" width="244" height="190"></a><br>
+                Frame Time: 2.7 msec </td>
+            <td valign="top" ><a href="http://lh6.ggpht.com/-6IOAHBRBHiI/Uh5jnuaxMnI/AAAAAAAADEQ/J0d665V5YUE/s1600-h/box-no-instancing%25255B2%25255D.png">
+                <img title="box-no-instancing" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="box-no-instancing" src="http://lh6.ggpht.com/-Ma7zzszKDcw/Uh5joFkfskI/AAAAAAAADEY/xX5K--pvzZE/box-no-instancing_thumb.png?imgmax=800" width="244" height="190"></a><br>
+                Frame Time: 62.5 msec </td>
+        </tr>
+    </tbody>
+</table>
+<p>From this, I think we can infer that if you are going to use instancing, it pays to use low-poly models.&nbsp; This <a href="http://stackoverflow.com/questions/12795986/why-is-instanced-array-slower-than-gldrawelement" target="_blank">stackoverflow discussion</a> raises some interesting points.</p>
+<p>However, you may have noticed that, while we are drawing 1000 objects in these examples, we can only see a small subset of all those objects.&nbsp; The GPU culls these invisible objects for us, but only after they have gone through the bulk of the rendering pipeline.&nbsp; Filtering out the invisible objects before they are submitted to the GPU is the idea behind the technique of Frustum Culling.</p>
+<h3>Frustum Culling</h3>
+<p>Our 3D virtual camera sees a volume in our 3D scene defined by the view/projection matrix.&nbsp; This can be represented by the geometric solid known as a frustum, which resembles a pyramid with the top chopped off.&nbsp; SlimDX does not feature a frustum class that we can use (at least in the latest versions; there appears to have once been a <a href="https://code.google.com/p/slimdx/source/browse/trunk/source/math/BoundingFrustum.cpp?r=380" target="_blank">BoundingFrustum</a> class which has been removed), thus we’ll need to write our own.&nbsp; This is fairly simple; we can effectively represent a frustum using six inward-facing planes.&nbsp; The following frustum implementation is based on Chapter 5 of <a href="http://www.cjgraphic.com/?page=rts-book" target="_blank">Carl Granberg’s Programming an RTS Game with Direct3D</a>.&nbsp; It is possibly less performant than the method Mr. Luna presents, but as that method is highly dependant on an XNAMath based collision library that I found more difficult to port to C# than Mr. Granberg’s method, I used that instead.</p>
+<p>Our frustum class is very simple.&nbsp; It consists of an array of six SlimDX planes.&nbsp; One constructs a Frustum by passing in a view/projection matrix which defines the space visible to the camera.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> Frustum {
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> Plane[] _frustum;
+    <span class="kwrd">public</span> Frustum(Matrix vp) {
+        _frustum = <span class="kwrd">new</span>[] {
+            <span class="kwrd">new</span> Plane(vp.M14 + vp.M11, vp.M24 + vp.M21, vp.M34 + vp.M31, vp.M44 + vp.M41),
+            <span class="kwrd">new</span> Plane(vp.M14 - vp.M11, vp.M24 - vp.M21, vp.M34 - vp.M31, vp.M44 - vp.M41),
+            <span class="kwrd">new</span> Plane(vp.M14 - vp.M12, vp.M24 - vp.M22, vp.M34 - vp.M32, vp.M44 - vp.M42),
+            <span class="kwrd">new</span> Plane(vp.M14 + vp.M12, vp.M24 + vp.M22, vp.M34 + vp.M32, vp.M44 + vp.M42),
+            <span class="kwrd">new</span> Plane(vp.M13, vp.M23, vp.M33, vp.M43),
+            <span class="kwrd">new</span> Plane(vp.M14 - vp.M13, vp.M24 - vp.M23, vp.M34 - vp.M33, vp.M44 - vp.M43)
+        };
+        <span class="kwrd">foreach</span> (var plane <span class="kwrd">in</span> _frustum) {
+            plane.Normalize();
+        }
+    }
+    <span class="kwrd">public</span> <span class="kwrd">static</span> Frustum FromViewProj(Matrix vp) {
+        var ret = <span class="kwrd">new</span> Frustum(vp);
+        <span class="kwrd">return</span> ret;
+    }
+    <span class="rem">// ...snip...</span>
+}</pre>
+<p>To study the math involved in creating these planes from the view/projection matrix, I would advise you to pick up a copy of Mr. Granberg’s book (it’s an excellent read for many reasons; I plan on doing more tutorials drawn from it after I finish Mr. Luna’s book), although it is now out of print and goes for an exorbitant price on Amazon; this <a href="http://blog.signalsondisplay.com/?p=389" target="_blank">blog article</a> also describes the technique.</p>
+<p>Once we have created a Frustum, we need to check each object in our scene to see if it intersects with the frustum (for a real game, you would probably want to use a more advanced <a href="http://en.wikipedia.org/wiki/Space_partitioning" target="_blank">space-partitioning algorithm</a>, but checking each object works for our demo.).&nbsp; Since our skull mesh is very high-poly, we don’t want to perform a per-triangle intersection test, as it would be very expensive.&nbsp; There are four commonly used techniques for approximating the volume of a mesh for faster intersection tests:</p>
+<ul>
+    <li><strong>Aligned Bounding Boxes</strong> – For each object, define a box that completely encloses the object, with the box edges aligned to the world X, Y and Z axes.&nbsp; This is the fastest technique, as we only need to store two of the opposing corners of the box, and we can use the dot product of the frustum planes with these corner points to determine if the box is in front or behind the plane.&nbsp; The cons of this approach is that an aligned bounding box can be considerably larger than the contained mesh, depending on the mesh geometry and its orientation.&nbsp; Imagine the bounding box of a giant tarantula at a 45 degree angle to the world axes; most of the bounding box will consist of the negative space of the mesh.</li>
+    <li><strong>Oriented Bounding Boxes</strong> – Similar to aligned bounding boxes, except that we also store a rotation for the box to match the object’s orientation.&nbsp; This means that the oriented bounding box will typically occupy less volume than an aligned bounding box, although we need to perform an additional transformation to either move the box or the intersecting volume into the same coordinate system.</li>
+    <li><strong>Bounding Spheres</strong> – We represent the mesh volume using a center point and a radius to define a sphere which completely encloses the mesh.&nbsp; Depending on the mesh geometry, this can be more effective, if the mesh is more spherical than boxy.</li>
+    <li><strong>Simplified Meshes</strong> – We can also use a simplified, lower-polygon mesh to approximate the volume of the mesh.&nbsp; This is more complicated than the other methods; we will need to either have an artist define the low-poly model or generate it using a simplification algorithm, and then intersect each polygon in the simplified mesh.</li>
+</ul>
+<p>For frustum culling, using an aligned bounding box is usually the best mix of speed and complexity.&nbsp; The accuracy gains from the more exact methods of volume approximation in many cases will not outweigh the additional cost of the intersection tests; rendering an extra handful of objects that will be clipped by the GPU is usually not a big deal.&nbsp; Additionally, SlimDX comes with an aligned bounding box class, BoundingBox, with most of the operations we will need already defined.</p>
+<p>Using the SlimDX Plane and BoundingBox classes, testing the frustum for intersection with a bounding box becomes very simple.</p>
+<pre class="csharpcode"><span class="rem">// Return values: 0 = no intersection, </span>
+<span class="rem">//                1 = intersection, </span>
+<span class="rem">//                2 = box is completely inside frustum</span>
+<span class="kwrd">public</span> <span class="kwrd">int</span> Intersect(BoundingBox box) {
+    var totalIn = 0;
+            
+    <span class="kwrd">foreach</span> (var plane <span class="kwrd">in</span> _frustum) {
+        var intersection = Plane.Intersects(plane, box);
+        <span class="kwrd">if</span> (intersection == PlaneIntersectionType.Back) <span class="kwrd">return</span> 0;
+        <span class="kwrd">if</span> (intersection == PlaneIntersectionType.Front) {
+            totalIn++;
+        }
+    }
+    <span class="kwrd">if</span> (totalIn == 6) {
+        <span class="kwrd">return</span> 2;
+    }
+    <span class="kwrd">return</span> 1;
+}</pre>
+<p>Next, we just need to add a Frustum to our Camera class, and make sure that we update it when the view matrix changes, like so:</p>
+<pre class="csharpcode">_frustum = Frustum.FromViewProj(ViewProj);</pre>
+<h4>Creating a BoundingBox for the Skull Mesh</h4>
+<p>The simplest way to create a bounding box is to loop the vertices of a mesh and select the largest and smallest [X,Y,Z] components.&nbsp; These will define the minimum size that the bounding box must be, in object-space.&nbsp; We create the bounding box for our skull mesh in our BuildSkullGeometryBuffers() method, as we are loading in the mesh data from file.&nbsp; We can use the SlimDX Vector3.Maximize and Minimize methods to select the greatest and smallest components of the position component of each vertex.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> BuildSkullGeometryBuffers() {
+    <span class="kwrd">try</span> {
+
+        var min = <span class="kwrd">new</span> Vector3(<span class="kwrd">float</span>.MaxValue, <span class="kwrd">float</span>.MaxValue, <span class="kwrd">float</span>.MaxValue);
+        var max = <span class="kwrd">new</span> Vector3(<span class="kwrd">float</span>.MinValue, <span class="kwrd">float</span>.MinValue, <span class="kwrd">float</span>.MinValue);
+        var vertices = <span class="kwrd">new</span> List&lt;Basic32&gt;();
+        var indices = <span class="kwrd">new</span> List&lt;<span class="kwrd">int</span>&gt;();
+        var vcount = 0;
+        var tcount = 0;
+        <span class="kwrd">using</span> (var reader = <span class="kwrd">new</span> StreamReader(<span class="str">"Models\\skull.txt"</span>)) {
+            <span class="rem">// skip extraneous loading steps</span>
+            <span class="rem">// Get the vertices  </span>
+            <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; vcount; i++) {
+                input = reader.ReadLine();
+                <span class="kwrd">if</span> (input != <span class="kwrd">null</span>) {
+                    var vals = input.Split(<span class="kwrd">new</span>[] { <span class="str">' '</span> });
+                    var position = <span class="kwrd">new</span> Vector3(Convert.ToSingle(vals[0].Trim()), Convert.ToSingle(vals[1].Trim()), Convert.ToSingle(vals[2].Trim()));
+                    <span class="rem">// snip...</span>
+                    min = Vector3.Minimize(min, position);
+                    max = Vector3.Maximize(max, position);
+                }
+            }
+            _skullBox = <span class="kwrd">new</span> BoundingBox(min, max);</pre>
+<h4>Combining Culling and Instancing</h4>
+<p>We are going to combine frustum culling and instancing to draw our scene as efficiently as possible.&nbsp; We will do this by looping over the in-memory copy of our instance data, transforming the bounding box for our skull mesh to the world position of the instance, and testing the transformed bounding box against the camera frustum.&nbsp; If the object is visible, we write the instance data to our instance buffer, and increment our count of visible objects, which we will later use to draw the correct number of visible instances.&nbsp; We provide the option to switch between culling and non-culling, so that one can observe the difference in frame time between the two methods.&nbsp; We also append the number of visible objects to the application title bar.&nbsp; One can see this difference in the top image, using culling, and the bottom, with culling disabled.</p>
+<pre class="csharpcode">_visibleObjectCount = 0;
+<span class="kwrd">if</span> (_frustumCullingEnabled) {
+                
+    var db = ImmediateContext.MapSubresource(_instanceBuffer, MapMode.WriteDiscard, MapFlags.None);
+                
+    <span class="kwrd">foreach</span> (var instancedData <span class="kwrd">in</span> _instancedData) {
+        var w = instancedData.World;
+        var box = <span class="kwrd">new</span> BoundingBox(
+            Vector3.TransformCoordinate(_skullBox.Minimum, w), 
+            Vector3.TransformCoordinate(_skullBox.Maximum, w)
+        );
+
+        <span class="kwrd">if</span> (_cam.Visible(box)) {
+            db.Data.Write(instancedData);
+            _visibleObjectCount++;
+        }
+    }
+
+    ImmediateContext.UnmapSubresource(_instanceBuffer, 0);
+
+} <span class="kwrd">else</span> {
+    var db = ImmediateContext.MapSubresource(_instanceBuffer, MapMode.WriteDiscard, MapFlags.None);
+    <span class="kwrd">foreach</span> (var instancedData <span class="kwrd">in</span> _instancedData) {
+        db.Data.Write(instancedData);
+        _visibleObjectCount++;
+    }
+
+    ImmediateContext.UnmapSubresource(_instanceBuffer, 0);
+}</pre>
+<p>
+    <a href="http://lh5.ggpht.com/-z2ONifJ-goQ/Uh5jovzYCGI/AAAAAAAADEg/51BgNIJcWW4/s1600-h/instancing_and_culling%25255B7%25255D.png">
+        <img title="instancing_and_culling" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="instancing_and_culling" src="http://lh5.ggpht.com/-OpZZ9BxlOag/Uh5jpC1iVYI/AAAAAAAADEo/eHSuOSIk-gQ/instancing_and_culling_thumb%25255B3%25255D.png?imgmax=800" width="623" height="484"></a>
+</p>
+<p>
+    <a href="http://lh6.ggpht.com/-jsgZ6OTUGf0/Uh5jpnZFjSI/AAAAAAAADEw/VnHs01I89aE/s1600-h/instancing-no-cull%25255B6%25255D.png"><img title="instancing-no-cull" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="instancing-no-cull" src="http://lh6.ggpht.com/-S3z9YJW1DNg/Uh5jqFw3c3I/AAAAAAAADE4/ZsuIR5OXkcQ/instancing-no-cull_thumb%25255B4%25255D.png?imgmax=800" width="623" height="484"></a>
+</p>
+<h3>Next Time…</h3>
+<p>Next up, we’ll take a brief hiatus from Mr. Luna’s examples, and implement a new type of camera class, a LookAt camera, which is commonly found in strategy/simulation games.&nbsp; This will be similar to the camera in our earlier examples, but extracted out and following the pattern of our FPS camera.&nbsp; We’ll also pull out a base camera class, so that we can interact with both camera types using a common interface.</p>

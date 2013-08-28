@@ -22,6 +22,8 @@ namespace InstancingAndCulling {
     }
 
     public class InstancingAndCullingDemo : D3DApp {
+        private Buffer _boxVB;
+        private Buffer _boxIB;
         private Buffer _skullVB;
         private Buffer _skullIB;
         private Buffer _instanceBuffer;
@@ -32,11 +34,11 @@ namespace InstancingAndCulling {
         private List<InstancedData> _instancedData;
 
         private bool _frustumCullingEnabled;
+        private bool _instancing;
+        private bool _skullsOrBoxes;
 
         private readonly DirectionalLight[] _dirLights;
         private readonly Material _skullMat;
-
-        private readonly Matrix _skullWorld;
 
         private int _skullIndexCount;
 
@@ -48,6 +50,8 @@ namespace InstancingAndCulling {
             _skullIndexCount = 0;
             _visibleObjectCount = 0;
             _frustumCullingEnabled = true;
+            _instancing = true;
+            _skullsOrBoxes = true;
 
             MainWindowCaption = "Instancing and Culling Demo";
 
@@ -56,9 +60,7 @@ namespace InstancingAndCulling {
             _cam = new FpsCamera {
                 Position = new Vector3(0, 2, -15)
             };
-
-            _skullWorld = Matrix.Scaling(0.5f, 0.5f, 0.5f)*Matrix.Translation(0, 1, 0);
-
+            
             _dirLights = new[] {
                 new DirectionalLight {
                     Ambient = new Color4(0.2f, 0.2f, 0.2f),
@@ -107,9 +109,11 @@ namespace InstancingAndCulling {
 
             BuildSkullGeometryBuffers();
             BuildInstancedBuffer();
+            BuildBoxBuffers();
 
             return true;
         }
+        
         public override void OnResize() {
             base.OnResize();
             _cam.SetLens(0.25f*MathF.PI, AspectRatio, 1.0f, 1000.0f);
@@ -134,6 +138,18 @@ namespace InstancingAndCulling {
             if (Util.IsKeyDown(Keys.D2)) {
                 _frustumCullingEnabled = false;
             }
+            if (Util.IsKeyDown(Keys.U)) {
+                _instancing = false;
+            }
+            if (Util.IsKeyDown(Keys.I)) {
+                _instancing = true;
+            }
+            if (Util.IsKeyDown(Keys.B)) {
+                _skullsOrBoxes = false;
+            }
+            if (Util.IsKeyDown(Keys.S)) {
+                _skullsOrBoxes = true;
+            }
             _cam.UpdateViewMatrix();
             _visibleObjectCount = 0;
             if (_frustumCullingEnabled) {
@@ -142,7 +158,10 @@ namespace InstancingAndCulling {
                 
                 foreach (var instancedData in _instancedData) {
                     var w = instancedData.World;
-                    var box = new BoundingBox(Vector3.TransformCoordinate(_skullBox.Minimum, w), Vector3.TransformCoordinate(_skullBox.Maximum, w));
+                    var box = new BoundingBox(
+                        Vector3.TransformCoordinate(_skullBox.Minimum, w), 
+                        Vector3.TransformCoordinate(_skullBox.Maximum, w)
+                    );
 
                     if (_cam.Visible(box)) {
                         db.Data.Write(instancedData);
@@ -165,9 +184,15 @@ namespace InstancingAndCulling {
         }
 
         public override void DrawScene() {
+            var start = Stopwatch.GetTimestamp();
             base.DrawScene();
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil,1.0f, 0 );
+            ImmediateContext.ClearDepthStencilView(
+                DepthStencilView, 
+                DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil,
+                1.0f, 
+                0 
+            );
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.InstancedBasic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
@@ -179,30 +204,83 @@ namespace InstancingAndCulling {
 
             Effects.InstancedBasicFX.SetDirLights(_dirLights);
             Effects.InstancedBasicFX.SetEyePosW(_cam.Position);
-            var activeTech = Effects.InstancedBasicFX.Light3Tech;
+            Effects.BasicFX.SetDirLights(_dirLights);
+            Effects.BasicFX.SetEyePosW(_cam.Position);
+            var activeTech = _instancing ? Effects.InstancedBasicFX.Light3Tech : Effects.BasicFX.Light3Tech;
 
-            
 
-            for (int p = 0; p < activeTech.Description.PassCount; p++) {
-                ImmediateContext.InputAssembler.SetVertexBuffers(
-                    0, 
-                    new VertexBufferBinding(_skullVB, stride[0], offset[0]), 
-                    new VertexBufferBinding(_instanceBuffer, stride[1], offset[1])
-                );
-                ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
+            if (_skullsOrBoxes) {
+                for (int p = 0; p < activeTech.Description.PassCount; p++) {
+                    if (_instancing) {
+                        ImmediateContext.InputAssembler.SetVertexBuffers(
+                            0,
+                            new VertexBufferBinding(_skullVB, stride[0], offset[0]),
+                            new VertexBufferBinding(_instanceBuffer, stride[1], offset[1])
+                            );
+                        ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
-                var world = _skullWorld;
-                var wit = MathF.InverseTranspose(world);
+                        Effects.InstancedBasicFX.SetViewProj(viewProj);
+                        Effects.InstancedBasicFX.SetMaterial(_skullMat);
 
-                //Effects.InstancedBasicFX.SetWorld(world);
-                //Effects.InstancedBasicFX.SetWorldInvTranspose(wit);
-                Effects.InstancedBasicFX.SetViewProj(viewProj);
-                Effects.InstancedBasicFX.SetMaterial(_skullMat);
+                        activeTech.GetPassByIndex(p).Apply(ImmediateContext);
+                        ImmediateContext.DrawIndexedInstanced(_skullIndexCount, _visibleObjectCount, 0, 0, 0);
+                    } else {
+                        ImmediateContext.InputAssembler.SetVertexBuffers(
+                            0,
+                            new VertexBufferBinding(_skullVB, stride[0], offset[0])
+                            );
+                        ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
+                        Effects.BasicFX.SetMaterial(_skullMat);
+                        foreach (var data in _instancedData) {
+                            var world = data.World;
+                            var wit = MathF.InverseTranspose(world);
+                            var wvp = world*_cam.ViewProj;
+                            Effects.BasicFX.SetWorld(world);
+                            Effects.BasicFX.SetWorldInvTranspose(wit);
+                            Effects.BasicFX.SetWorldViewProj(wvp);
+                            activeTech.GetPassByIndex(p).Apply(ImmediateContext);
+                            ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
+                        }
+                    }
+                }
+            } else {
+                for (int p = 0; p < activeTech.Description.PassCount; p++) {
+                    if (_instancing) {
+                        ImmediateContext.InputAssembler.SetVertexBuffers(
+                            0,
+                            new VertexBufferBinding(_boxVB, stride[0], offset[0]),
+                            new VertexBufferBinding(_instanceBuffer, stride[1], offset[1])
+                            );
+                        ImmediateContext.InputAssembler.SetIndexBuffer(_boxIB, Format.R32_UInt, 0);
 
-                activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                ImmediateContext.DrawIndexedInstanced(_skullIndexCount, _visibleObjectCount, 0, 0, 0);
+                        Effects.InstancedBasicFX.SetViewProj(viewProj);
+                        Effects.InstancedBasicFX.SetMaterial(_skullMat);
+
+                        activeTech.GetPassByIndex(p).Apply(ImmediateContext);
+                        ImmediateContext.DrawIndexedInstanced(36, _visibleObjectCount, 0, 0, 0);
+                    } else {
+                        ImmediateContext.InputAssembler.SetVertexBuffers(
+                            0,
+                            new VertexBufferBinding(_boxVB, stride[0], offset[0])
+                            );
+                        ImmediateContext.InputAssembler.SetIndexBuffer(_boxIB, Format.R32_UInt, 0);
+                        Effects.BasicFX.SetMaterial(_skullMat);
+                        foreach (var data in _instancedData) {
+                            var world = data.World;
+                            var wit = MathF.InverseTranspose(world);
+                            var wvp = world * _cam.ViewProj;
+                            Effects.BasicFX.SetWorld(world);
+                            Effects.BasicFX.SetWorldInvTranspose(wit);
+                            Effects.BasicFX.SetWorldViewProj(wvp);
+                            activeTech.GetPassByIndex(p).Apply(ImmediateContext);
+                            ImmediateContext.DrawIndexed(36, 0, 0);
+                        }
+                    }
+                }
             }
             SwapChain.Present(0, PresentFlags.None);
+            var elapsed = ((float)(Stopwatch.GetTimestamp() - start))/Stopwatch.Frequency;
+            Console.WriteLine("frame time: {0} msec", elapsed * 1000);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
             _lastMousePos = mouseEventArgs.Location;
@@ -301,6 +379,20 @@ namespace InstancingAndCulling {
                 MessageBox.Show(ex.Message);
             }
         }
+        private void BuildBoxBuffers() {
+            var box = GeometryGenerator.CreateBox(1, 1, 1);
+            var vs = new List<Basic32>();
+            foreach (var v in box.Vertices) {
+                vs.Add(new Basic32(v.Position, v.Normal, v.TexC));
+            }
+            var vbd = new BufferDescription(Basic32.Stride * vs.Count, ResourceUsage.Immutable,
+                    BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            _boxVB = new Buffer(Device, new DataStream(vs.ToArray(), false, false), vbd);
+
+            var ibd = new BufferDescription(sizeof(int) * box.Indices.Count, ResourceUsage.Immutable,
+                BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            _boxIB = new Buffer(Device, new DataStream(box.Indices.ToArray(), false, false), ibd);
+        }
         private void BuildInstancedBuffer() {
             const int n = 5;
             var width = 200.0f;
@@ -324,7 +416,14 @@ namespace InstancingAndCulling {
                     }
                 }
             }
-            var vbd = new BufferDescription(Marshal.SizeOf(typeof(InstancedData)) * n * n * n, ResourceUsage.Dynamic, BindFlags.VertexBuffer, CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
+            var vbd = new BufferDescription(
+                Marshal.SizeOf(typeof(InstancedData)) * n * n * n, 
+                ResourceUsage.Dynamic, 
+                BindFlags.VertexBuffer, 
+                CpuAccessFlags.Write, 
+                ResourceOptionFlags.None, 
+                0
+            );
             _instanceBuffer = new Buffer(Device, new DataStream(_instancedData.ToArray(), false, true), vbd);
         }
     }
