@@ -64,7 +64,8 @@ namespace CameraDemo {
         private Point _lastMousePos;
         private bool _disposed;
 
-        public CameraDemo(IntPtr hInstance) : base(hInstance) {
+        public CameraDemo(IntPtr hInstance)
+            : base(hInstance) {
             _lightCount = 3;
             Enable4xMsaa = true;
             MainWindowCaption = "Camera Demo";
@@ -78,7 +79,7 @@ namespace CameraDemo {
             };
 
             _cam2 = new LookAtCamera();
-            _cam2.LookAt( new Vector3(0, 2, -15),new Vector3(), Vector3.UnitY );
+            _cam2.LookAt(new Vector3(0, 2, -15), new Vector3(), Vector3.UnitY);
 
             _gridWorld = Matrix.Identity;
 
@@ -195,56 +196,65 @@ namespace CameraDemo {
 
         public override void OnResize() {
             base.OnResize();
-            _cam.SetLens(0.25f*MathF.PI, AspectRatio, 1.0f, 1000.0f);
+            _cam.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
             _cam2.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
         }
 
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
 
-            if (Util.IsKeyDown(Keys.Up)){
+            if (Util.IsKeyDown(Keys.Up)) {
                 if (_useFpsCamera) {
-                    _cam.Walk(10.0f*dt);
+                    _cam.Walk(10.0f * dt);
                 } else {
-                    _cam2.Walk(10.0f*dt);
+                    _cam2.Walk(10.0f * dt);
                 }
             }
             if (Util.IsKeyDown(Keys.Down)) {
                 if (_useFpsCamera) {
-                    _cam.Walk(-10.0f*dt);
+                    _cam.Walk(-10.0f * dt);
                 } else {
-                    _cam2.Walk(-10.0f*dt);
+                    _cam2.Walk(-10.0f * dt);
                 }
             }
 
             if (Util.IsKeyDown(Keys.Left)) {
                 if (_useFpsCamera) {
-                    _cam.Strafe(-10.0f*dt);
+                    _cam.Strafe(-10.0f * dt);
                 } else {
-                    _cam2.Strafe(-10.0f*dt);
+                    _cam2.Strafe(-10.0f * dt);
                 }
             }
             if (Util.IsKeyDown(Keys.Right)) {
                 if (_useFpsCamera) {
-                    _cam.Strafe(10.0f*dt);
+                    _cam.Strafe(10.0f * dt);
                 } else {
-                    _cam2.Strafe(10.0f*dt);
+                    _cam2.Strafe(10.0f * dt);
                 }
             }
-            if (Util.IsKeyDown(Keys.L)) {
-                _useFpsCamera = false;
-            }
-            if (Util.IsKeyDown(Keys.F)) {
-                _useFpsCamera = true;
-            }
-            if (!_useFpsCamera) {
-                if (Util.IsKeyDown(Keys.PageUp)) {
-                    _cam2.Zoom(-10.0f*dt);
+if (Util.IsKeyDown(Keys.L)) {
+    _useFpsCamera = false;
+}
+if (Util.IsKeyDown(Keys.F)) {
+    _useFpsCamera = true;
+}
+
+            if (Util.IsKeyDown(Keys.PageUp)) {
+                if (!_useFpsCamera) {
+                    _cam2.Zoom(-10.0f * dt);
+                } else {
+                    _cam.Zoom(-dt);
                 }
-                if (Util.IsKeyDown(Keys.PageDown)) {
+
+            }
+            if (Util.IsKeyDown(Keys.PageDown)) {
+                if (!_useFpsCamera) {
                     _cam2.Zoom(10.0f * dt);
+                } else {
+                    _cam.Zoom(+dt);
                 }
             }
+
 
 
         }
@@ -275,7 +285,7 @@ namespace CameraDemo {
             }
 
             Effects.BasicFX.SetDirLights(_dirLights);
-            
+
 
             var activeTexTech = Effects.BasicFX.Light1TexTech;
             var activeSkullTech = Effects.BasicFX.Light1Tech;
@@ -300,7 +310,7 @@ namespace CameraDemo {
 
                 var world = _gridWorld;
                 var worldInvTranspose = MathF.InverseTranspose(world);
-                var wvp = world * view*proj;
+                var wvp = world * view * proj;
                 Effects.BasicFX.SetWorld(world);
                 Effects.BasicFX.SetWorldInvTranspose(worldInvTranspose);
                 Effects.BasicFX.SetWorldViewProj(wvp);
@@ -348,8 +358,8 @@ namespace CameraDemo {
                     pass.Apply(ImmediateContext);
                     ImmediateContext.DrawIndexed(_sphereIndexCount, _sphereIndexOffset, _sphereVertexOffset);
                 }
-                
-                
+
+
 
             }
             for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
@@ -388,7 +398,7 @@ namespace CameraDemo {
                     _cam2.Pitch(dy);
                     _cam2.Yaw(dx);
                 }
-            } 
+            }
             _lastMousePos = e.Location;
         }
 

@@ -1,0 +1,274 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<p>Today, we are going to reprise our Camera class from the <a href="http://richardssoftware.blogspot.com/2013/08/an-fps-camera-in-slimdx.html" target="_blank">Camera Demo</a>.&nbsp; In addition to the FPS-style camera that we have already implemented, we will create a Look-At camera, a camera that remains focused on a point and pans around its target.&nbsp; This camera will be similar to the very basic camera we implemented for our initial examples (see the <a href="http://richardssoftware.blogspot.com/2013/07/a-colored-cube-in-directx-11-and-slimdx.html" target="_blank">Colored Cube Demo</a>).&nbsp; While our FPS camera is ideal for first-person type views, the Look-At camera can be used for third-person views, or the “birds-eye” view common in city-builder and strategy games.&nbsp; As part of this process, we will abstract out the common functionality that all cameras will share from our FPS camera into an abstract base camera class.</p>
+<p>The inspiration for this example come both from Mr. Luna’s Camera Demo (Chapter 14 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>), and the camera implemented in Chapter 5 of <a href="http://www.cjgraphic.com/?page=rts-book" target="_blank">Carl Granberg’s Programming an RTS Game with Direct3D</a>.&nbsp; You can download the full source for this example from my GitHub repository at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a> under the CameraDemo project.&nbsp; To switch between the FPS and Look-At camera, use the F(ps) and L(ook-at) keys on your keyboard.</p>
+<p>
+    <a href="http://lh3.ggpht.com/-dpX0MxEKPvA/Uh9z_Xea7bI/AAAAAAAADFo/M051wfzUyMA/s1600-h/lookat%25255B10%25255D.png"><img title="lookat" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="lookat" src="http://lh6.ggpht.com/-M9huFe4AX7A/Uh9z_0_z9NI/AAAAAAAADFw/Den7Z2N5d-k/lookat_thumb%25255B4%25255D.png?imgmax=800" width="623" height="484"></a></p>
+<!--more-->
+
+<h3>Extracting a Base Camera Class</h3>
+<p>When we examine our FPS camera, we can identify a number of methods and properties that will need to be shared by any camera classes that we create.&nbsp; To allow us to interact with any type of camera, without regard to its internal implementation, we’ll extract these commonalities out into a base class that we can inherit for both our FPS and Look-At cameras.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">class</span> CameraBase {
+    <span class="kwrd">protected</span> Frustum _frustum;
+    <span class="kwrd">public</span> Vector3 Position { get; set; }
+    <span class="kwrd">public</span> Vector3 Right { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> Vector3 Up { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> Vector3 Look { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> NearZ { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FarZ { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> Aspect { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FovY { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FovX {
+        get {
+            var halfWidth = 0.5f * NearWindowWidth;
+            <span class="kwrd">return</span> 2.0f * MathF.Atan(halfWidth / NearZ);
+        }
+    }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> NearWindowWidth { get { <span class="kwrd">return</span> Aspect * NearWindowHeight; } }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> NearWindowHeight { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FarWindowWidth { get { <span class="kwrd">return</span> Aspect * FarWindowHeight; } }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> FarWindowHeight { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> Matrix View { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> Matrix Proj { get; <span class="kwrd">protected</span> set; }
+    <span class="kwrd">public</span> Matrix ViewProj { get { <span class="kwrd">return</span> View * Proj; } }
+
+    <span class="kwrd">protected</span> CameraBase() {
+        Position = <span class="kwrd">new</span> Vector3();
+        Right = <span class="kwrd">new</span> Vector3(1, 0, 0);
+        Up = <span class="kwrd">new</span> Vector3(0, 1, 0);
+        Look = <span class="kwrd">new</span> Vector3(0, 0, 1);
+
+        View = Matrix.Identity;
+        Proj = Matrix.Identity;
+        SetLens(0.25f * MathF.PI, 1.0f, 1.0f, 1000.0f);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> LookAt(Vector3 pos, Vector3 target, Vector3 up);
+    <span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> Strafe(<span class="kwrd">float</span> d);
+    <span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> Walk(<span class="kwrd">float</span> d);
+    <span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> Pitch(<span class="kwrd">float</span> angle);
+    <span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> Yaw(<span class="kwrd">float</span> angle);
+    <span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> Zoom(<span class="kwrd">float</span> dr);
+    <span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> UpdateViewMatrix();
+
+    <span class="kwrd">public</span> <span class="kwrd">bool</span> Visible(BoundingBox box) {
+        <span class="kwrd">return</span> _frustum.Intersect(box) &gt; 0;
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetLens(<span class="kwrd">float</span> fovY, <span class="kwrd">float</span> aspect, <span class="kwrd">float</span> zn, <span class="kwrd">float</span> zf) {
+        FovY = fovY;
+        Aspect = aspect;
+        NearZ = zn;
+        FarZ = zf;
+
+        NearWindowHeight = 2.0f * NearZ * MathF.Tan(0.5f * FovY);
+        FarWindowHeight = 2.0f * FarZ * MathF.Tan(0.5f * FovY);
+
+        Proj = Matrix.PerspectiveFovLH(FovY, Aspect, NearZ, FarZ);
+    }  
+}</pre>
+<p>Since our camera movement operations will be different for the FPS and Look-at cameras, we make the LookAt, Strafe, Walk, Pitch and Yaw methods abstract, so that our derived classes will need to implement them.&nbsp; In addition, we also add a Zoom method.&nbsp; We also make the UpdateViewMatrix method abstract, as the two camera types will update their view matrices and view frustums in different ways.</p>
+<h3>Updated FPS Camera</h3>
+<p>With our base camera class defined, we need to update our FPS camera.&nbsp; We will need to override the abstract methods from the CameraBase class using the appropriate FPS implementations.&nbsp; Mostly, these methods are the same as in our previous incarnation.&nbsp; Of note, however, is the new Zoom override; we implement a zoom feature for the FPS camera by narrowing or widening the field-of-view of the camera.&nbsp; A smaller field of view results in magnification, while a larger fov effectively zooms out.&nbsp; We need to be sure to clamp the fov values, as a FOV of 180 degrees or more will result in some very strange behavior.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> FpsCamera : CameraBase {
+    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> LookAt(Vector3 pos, Vector3 target, Vector3 up) {
+        Position = pos;
+        Look = Vector3.Normalize(target - pos);
+        Right = Vector3.Normalize(Vector3.Cross(up, Look));
+        Up = Vector3.Cross(Look, Right);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Strafe(<span class="kwrd">float</span> d) {
+        Position += Right * d;
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Walk(<span class="kwrd">float</span> d) {
+        Position += Look * d;
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Pitch(<span class="kwrd">float</span> angle) {
+        var r = Matrix.RotationAxis(Right, angle);
+        Up = Vector3.TransformNormal(Up, r);
+        Look = Vector3.TransformNormal(Look, r);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Yaw(<span class="kwrd">float</span> angle) {
+        var r = Matrix.RotationY(angle);
+        Right = Vector3.TransformNormal(Right, r);
+        Up = Vector3.TransformNormal(Up, r);
+        Look = Vector3.TransformNormal(Look, r);
+    }
+    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Zoom(<span class="kwrd">float</span> dr) {
+        var newFov = MathF.Clamp(FovY + dr, 0.1f, MathF.PI / 2);
+        SetLens(newFov, Aspect, NearZ, FarZ);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> UpdateViewMatrix() {
+        var r = Right;
+        var u = Up;
+        var l = Look;
+        var p = Position;
+
+        l = Vector3.Normalize(l);
+        u = Vector3.Normalize(Vector3.Cross(l, r));
+
+        r = Vector3.Cross(u, l);
+
+        var x = -Vector3.Dot(p, r);
+        var y = -Vector3.Dot(p, u);
+        var z = -Vector3.Dot(p, l);
+
+        Right = r;
+        Up = u;
+        Look = l;
+
+        var v = <span class="kwrd">new</span> Matrix();
+        v[0, 0] = Right.X;
+        v[1, 0] = Right.Y;
+        v[2, 0] = Right.Z;
+        v[3, 0] = x;
+
+        v[0, 1] = Up.X;
+        v[1, 1] = Up.Y;
+        v[2, 1] = Up.Z;
+        v[3, 1] = y;
+
+        v[0, 2] = Look.X;
+        v[1, 2] = Look.Y;
+        v[2, 2] = Look.Z;
+        v[3, 2] = z;
+
+        v[0, 3] = v[1, 3] = v[2, 3] = 0;
+        v[3, 3] = 1;
+
+        View = v;
+
+        _frustum = Frustum.FromViewProj(ViewProj);
+    }
+}</pre>
+<h3>Look-At Camera</h3>
+<p>Our look-at camera is defined by a target position and a radius from that position, and a pair of angles that describe the position of the camera in spherical coordinates.&nbsp; These angles are commonly referred to as theta and phi, altitude and azimuth, latitude and longitude, or beta and alpha.&nbsp; We’ll use the alpha/beta terms, where the alpha angle is the angle from the XY plane, and beta is the angle from the XZ plane.&nbsp; The diagram below illustrates how this works in 2D:</p>
+<p><a href="http://lh6.ggpht.com/-8ZTWw3mGho8/Uh9zhUodSnI/AAAAAAAADFM/Hm8Z4nnv56M/s1600-h/lookat-diagram%25255B3%25255D.png"><img title="lookat-diagram" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="lookat-diagram" src="http://lh6.ggpht.com/-ZmBxeG5Zxhk/Uh9zh_nTuyI/AAAAAAAADFY/y7NAyuVrwYk/lookat-diagram_thumb%25255B1%25255D.png?imgmax=800" width="542" height="484"></a>
+</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> LookAtCamera  : CameraBase {
+    <span class="kwrd">private</span> Vector3 _target;
+    <span class="kwrd">private</span> <span class="kwrd">float</span> _radius;
+    <span class="kwrd">private</span> <span class="kwrd">float</span> _alpha;
+    <span class="kwrd">private</span> <span class="kwrd">float</span> _beta;
+
+    <span class="kwrd">public</span> LookAtCamera() {
+        _alpha = _beta = 0.5f;
+        _radius = 10.0f;
+        _target = <span class="kwrd">new</span> Vector3();
+
+    }
+}</pre>
+<p>From the target, radius and angles, we can determine the position of the camera using a little bit of trigonometry, as seen in our UpdateViewMatrix override.&nbsp; Once we have calculated the position of the camera, we can calculate the view matrix using the SlimDX Matrix.LookAtLH function.&nbsp; After we have calculated the view matrix, we can extract the camera’s right and look vectors from the matrix.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> UpdateViewMatrix() {
+    var sideRadius = _radius*MathF.Cos(_beta);
+    var height = _radius*MathF.Sin(_beta);
+
+    Position = <span class="kwrd">new</span> Vector3(
+        _target.X + sideRadius * MathF.Cos(_alpha), 
+        _target.Y + height, 
+        _target.Z + sideRadius * MathF.Sin(_alpha) 
+    );
+
+    View = Matrix.LookAtLH(Position, _target, Vector3.UnitY);
+
+    Right = <span class="kwrd">new</span> Vector3(View.M11, View.M21, View.M31);
+    Right.Normalize();
+
+    Look = <span class="kwrd">new</span> Vector3(View.M13, View.M23, View.M33);
+    Look.Normalize();
+}</pre>
+<p>Movement with our Look-at camera is a little more complicated than our FPS camera, since we need to move the target position relative to the XZ components of the look and right vectors.&nbsp; To get good-looking results, we need to make sure that we normalize the XZ vector, as otherwise we will get varying movement speed depending on the alpha and beta angles of the camera.&nbsp; As currently implemented, the camera target is bound to the XZ plane; if we wanted to make our camera follow the terrain, as in most strategy games, or the character, as in a third-person camera, we would need to manually update the Y coordinate of the target after moving.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Strafe(<span class="kwrd">float</span> d) {
+    var dt = Vector3.Normalize(<span class="kwrd">new</span> Vector3(Right.X, 0, Right.Z)) * d;
+    _target += dt;
+}
+
+<span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Walk(<span class="kwrd">float</span> d) {
+    _target += Vector3.Normalize(<span class="kwrd">new</span> Vector3(Look.X, 0, Look.Z)) *d;
+}</pre>
+<p>To pan our camera, we need to adjust the alpha and beta angles of the camera.&nbsp; For best results, we will need to constrain the angles to a reasonable domain for spherical coordinates; for the alpha angle, this means that the angle should stay in the range [0, 2*Pi], and the beta angle should remain between [0, Pi/2].&nbsp; Because the trigonometry gets a little wonky at the limits of that range for the beta angle, we further restrict the beta angle by a further epsilon value, so that the effective range is [0.05, Pi/2 – 0.01].</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Pitch(<span class="kwrd">float</span> angle) {
+    _beta += angle;
+    _beta = MathF.Clamp(_beta, 0.05f, MathF.PI/2.0f - 0.01f);
+}
+
+<span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Yaw(<span class="kwrd">float</span> angle) {
+    _alpha = (_alpha + angle) % (MathF.PI*2.0f);
+}</pre>
+<p>For zooming the look-at camera, we have two options.&nbsp; We could use the same method as the FPS camera, and vary the FOV of the projection, or we can vary the radius while keeping the FOV constant, thus physically moving the camera closer.&nbsp; I have chosen the second option; from my experiments, it seems to be six of one versus a half-dozen of the other, as far as the two methods relative effectiveness.&nbsp; The radius method does allow somewhat finer control over the game-specific distance of the camera, so that, for instance, in a third-person perspective game, you could move the camera closer to the player character if the player would be occluded by some scene geometry more easily.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Zoom(<span class="kwrd">float</span> dr) {
+    _radius += dr;
+    _radius = MathF.Clamp(_radius, 2.0f, 70.0f);
+}</pre>
+<h3>Using the Look-At Camera</h3>
+<p>Moving on to the implementation of our CameraDemo application, integrating the Look-at camera is very simple.&nbsp; Because we are using the common CameraBase implementation to interact with our cameras, the code for the FPS and Look-At cameras is the same.&nbsp; The only changes we need to make are to track which camera is active, and provide some hotkeys to switch between the camera implementations.&nbsp; From our UpdateScene() function:</p>
+<pre class="csharpcode"><span class="kwrd">if</span> (Util.IsKeyDown(Keys.L)) {
+    _useFpsCamera = <span class="kwrd">false</span>;
+}
+<span class="kwrd">if</span> (Util.IsKeyDown(Keys.F)) {
+    _useFpsCamera = <span class="kwrd">true</span>;
+}</pre>
+<p>Voila!</p>
+    <div id="scid:5737277B-5D6D-4f48-ABFC-DD9C333F4C5D:f96a7845-c42d-4297-998d-3effb209fba4" class="wlWriterEditableSmartContent" style="float: none; padding-bottom: 0px; padding-top: 0px; padding-left: 0px; margin: 0px; display: inline; padding-right: 0px">
+        <embed src="http://www.youtube.com/v/wE1-dzpEp9E" type="application/x-shockwave-flash" wmode="transparent" width="425" height="355"></embed></div>
+<h3>Next Time…</h3>
+<p>Next time, we’ll get back into <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Mr. Luna’s examples</a>, with Chapter 16, covering picking, where we will cover how to determine which object in a 3D scene corresponds with a pixel on screen.</p>

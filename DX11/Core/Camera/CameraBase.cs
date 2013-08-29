@@ -11,14 +11,12 @@ namespace Core.Camera {
         public float FarZ { get; protected set; }
         public float Aspect { get; protected set; }
         public float FovY { get; protected set; }
-
         public float FovX {
             get {
                 var halfWidth = 0.5f * NearWindowWidth;
                 return 2.0f * MathF.Atan(halfWidth / NearZ);
             }
         }
-
         public float NearWindowWidth { get { return Aspect * NearWindowHeight; } }
         public float NearWindowHeight { get; protected set; }
         public float FarWindowWidth { get { return Aspect * FarWindowHeight; } }
@@ -43,6 +41,7 @@ namespace Core.Camera {
         public abstract void Walk(float d);
         public abstract void Pitch(float angle);
         public abstract void Yaw(float angle);
+        public abstract void Zoom(float dr);
         public abstract void UpdateViewMatrix();
 
         public bool Visible(BoundingBox box) {
@@ -61,6 +60,6 @@ namespace Core.Camera {
             Proj = Matrix.PerspectiveFovLH(FovY, Aspect, NearZ, FarZ);
         }
 
-        public abstract void Zoom(float dr);
+        
     }
 }

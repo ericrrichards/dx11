@@ -29,6 +29,10 @@ namespace Core.Camera {
             Up = Vector3.TransformNormal(Up, r);
             Look = Vector3.TransformNormal(Look, r);
         }
+        public override void Zoom(float dr) {
+            var newFov = MathF.Clamp(FovY + dr, 0.1f, MathF.PI / 2);
+            SetLens(newFov, Aspect, NearZ, FarZ);
+        }
 
         public override void UpdateViewMatrix() {
             var r = Right;
@@ -71,10 +75,6 @@ namespace Core.Camera {
             View = v;
 
             _frustum = Frustum.FromViewProj(ViewProj);
-        }
-
-        public override void Zoom(float dr) {
-            
         }
     }
 }

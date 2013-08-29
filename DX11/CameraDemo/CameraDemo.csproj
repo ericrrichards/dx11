@@ -50,6 +50,7 @@
   <ItemGroup>
     <None Include="App.config" />
     <Content Include="camera.html" />
+    <Content Include="lookat.html" />
     <Content Include="Textures\bricks.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

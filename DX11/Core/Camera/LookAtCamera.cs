@@ -50,10 +50,17 @@ namespace Core.Camera {
             var sideRadius = _radius*MathF.Cos(_beta);
             var height = _radius*MathF.Sin(_beta);
 
-            Position = new Vector3(_target.X + sideRadius * MathF.Cos(_alpha), _target.Y + height, _target.Z + sideRadius * MathF.Sin(_alpha) );
+            Position = new Vector3(
+                _target.X + sideRadius * MathF.Cos(_alpha), _
+                target.Y + height, 
+                _target.Z + sideRadius * MathF.Sin(_alpha) 
+            );
+
             View = Matrix.LookAtLH(Position, _target, Vector3.UnitY);
+
             Right = new Vector3(View.M11, View.M21, View.M31);
             Right.Normalize();
+
             Look = new Vector3(View.M13, View.M23, View.M33);
             Look.Normalize();
         }
