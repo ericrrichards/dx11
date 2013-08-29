@@ -51,8 +51,8 @@ namespace Core.Camera {
             var height = _radius*MathF.Sin(_beta);
 
             Position = new Vector3(
-                _target.X + sideRadius * MathF.Cos(_alpha), _
-                target.Y + height, 
+                _target.X + sideRadius * MathF.Cos(_alpha), 
+                _target.Y + height, 
                 _target.Z + sideRadius * MathF.Sin(_alpha) 
             );
 

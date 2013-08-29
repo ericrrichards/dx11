@@ -232,12 +232,12 @@ namespace CameraDemo {
                     _cam2.Strafe(10.0f * dt);
                 }
             }
-if (Util.IsKeyDown(Keys.L)) {
-    _useFpsCamera = false;
-}
-if (Util.IsKeyDown(Keys.F)) {
-    _useFpsCamera = true;
-}
+            if (Util.IsKeyDown(Keys.L)) {
+                _useFpsCamera = false;
+            }
+            if (Util.IsKeyDown(Keys.F)) {
+                _useFpsCamera = true;
+            }
 
             if (Util.IsKeyDown(Keys.PageUp)) {
                 if (!_useFpsCamera) {
