@@ -1,4 +1,5 @@
-﻿using SlimDX;
+﻿using System.Drawing;
+using SlimDX;
 
 namespace Core.Camera {
     public class FpsCamera : CameraBase {

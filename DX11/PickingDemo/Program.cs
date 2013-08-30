@@ -1,10 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Buffer = SlimDX.Direct3D11.Buffer;
 
 namespace PickingDemo {
     using System.Diagnostics;
@@ -27,12 +22,12 @@ namespace PickingDemo {
         private List<int> _meshIndices;
         private BoundingBox _meshBox;
         private readonly DirectionalLight[] _dirLights;
-        private Material _meshMat;
-        private Material _pickedTriangleMat;
-        private Matrix _meshWorld;
+        private readonly Material _meshMat;
+        private readonly Material _pickedTriangleMat;
+        private readonly Matrix _meshWorld;
         private int _meshIndexCount;
         private int _pickedTriangle;
-        private FpsCamera _cam;
+        private readonly FpsCamera _cam;
         private Point _lastMousePos;
         private bool _disposed;
         
@@ -42,8 +37,9 @@ namespace PickingDemo {
 
             _lastMousePos = new Point();
 
-            _cam = new FpsCamera();
-            _cam.Position = new Vector3(0, 2, -15);
+            _cam = new FpsCamera {
+                Position = new Vector3(0, 2, -15)
+            };
             _meshWorld = Matrix.Scaling(0.5f, 0.5f, 0.5f) * Matrix.Translation(0, 1, 0);
             _dirLights = new[] {
                 new DirectionalLight {
@@ -72,7 +68,7 @@ namespace PickingDemo {
             };
             _pickedTriangleMat = new Material {
                 Ambient = new Color4(0, 0.8f, 0.4f),
-                Diffuse = Color.Red,
+                Diffuse = new Color4(0, 0.8f, 0.4f),
                 Specular = new Color4(16.0f, 0.0f, 0.0f, 0.0f)
             };
 
@@ -129,12 +125,11 @@ namespace PickingDemo {
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
             var stride = Basic32.Stride;
-            var offset = 0;
+            const int offset = 0;
 
             _cam.UpdateViewMatrix();
 
-            var view = _cam.View;
-            var proj = _cam.Proj;
+            
             var viewProj = _cam.ViewProj;
 
             Effects.BasicFX.SetDirLights(_dirLights);
@@ -278,40 +273,25 @@ namespace PickingDemo {
                 MessageBox.Show(ex.Message);
             }
         }
+        
         private void Pick(int sx, int sy ) {
-            var p = _cam.Proj;
-
-            var vx = (2.0f * sx / ClientWidth - 1.0f) / p.M11;
-            var vy = (-2.0f * sy / ClientHeight + 1.0f) / p.M22;
-
-            var ray = new Ray(new Vector3(), new Vector3(vx, vy, 1.0f));
-            var v = _cam.View;
-            var invView = Matrix.Invert(v);
-
-            var w = _meshWorld;
-            var invWorld = Matrix.Invert(w);
-
-            var toLocal = invView * invWorld;
-
-            ray  = new Ray(Vector3.TransformCoordinate(ray.Position, toLocal), Vector3.TransformNormal(ray.Direction, toLocal));
-
-            ray.Direction.Normalize();
+            
+            var ray = _cam.GetPickingRay(_meshWorld, new Vector2(sx, sy), new Vector2(ClientWidth, ClientHeight) );
 
             _pickedTriangle = -1;
-            var tmin = 0.0f;
-            if (Ray.Intersects(ray, _meshBox, out tmin)) {
-                tmin = float.MaxValue;
-                for (int i = 0; i < _meshIndices.Count/3; i++) {
-                    var v0 = _meshVertices[_meshIndices[i * 3]].Position;
-                    var v1 = _meshVertices[_meshIndices[i * 3 + 1]].Position;
-                    var v2 = _meshVertices[_meshIndices[i * 3 + 2]].Position;
+            float tmin;
+            if (!Ray.Intersects(ray, _meshBox, out tmin)) return;
+            tmin = float.MaxValue;
+            for (var i = 0; i < _meshIndices.Count/3; i++) {
+                var v0 = _meshVertices[_meshIndices[i * 3]].Position;
+                var v1 = _meshVertices[_meshIndices[i * 3 + 1]].Position;
+                var v2 = _meshVertices[_meshIndices[i * 3 + 2]].Position;
 
-                    float t;
-                    if (Ray.Intersects(ray, v0, v1, v2, out t)) {
-                        if (t < tmin) {
-                            tmin = t;
-                            _pickedTriangle = i;
-                        }
+                float t;
+                if (Ray.Intersects(ray, v0, v1, v2, out t)) {
+                    if (t < tmin) {
+                        tmin = t;
+                        _pickedTriangle = i;
                     }
                 }
             }
@@ -319,9 +299,9 @@ namespace PickingDemo {
 
     }
 
-    class Program {
-        static void Main(string[] args) {
-            SlimDX.Configuration.EnableObjectTracking = true;
+    static class Program {
+        static void Main() {
+            Configuration.EnableObjectTracking = true;
             var app = new PickingDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
                 return;

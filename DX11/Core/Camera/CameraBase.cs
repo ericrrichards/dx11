@@ -60,6 +60,26 @@ namespace Core.Camera {
             Proj = Matrix.PerspectiveFovLH(FovY, Aspect, NearZ, FarZ);
         }
 
-        
+
+        public Ray GetPickingRay(Matrix objWorld, Vector2 sp, Vector2 screenDims) {
+            var p = Proj;
+
+            var vx = (2.0f * sp.X / screenDims.X - 1.0f) / p.M11;
+            var vy = (-2.0f * sp.Y / screenDims.Y + 1.0f) / p.M22;
+
+            var ray = new Ray(new Vector3(), new Vector3(vx, vy, 1.0f));
+            var v = View;
+            var invView = Matrix.Invert(v);
+
+            var w = objWorld;
+            var invWorld = Matrix.Invert(w);
+
+            var toLocal = invView * invWorld;
+
+            ray = new Ray(Vector3.TransformCoordinate(ray.Position, toLocal), Vector3.TransformNormal(ray.Direction, toLocal));
+
+            ray.Direction.Normalize();
+            return ray;
+        }
     }
 }
