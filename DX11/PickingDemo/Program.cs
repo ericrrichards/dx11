@@ -276,11 +276,18 @@ namespace PickingDemo {
         
         private void Pick(int sx, int sy ) {
             
-            var ray = _cam.GetPickingRay(_meshWorld, new Vector2(sx, sy), new Vector2(ClientWidth, ClientHeight) );
+            var ray = _cam.GetPickingRay(new Vector2(sx, sy), new Vector2(ClientWidth, ClientHeight) );
 
+            // transform the picking ray into the object space of the mesh
+            var invWorld = Matrix.Invert(_meshWorld);
+            ray.Direction = Vector3.TransformNormal(ray.Direction, invWorld);
+            ray.Position = Vector3.TransformCoordinate(ray.Position, invWorld);
+            ray.Direction.Normalize();
+            
             _pickedTriangle = -1;
             float tmin;
             if (!Ray.Intersects(ray, _meshBox, out tmin)) return;
+
             tmin = float.MaxValue;
             for (var i = 0; i < _meshIndices.Count/3; i++) {
                 var v0 = _meshVertices[_meshIndices[i * 3]].Position;
@@ -288,12 +295,12 @@ namespace PickingDemo {
                 var v2 = _meshVertices[_meshIndices[i * 3 + 2]].Position;
 
                 float t;
-                if (Ray.Intersects(ray, v0, v1, v2, out t)) {
-                    if (t < tmin) {
-                        tmin = t;
-                        _pickedTriangle = i;
-                    }
-                }
+                
+                if (!Ray.Intersects(ray, v0, v1, v2, out t)) continue;
+                // find the closest intersection, exclude intersections behind camera
+                if (!(t < tmin || t < 0)) continue;
+                tmin = t;
+                _pickedTriangle = i;
             }
         }
 

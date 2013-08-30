@@ -60,8 +60,13 @@ namespace Core.Camera {
             Proj = Matrix.PerspectiveFovLH(FovY, Aspect, NearZ, FarZ);
         }
 
-
-        public Ray GetPickingRay(Matrix objWorld, Vector2 sp, Vector2 screenDims) {
+        /// <summary>
+        /// Return picking ray from camera through sp on screen, in world-space
+        /// </summary>
+        /// <param name="sp"></param>
+        /// <param name="screenDims"></param>
+        /// <returns></returns>
+        public Ray GetPickingRay(Vector2 sp, Vector2 screenDims) {
             var p = Proj;
 
             var vx = (2.0f * sp.X / screenDims.X - 1.0f) / p.M11;
@@ -71,12 +76,10 @@ namespace Core.Camera {
             var v = View;
             var invView = Matrix.Invert(v);
 
-            var w = objWorld;
-            var invWorld = Matrix.Invert(w);
 
-            var toLocal = invView * invWorld;
+            var toWorld = invView;
 
-            ray = new Ray(Vector3.TransformCoordinate(ray.Position, toLocal), Vector3.TransformNormal(ray.Direction, toLocal));
+            ray = new Ray(Vector3.TransformCoordinate(ray.Position, toWorld), Vector3.TransformNormal(ray.Direction, toWorld));
 
             ray.Direction.Normalize();
             return ray;
