@@ -1,0 +1,160 @@
+﻿<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<p>So far, we have only been concerned with drawing a 3D scene to the 2D computer screen, by projecting the 3D positions of objects to the 2D pixels of the screen.&nbsp; Often, you will want to perform the reverse operation; given a pixel on the screen, which object in the 3D scene corresponds to that pixel?&nbsp; Probably the most common application for this kind of transformation is selecting and moving objects in the scene using the mouse, as in most modern real-time strategy games, although the concept has other applications.</p>
+<p>The traditional method of performing this kind of object picking relies on a technique called ray-casting.&nbsp; We shoot a ray from the camera position through the selected point on the near-plane of our view frustum, which is obtained by converting the screen pixel location into normalized device coordinates, and then intersect the resulting ray with each object in our scene.&nbsp; The first object intersected by the ray is the object that is “picked.”&nbsp; </p>
+<p>The code for this example is based on Chapter 16 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>, with some modifications.&nbsp; You can download the full source from my GitHub repository at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>, under the PickingDemo project.</p>
+<p><a href="http://lh6.ggpht.com/-M7nwLjWOnQ4/UiDv-ycK5cI/AAAAAAAADGA/BR3oo9oJyz8/s1600-h/Picking%25255B3%25255D.png"><img title="Picking" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="Picking" src="http://lh3.ggpht.com/-FUJ-MEAKuP4/UiDv_Vi9JPI/AAAAAAAADGI/9vM3nReiO5U/Picking_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484"></a></p>
+<!--more-->
+
+<h3>Picking Rays</h3>
+<p>Mathematically, a ray starts at a given point, and extends in a direction until infinity.&nbsp; Normally, we model this by using an origin coordinate and a direction vector.&nbsp; We will be using the <a href="http://slimdx.org/docs/html/T_SlimDX_Ray.htm" target="_blank">SlimDX Ray</a> class, which provides these position and direction properties, as well as intersection tests for bounding boxes, spheres, triangles and planes.</p>
+<p>To pick an object, we need to convert the selected screen pixel into the camera’s view space, create a ray from the camera’s position towards the view-space position, then transform the ray in view space into world space.&nbsp; We can convert a screen-space coordinate to view space by first converting the pixel position to normalized device coordinates, then unprojecting the device coordinate into view space using the camera’s projection matrix.&nbsp; Normalized device coordinates map the screen x and y coordinates into the range [-1, 1].&nbsp; We create the view-space picking ray by creating a ray with its origin at [0,0,0] (the camera’s view-space origin), and use the transformed screen-space coordinates as the ray’s direction.&nbsp; Next, we transform the ray into world space, by transforming the origin and direction vectors of the ray by the inverse of the camera’s view matrix.&nbsp; Lastly, we normalize the ray’s direction vector.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> Ray GetPickingRay(Vector2 sp, Vector2 screenDims) {
+    var p = Proj;
+    <span class="rem">// convert screen pixel to view space</span>
+    var vx = (2.0f * sp.X / screenDims.X - 1.0f) / p.M11;
+    var vy = (-2.0f * sp.Y / screenDims.Y + 1.0f) / p.M22;
+
+    var ray = <span class="kwrd">new</span> Ray(<span class="kwrd">new</span> Vector3(), <span class="kwrd">new</span> Vector3(vx, vy, 1.0f));
+    var v = View;
+    var invView = Matrix.Invert(v);
+
+
+    var toWorld = invView;
+
+    ray = <span class="kwrd">new</span> Ray(Vector3.TransformCoordinate(ray.Position, toWorld), Vector3.TransformNormal(ray.Direction, toWorld));
+
+    ray.Direction.Normalize();
+    <span class="kwrd">return</span> ray;
+}</pre>
+<p>I have added this method to our CameraBase class, so that we can generate a picking ray for both of our camera types.</p>
+<h3>Picking an Object in the 3D Scene</h3>
+<p>We’ll be using a right mouse button click to select a triangle from our car mesh in this example.&nbsp; This changes our OnMouseDown override slightly:</p>
+<pre class="csharpcode"><span class="kwrd">protected</span> <span class="kwrd">override</span> <span class="kwrd">void</span> OnMouseDown(<span class="kwrd">object</span> sender, MouseEventArgs mouseEventArgs) {
+    <span class="kwrd">if</span> (mouseEventArgs.Button == MouseButtons.Left) {
+        _lastMousePos = mouseEventArgs.Location;
+        Window.Capture = <span class="kwrd">true</span>;
+    } <span class="kwrd">else</span> <span class="kwrd">if</span> (mouseEventArgs.Button == MouseButtons.Right) {
+        Pick(mouseEventArgs.X, mouseEventArgs.Y);
+    }
+}</pre>
+<p>Our Pick() method will perform the actual triangle picking from our car mesh.&nbsp; Out first step is to get the camera picking ray from the mouse coordinates that we have passed in to the function.&nbsp; Next, to simplify the collision tests with our car mesh, we will transform the picking ray into the local object space of the mesh by using the inverse of the mesh’s world matrix.&nbsp; Since our model consists of a large number of triangles, we perform a ray-bounding box intersection test first; if the ray does not intersect the bounding box, we can safely skip the more expensive per-triangle intersection test.&nbsp; Next, we iterate through the triangles of the mesh, using an in-memory copy of the car’s index and vertex buffers.&nbsp; We have to be sure that we select the nearest triangle to the camera, as we may have multiple triangles at different depths projected to the same screen point.&nbsp; We save the first index of the picked triangle, so that we can draw that triangle in a different color than the rest of the mesh.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> Pick(<span class="kwrd">int</span> sx, <span class="kwrd">int</span> sy ) {
+            
+    var ray = _cam.GetPickingRay(<span class="kwrd">new</span> Vector2(sx, sy), <span class="kwrd">new</span> Vector2(ClientWidth, ClientHeight) );
+
+    <span class="rem">// transform the picking ray into the object space of the mesh</span>
+    var invWorld = Matrix.Invert(_meshWorld);
+    ray.Direction = Vector3.TransformNormal(ray.Direction, invWorld);
+    ray.Position = Vector3.TransformCoordinate(ray.Position, invWorld);
+    ray.Direction.Normalize();
+            
+    _pickedTriangle = -1;
+    <span class="kwrd">float</span> tmin;
+    <span class="kwrd">if</span> (!Ray.Intersects(ray, _meshBox, <span class="kwrd">out</span> tmin)) <span class="kwrd">return</span>;
+
+    tmin = <span class="kwrd">float</span>.MaxValue;
+    <span class="kwrd">for</span> (var i = 0; i &lt; _meshIndices.Count/3; i++) {
+        var v0 = _meshVertices[_meshIndices[i * 3]].Position;
+        var v1 = _meshVertices[_meshIndices[i * 3 + 1]].Position;
+        var v2 = _meshVertices[_meshIndices[i * 3 + 2]].Position;
+
+        <span class="kwrd">float</span> t;
+                
+        <span class="kwrd">if</span> (!Ray.Intersects(ray, v0, v1, v2, <span class="kwrd">out</span> t)) <span class="kwrd">continue</span>;
+        <span class="rem">// find the closest intersection, exclude intersections behind camera</span>
+        <span class="kwrd">if</span> (!(t &lt; tmin || t &lt; 0)) <span class="kwrd">continue</span>;
+        tmin = t;
+        _pickedTriangle = i;
+    }
+}</pre>
+<p>Once we have determined which triangle the user has selected, the only thing remaining is to draw the mesh, using a different material for the selected triangle.&nbsp; We do this by rendering the mesh normally, and then we draw the picked triangle again, using the new material.&nbsp; We have to change the DepthStencil state in order to do this, as otherwise, the repeated triangle would fail the depth test.&nbsp; So, we have created a new DepthStencilState object, which changes the default depth test (&lt;, Less than), to a &lt;= (less than or equal) operation.&nbsp; This will allow the repeated triangle to be drawn.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> DrawScene() {
+   <span class="rem">// clear the render target, set topology and inputLayout, </span>
+   <span class="rem">// set shader variables</span>
+
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> p = 0; p &lt; activeTech.Description.PassCount; p++) {
+        <span class="kwrd">if</span> (Util.IsKeyDown(Keys.D1)) {  <span class="rem">// draw wireframe</span>
+            ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
+        }
+        <span class="rem">// draw mesh normally...</span>
+        <span class="kwrd">if</span> (_pickedTriangle &gt;= 0) {
+            ImmediateContext.OutputMerger.DepthStencilState = RenderStates.LessEqualDSS;
+            ImmediateContext.OutputMerger.DepthStencilReference = 0;
+
+            Effects.BasicFX.SetMaterial(_pickedTriangleMat);
+            pass.Apply(ImmediateContext);
+            ImmediateContext.DrawIndexed(3, 3*_pickedTriangle, 0);
+
+            ImmediateContext.OutputMerger.DepthStencilState = <span class="kwrd">null</span>;
+        }
+
+    }
+    SwapChain.Present(0, PresentFlags.None);
+}</pre>
+<p>Creating this new DepthStencilState is quite straightforward.&nbsp; From our RenderStates.InitAll() function:</p>
+<pre class="csharpcode"><span class="kwrd">var</span> lessEqualDesc = <span class="kwrd">new</span> DepthStencilStateDescription {
+    IsDepthEnabled = <span class="kwrd">true</span>,
+    DepthWriteMask = DepthWriteMask.All,
+    DepthComparison = Comparison.LessEqual,
+    IsStencilEnabled = <span class="kwrd">false</span>
+};
+LessEqualDSS = DepthStencilState.FromDescription(device, lessEqualDesc);</pre>
+<p>You may have also noticed that we provide the option to draw the mesh in wire-frame mode, with the selected triangle drawn solid.&nbsp; This can help more easily visualize which triangle is selected.</p>
+<p><a href="http://lh4.ggpht.com/-CQ7D3qE5PY0/UiDv_-8Un6I/AAAAAAAADGM/EEKnjllI8-Y/s1600-h/picking-wf%25255B8%25255D.png"><img title="picking-wf" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="picking-wf" src="http://lh4.ggpht.com/-iWfSLF8XkLc/UiDwASZa6EI/AAAAAAAADGY/AUfaVuU4lKs/picking-wf_thumb%25255B6%25255D.png?imgmax=800" width="623" height="484"></a></p>
+<h3>Next Time…</h3>
+<p>Next up on our plate is Chapter 17, Cube Mapping.&nbsp; We’ll cover a special kind of texture called a cube map, and look at how we can use cube maps to render reflections on arbitrary objects, and sky and distant backgrounds.</p>

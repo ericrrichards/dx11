@@ -68,7 +68,7 @@ namespace Core.Camera {
         /// <returns></returns>
         public Ray GetPickingRay(Vector2 sp, Vector2 screenDims) {
             var p = Proj;
-
+            // convert screen pixel to view space
             var vx = (2.0f * sp.X / screenDims.X - 1.0f) / p.M11;
             var vy = (-2.0f * sp.Y / screenDims.Y + 1.0f) / p.M22;
 
