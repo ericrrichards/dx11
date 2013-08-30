@@ -1,0 +1,668 @@
+﻿<p><a href="http://richardssoftware.blogspot.com/2013/07/lighting-take-1.html" target="_blank">Last time</a>, we ran through a whirlwind tour of lighting and material theory, and built up our data structures and shader functions for our lighting operations.&nbsp; This time around, we’ll get to actually implementing our first lighting demo.&nbsp; We’re going to take the <a href="http://richardssoftware.blogspot.com/2013/07/dynamic-vertex-buffers-waves-demo.html" target="_blank">Waves Demo</a> that we covered previously and light it with a directional light, a point light that will orbit the scene, and a spot light that will focus on our camera’s view point.&nbsp; On to the code!</p>
+<p>
+    <a href="http://lh6.ggpht.com/-I37hRtN8f_M/Ue_rRmhItCI/AAAAAAAAC2M/FU3bHIBE91I/s1600-h/lighting%25255B3%25255D.png">
+        <img title="lighting" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="lighting" src="http://lh3.ggpht.com/-Uz079h4Uza4/Ue_rSCDnBPI/AAAAAAAAC2U/Ye7ml_LJjl4/lighting_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484">
+    </a>
+</p>
+<!--more-->
+<p>We will start by creating a new project, and copying over our code from the Waves Demo.&nbsp; We’ll rename our main application class LightingDemo, and add member fields for our lights, materials, and shader variable pointers.</p>
+<pre class="csharpcode">
+<span class="rem">// New member variables</span>
+<span class="kwrd">private</span> DirectionalLight _dirLight;
+<span class="kwrd">private</span> PointLight _pointLight;
+<span class="kwrd">private</span> SpotLight _spotLight;
+<span class="kwrd">private</span> Material _landMaterial;
+<span class="kwrd">private</span> Material _wavesMaterial;
+
+<span class="kwrd">private</span> Effect _fx;
+<span class="kwrd">private</span> EffectTechnique _tech;
+<span class="kwrd">private</span> EffectMatrixVariable _fxWVP;
+<span class="kwrd">private</span> EffectMatrixVariable _fxWorld;
+<span class="kwrd">private</span> EffectMatrixVariable _fxWIT;
+<span class="kwrd">private</span> EffectVectorVariable _fxEyePosW;
+<span class="kwrd">private</span> EffectVariable _fxDirLight;
+<span class="kwrd">private</span> EffectVariable _fxPointLight;
+<span class="kwrd">private</span> EffectVariable _fxSpotLight;
+<span class="kwrd">private</span> EffectVariable _fxMaterial;
+
+<span class="kwrd">private</span> Vector3 _eyePosW;
+
+</pre>
+<p>In our constructor, LightingDemo(), we will initialize our lights and materials.&nbsp; Note that we will not be setting the position of our spot or point lights yet, as these will be updated each frame to follow our camera viewing angle and a circular path over our terrain, respectively.&nbsp; We setup a green material for our terrain mesh, and a dark blue material for our water mesh.&nbsp; Also be careful to specify the specular power as the alpha component of the Color4 for the Specular field of&nbsp; the Material instances; if you are following along with the original C++ code, you should note that the XMFLOAT4 structures used are specified in RGBA format, whereas the Color4 constructor expects ARGB ordering.</p>
+<pre class="csharpcode">_dirLight = <span class="kwrd">new</span> DirectionalLight {
+    Ambient = <span class="kwrd">new</span> Color4(0.2f, 0.2f, 0.2f),
+    Diffuse = <span class="kwrd">new</span> Color4(0.5f, 0.5f, 0.5f),
+    Specular = <span class="kwrd">new</span> Color4(0.5f, 0.5f, 0.5f),
+    Direction = <span class="kwrd">new</span> Vector3(0.57735f, -0.57735f, 0.57735f)
+};
+
+_pointLight = <span class="kwrd">new</span> PointLight {
+    Ambient = <span class="kwrd">new</span> Color4(0.3f, 0.3f, 0.3f),
+    Diffuse = <span class="kwrd">new</span> Color4(0.7f, 0.7f, 0.7f),
+    Specular = <span class="kwrd">new</span> Color4(0.7f, 0.7f, 0.7f),
+    Attenuation = <span class="kwrd">new</span> Vector3(0.0f, 0.1f, 0.0f),
+    Range = 25.0f
+};
+_spotLight = <span class="kwrd">new</span> SpotLight {
+    Ambient = <span class="kwrd">new</span> Color4(0,0,0),
+    Diffuse = <span class="kwrd">new</span> Color4(1.0f, 1.0f, 0.0f),
+    Specular = Color.White,
+    Attenuation = <span class="kwrd">new</span> Vector3(1.0f, 0.0f, 0.0f),
+    Spot = 96.0f,
+    Range = 10000.0f
+};
+
+<span class="rem">// NOTE: must put alpha (spec power) first, rather than last as in book code</span>
+_landMaterial = <span class="kwrd">new</span> Material {
+    Ambient = <span class="kwrd">new</span> Color4(1.0f, 0.48f, 0.77f, 0.46f),
+    Diffuse = <span class="kwrd">new</span> Color4(1.0f, 0.48f, 0.77f, 0.46f),
+    Specular = <span class="kwrd">new</span> Color4(16.0f, 0.2f, 0.2f, 0.2f)
+};
+_wavesMaterial = <span class="kwrd">new</span> Material {
+    Ambient =  <span class="kwrd">new</span> Color4(0.137f, 0.42f, 0.556f),
+    Diffuse = <span class="kwrd">new</span> Color4(0.137f, 0.42f, 0.556f),
+    Specular = <span class="kwrd">new</span> Color4(96.0f, 0.8f, 0.8f, 0.8f)
+};</pre>
+<p></p>
+<p>In our Init() function, we will update our BuildFX() helper function to load the new lighting shader, FX/Lighting.fxo, and to grab the pointers to the new shader constants exposed.&nbsp; There is nothing ground-breaking here, so I will omit the changes.&nbsp; Additionally, we will modify our BuildVertexLayout() function to create a proper InputLayout for our new VertexPN structure, as described in the previous post.</p>
+<p>When we are constructing our terrain geometry (BuildLandGeometryBuffers()), we will need to specify the normal for each vertex, rather than a color as previously.&nbsp; Because our terrain is described by a trigonomic function, we can calculate these vertex normals directly, rather than by the average face normal method.&nbsp; We’ll split this calculation out into a helper function, GetHillNormal(x,z).</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">static</span> Vector3 GetHillNormal(<span class="kwrd">float</span> x, <span class="kwrd">float</span> z) {
+    var n = <span class="kwrd">new</span> Vector3(
+        -0.03f*z*MathF.Cos(0.1f*x) - 0.3f*MathF.Cos(0.1f*z), 
+        1.0f,
+        0.3f*MathF.Sin(0.1f*x) + 0.03f*x*MathF.Sin(0.1f*z)
+        );
+    n.Normalize();
+
+    <span class="kwrd">return</span> n;
+}</pre>
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<p>In our UpdateScene() function, in addition to our camera handling and wave function update code, we have added code to update the positions of our spot and point lights.&nbsp; The point light will travel in a circular path around the origin of our scene in the XZ plane, with it’s y-position dependant on the height of the terrain beneath it.&nbsp; Our spotlight will be positioned at the same position as our virtual camera, pointed along our look vector.</p>
+<pre class="csharpcode"><span class="rem">// animate lights</span>
+_pointLight.Position = <span class="kwrd">new</span> Vector3(
+    70.0f*MathF.Cos(0.2f*Timer.TotalTime), 
+    Math.Max(GetHillHeight(_pointLight.Position.X, _pointLight.Position.Z), -3.0f) + 10.0f, 
+    70.0f*MathF.Sin(0.2f*Timer.TotalTime)
+);
+_spotLight.Position = _eyePosW;
+_spotLight.Direction = Vector3.Normalize(target - pos);</pre>
+<p>We also will need to update our Waves.cs Update(dt) function to compute the normals for each vertex in the ocean mesh.&nbsp; Honestly, the derivation of the formula to determine these normals is over my head, so I must refer you to Chapter 15 of <a href="http://www.amazon.com/Mathematics-Programming-Computer-Graphics-Edition/dp/1435458869" target="_blank">Mathematics for 3D Game Programming and Computer Graphics by Eric Lengyel</a> for the details of the equation, but it was straightforward to convert Mr. Luna’s C++ code to C#.</p>
+<p>We will update our DrawScene() function to set the appropriate global and per-object shader variables.&nbsp; The global shader variables that we need to set are our lights, and the position in world space of our camera.&nbsp; It is somewhat cumbersome to set the light structures, as the DX11 SlimDX API does not seem to allow us to upload the structures directly; instead we must first marshal the structures to a byte array, and upload this byte array using a DataStream.&nbsp; I seem to recall being able to set EffectVariables to structures directly in the DX9 SlimDX API, so I am not sure whether something has changed in the underlying DirectX APIs, or if this is simply something the SlimDX team decided to change when they did the DX11 wrapper.</p>
+<pre class="csharpcode"><span class="rem">// Set global shader variables</span>
+var array = Util.GetArray(_dirLight);
+_fxDirLight.SetRawValue(<span class="kwrd">new</span> DataStream(array, <span class="kwrd">false</span>, <span class="kwrd">false</span>), array.Length);
+array = Util.GetArray(_pointLight);
+_fxPointLight.SetRawValue(<span class="kwrd">new</span> DataStream(array, <span class="kwrd">false</span>, <span class="kwrd">false</span>), array.Length);
+array = Util.GetArray(_spotLight);
+_fxSpotLight.SetRawValue(<span class="kwrd">new</span> DataStream(array, <span class="kwrd">false</span>, <span class="kwrd">false</span>), array.Length );
+
+_fxEyePosW.Set(_eyePosW);</pre>
+<p>For each object, we need to set its world matrix, its world-inverse-transpose, its world-view-projection matrix, and its material.&nbsp; In our shader, we will need the world matrix to determine the position of the camera, and thus the vector from the camera to the pixel fragment in world space.&nbsp; We will use the inverse-transpose to transform the object’s vertex normals, see Section 7.2.2 of Mr. Luna’s book for the derivation.&nbsp; </p>
+<pre class="csharpcode"><span class="rem">// setting shader variables for our terrain mesh</span>
+_fxWVP.SetMatrix(_landWorld * viewProj);
+var invTranspose = Matrix.Invert(Matrix.Transpose(_landWorld));
+_fxWIT.SetMatrix(invTranspose);
+_fxWorld.SetMatrix(_landWorld);
+array = Util.GetArray(_landMaterial);
+_fxMaterial.SetRawValue(<span class="kwrd">new</span> DataStream(array, <span class="kwrd">false</span>, <span class="kwrd">false</span>), array.Length);
+<span class="rem">// upload the values to the shader and draw the geometry</span>
+var pass = _tech.GetPassByIndex(i);
+pass.Apply(ImmediateContext);
+ImmediateContext.DrawIndexed(_landIndexCount, 0, 0);</pre>
+<p>As I mentioned, to set shader variables to C# structures, we need to marshal them into byte arrays.&nbsp; We will use our GetArray() function, which I have added as a static function to our Util class in Util.cs.&nbsp; Once we have received this byte array, we construct a DataStream and upload that to our shader variable.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">byte</span>[] GetArray(<span class="kwrd">object</span> o) {
+    var len = Marshal.SizeOf(o);
+    var arr = <span class="kwrd">new</span> <span class="kwrd">byte</span>[len];
+    var ptr = Marshal.AllocHGlobal(len);
+    Marshal.StructureToPtr(o, ptr, <span class="kwrd">true</span>);
+    Marshal.Copy(ptr, arr, 0, len);
+    Marshal.FreeHGlobal(ptr);
+    <span class="kwrd">return</span> arr;
+}</pre>
+<p>Our last step is to write the effect shader that we will use for the example, FX/Lighting.fx.&nbsp; We will begin by including LightHelper.fx, which we discussed in the last post, which contains our structure definitions and helper functions for computing the color components for each light type.&nbsp; We define two constant buffers, one for global variables, like our lights, and one for per-object variables, like our materials and world matrices.&nbsp; Splitting up the constant buffers in this way can improve performance, as DirectX will upload the entirety of the buffer when we change one of the variables contained therein.&nbsp; If we used a single constant buffer, we would be uploading all of our global state as well, when we switched between drawing different objects.&nbsp; Note that I have modified the shader from that used in the book code to use vertex and pixel shaders versions 4.0, as I am splitting my development between DirectX11 and a DirectX10 feature-level machines; in this case, we are not using any 5.0 specific features, so this works adequately.</p>
+<pre class="csharpcode">#include <span class="str">"LightHelper.fx"</span>
+ 
+cbuffer cbPerFrame
+{
+    DirectionalLight gDirLight;
+    PointLight gPointLight;
+    SpotLight gSpotLight;
+    float3 gEyePosW;
+};
+
+cbuffer cbPerObject
+{
+    float4x4 gWorld;
+    float4x4 gWorldInvTranspose;
+    float4x4 gWorldViewProj;
+    Material gMaterial;
+};
+
+<span class="kwrd">struct</span> VertexIn
+{
+    float3 PosL    : POSITION;
+    float3 NormalL : NORMAL;
+};
+
+<span class="kwrd">struct</span> VertexOut
+{
+    float4 PosH    : SV_POSITION;
+    float3 PosW    : POSITION;
+    float3 NormalW : NORMAL;
+};
+
+VertexOut VS(VertexIn vin)
+{
+    VertexOut vout;
+    
+    <span class="rem">// Transform to world space space.</span>
+    vout.PosW    = mul(float4(vin.PosL, 1.0f), gWorld).xyz;
+    vout.NormalW = mul(vin.NormalL, (float3x3)gWorldInvTranspose);
+        
+    <span class="rem">// Transform to homogeneous clip space.</span>
+    vout.PosH = mul(float4(vin.PosL, 1.0f), gWorldViewProj);
+    
+    <span class="kwrd">return</span> vout;
+}
+  
+float4 PS(VertexOut pin) : SV_Target
+{
+    <span class="rem">// Interpolating normal can unnormalize it, so normalize it.</span>
+    pin.NormalW = normalize(pin.NormalW); 
+
+    float3 toEyeW = normalize(gEyePosW - pin.PosW);
+
+    <span class="rem">// Start with a sum of zero. </span>
+    float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    <span class="rem">// Sum the light contribution from each light source.</span>
+    float4 A, D, S;
+
+    ComputeDirectionalLight(gMaterial, gDirLight, pin.NormalW, toEyeW, A, D, S);
+    ambient += A;  
+    diffuse += D;
+    spec    += S;
+
+    ComputePointLight(gMaterial, gPointLight, pin.PosW, pin.NormalW, toEyeW, A, D, S);
+    ambient += A;
+    diffuse += D;
+    spec    += S;
+
+    ComputeSpotLight(gMaterial, gSpotLight, pin.PosW, pin.NormalW, toEyeW, A, D, S);
+    ambient += A;
+    diffuse += D;
+    spec    += S;
+       
+    float4 litColor = ambient + diffuse + spec;
+
+    <span class="rem">// Common to take alpha from diffuse material.</span>
+    litColor.a = gMaterial.Diffuse.a;
+
+
+    <span class="kwrd">return</span> litColor;
+}
+
+technique11 LightTech
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
+        SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS() ) );
+    }
+}</pre>
+<h3>Next Time…</h3>
+<p>Up next, we will be writing a C# class to encapsulate a three-point light shader effect file, which we will be able to reuse for our ensuing examples.&nbsp; This class will be end up very similar to the XNA <a href="http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.graphics.basiceffect.aspx" target="_blank">BasicEffect</a> class, if you have ever worked with XNA.&nbsp; We will also do some work on centralizing our effect and InputLayout instances, to facilitate more complicated examples.&nbsp; Additionally, we will modify our <a href="http://richardssoftware.blogspot.com/2013/07/shapes-demo-with-direct3d11-and-slimdx.html" target="_blank">Shapes Demo</a> to use this new effect class and render a lit version of the scene.</p>
+<p>
+    <a href="http://lh4.ggpht.com/-wziEy92JkpM/Ue_rSWnDLyI/AAAAAAAAC2Y/hE9LDwKh7WE/s1600-h/litskull%25255B3%25255D.png">   
+        <img title="litskull" style="border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px; display: inline" border="0" alt="litskull" src="http://lh3.ggpht.com/-IT8VINYNqDY/Ue_rSxUIMaI/AAAAAAAAC2k/DXp94aazbMM/litskull_thumb%25255B1%25255D.png?imgmax=800" width="623" height="484">
+    </a>
+</p>
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
+
+<style type="text/css">
+    .csharpcode, .csharpcode pre {
+        font-size: small;
+        color: black;
+        font-family: consolas, "Courier New", courier, monospace;
+        background-color: #ffffff;
+        /*white-space: pre;*/
+    }
+
+        .csharpcode pre {
+            margin: 0em;
+        }
+
+        .csharpcode .rem {
+            color: #008000;
+        }
+
+        .csharpcode .kwrd {
+            color: #0000ff;
+        }
+
+        .csharpcode .str {
+            color: #006080;
+        }
+
+        .csharpcode .op {
+            color: #0000c0;
+        }
+
+        .csharpcode .preproc {
+            color: #cc6633;
+        }
+
+        .csharpcode .asp {
+            background-color: #ffff00;
+        }
+
+        .csharpcode .html {
+            color: #800000;
+        }
+
+        .csharpcode .attr {
+            color: #ff0000;
+        }
+
+        .csharpcode .alt {
+            background-color: #f4f4f4;
+            width: 100%;
+            margin: 0em;
+        }
+
+        .csharpcode .lnum {
+            color: #606060;
+        }
+</style>
