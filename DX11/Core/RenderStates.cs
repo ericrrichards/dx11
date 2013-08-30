@@ -146,6 +146,13 @@ namespace Core {
             };
             NoDoubleBlendDSS = DepthStencilState.FromDescription(device, noDoubleBlendDesc);
 
+            var lessEqualDesc = new DepthStencilStateDescription {
+                IsDepthEnabled = true,
+                DepthWriteMask = DepthWriteMask.All,
+                DepthComparison = Comparison.LessEqual,
+                IsStencilEnabled = false
+            };
+            LessEqualDSS = DepthStencilState.FromDescription(device, lessEqualDesc);
 
         }
         public static void DestroyAll() {
@@ -158,6 +165,7 @@ namespace Core {
             Util.ReleaseCom(ref MarkMirrorDSS);
             Util.ReleaseCom(ref DrawReflectionDSS);
             Util.ReleaseCom(ref NoDoubleBlendDSS);
+            Util.ReleaseCom(ref LessEqualDSS);
         }
 
         public static RasterizerState WireframeRS;
@@ -171,6 +179,7 @@ namespace Core {
         public static DepthStencilState MarkMirrorDSS;
         public static DepthStencilState DrawReflectionDSS;
         public static DepthStencilState NoDoubleBlendDSS;
+        public static DepthStencilState LessEqualDSS;
 
     }
 }

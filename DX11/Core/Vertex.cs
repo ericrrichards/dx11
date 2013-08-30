@@ -99,28 +99,28 @@ namespace Core {
                 var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
                 PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
             } catch (Exception dex) {
-                Console.WriteLine(dex.Message);
+                Console.WriteLine(dex.Message + dex.StackTrace);
                 PosNormal = null;
             }
             try {
                 var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
                 Basic32 = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
             } catch (Exception dex) {
-                Console.WriteLine(dex.Message);
+                Console.WriteLine(dex.Message + dex.StackTrace);
                 Basic32 = null;
             }
             try {
                 var shaderSignature = Effects.InstancedBasicFX.Light1Tech.GetPassByIndex(0).Description.Signature;
                 InstancedBasic32 = new InputLayout(device, shaderSignature, InputLayoutDescriptions.InstancedBasic32);
             } catch (Exception dex) {
-                Console.WriteLine(dex.Message);
+                Console.WriteLine(dex.Message + dex.StackTrace);
                 InstancedBasic32 = null;
             }
             try {
                 var passDesc = Effects.TreeSpriteFX.Light3Tech.GetPassByIndex(0).Description;
                 TreePointSprite = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TreePointSprite);
             } catch (Exception ex) {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.Message + ex.StackTrace);
                 TreePointSprite = null;
             }
             
