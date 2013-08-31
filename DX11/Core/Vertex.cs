@@ -68,6 +68,9 @@ namespace Core {
     }
 
     public static class InputLayoutDescriptions {
+        public static readonly InputElement[] Pos = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0 ), 
+        };
         public static readonly InputElement[] PosNormal = {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0, InputClassification.PerVertexData, 0)
@@ -123,9 +126,17 @@ namespace Core {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 TreePointSprite = null;
             }
+            try {
+                var passDesc = Effects.SkyFX.SkyTech.GetPassByIndex(0).Description;
+                Pos = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Pos);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message + ex.StackTrace);
+                Pos = null;
+            }
             
         }
         public static void DestroyAll() {
+            Util.ReleaseCom(ref Pos);
             Util.ReleaseCom(ref PosNormal);
             Util.ReleaseCom(ref Basic32);
             Util.ReleaseCom(ref TreePointSprite);
@@ -136,5 +147,6 @@ namespace Core {
         public static InputLayout Basic32;
         public static InputLayout TreePointSprite;
         public static InputLayout InstancedBasic32;
+        public static InputLayout Pos;
     }
 }
