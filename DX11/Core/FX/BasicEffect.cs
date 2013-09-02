@@ -33,6 +33,34 @@
         public readonly EffectTechnique Light2TexAlphaClipFogTech;
         public readonly EffectTechnique Light3TexAlphaClipFogTech;
 
+        public readonly EffectTechnique Light1ReflectTech;
+        public readonly EffectTechnique Light2ReflectTech;
+        public readonly EffectTechnique Light3ReflectTech;
+
+        public readonly EffectTechnique Light0TexReflectTech;
+        public readonly EffectTechnique Light1TexReflectTech;
+        public readonly EffectTechnique Light2TexReflectTech;
+        public readonly EffectTechnique Light3TexReflectTech;
+
+        public readonly EffectTechnique Light0TexAlphaClipReflectTech;
+        public readonly EffectTechnique Light1TexAlphaClipReflectTech;
+        public readonly EffectTechnique Light2TexAlphaClipReflectTech;
+        public readonly EffectTechnique Light3TexAlphaClipReflectTech;
+
+        public readonly EffectTechnique Light1FogReflectTech;
+        public readonly EffectTechnique Light2FogReflectTech;
+        public readonly EffectTechnique Light3FogReflectTech;
+
+        public readonly EffectTechnique Light0TexFogReflectTech;
+        public readonly EffectTechnique Light1TexFogReflectTech;
+        public readonly EffectTechnique Light2TexFogReflectTech;
+        public readonly EffectTechnique Light3TexFogReflectTech;
+
+        public readonly EffectTechnique Light0TexAlphaClipFogReflectTech;
+        public readonly EffectTechnique Light1TexAlphaClipFogReflectTech;
+        public readonly EffectTechnique Light2TexAlphaClipFogReflectTech;
+        public readonly EffectTechnique Light3TexAlphaClipFogReflectTech;
+
         
         private readonly EffectMatrixVariable _worldViewProj;
         private readonly EffectMatrixVariable _world;
@@ -46,6 +74,7 @@
         private readonly EffectVariable _mat;
 
         private readonly EffectResourceVariable _diffuseMap;
+        private readonly EffectResourceVariable _cubeMap;
         
 
         public BasicEffect(Device device, string filename) : base(device, filename) {
@@ -77,6 +106,34 @@
             Light2TexAlphaClipFogTech = FX.GetTechniqueByName("Light2TexAlphaClipFog");
             Light3TexAlphaClipFogTech = FX.GetTechniqueByName("Light3TexAlphaClipFog");
 
+            Light1ReflectTech = FX.GetTechniqueByName("Light1Reflect");
+            Light2ReflectTech = FX.GetTechniqueByName("Light2Reflect");
+            Light3ReflectTech = FX.GetTechniqueByName("Light3Reflect");
+
+            Light0TexReflectTech = FX.GetTechniqueByName("Light0TexReflect");
+            Light1TexReflectTech = FX.GetTechniqueByName("Light1TexReflect");
+            Light2TexReflectTech = FX.GetTechniqueByName("Light2TexReflect");
+            Light3TexReflectTech = FX.GetTechniqueByName("Light3TexReflect");
+
+            Light0TexAlphaClipReflectTech = FX.GetTechniqueByName("Light0TexAlphaClipReflect");
+            Light1TexAlphaClipReflectTech = FX.GetTechniqueByName("Light1TexAlphaClipReflect");
+            Light2TexAlphaClipReflectTech = FX.GetTechniqueByName("Light2TexAlphaClipReflect");
+            Light3TexAlphaClipReflectTech = FX.GetTechniqueByName("Light3TexAlphaClipReflect");
+
+            Light1FogReflectTech = FX.GetTechniqueByName("Light1FogReflect");
+            Light2FogReflectTech = FX.GetTechniqueByName("Light2FogReflect");
+            Light3FogReflectTech = FX.GetTechniqueByName("Light3FogReflect");
+
+            Light0TexFogReflectTech = FX.GetTechniqueByName("Light0TexFogReflect");
+            Light1TexFogReflectTech = FX.GetTechniqueByName("Light1TexFogReflect");
+            Light2TexFogReflectTech = FX.GetTechniqueByName("Light2TexFogReflect");
+            Light3TexFogReflectTech = FX.GetTechniqueByName("Light3TexFogReflect");
+
+            Light0TexAlphaClipFogReflectTech = FX.GetTechniqueByName("Light0TexAlphaClipFogReflect");
+            Light1TexAlphaClipFogReflectTech = FX.GetTechniqueByName("Light1TexAlphaClipFogReflect");
+            Light2TexAlphaClipFogReflectTech = FX.GetTechniqueByName("Light2TexAlphaClipFogReflect");
+            Light3TexAlphaClipFogReflectTech = FX.GetTechniqueByName("Light3TexAlphaClipFogReflect");
+
             _worldViewProj = FX.GetVariableByName("gWorldViewProj").AsMatrix();
             _world = FX.GetVariableByName("gWorld").AsMatrix();
             _worldInvTranspose = FX.GetVariableByName("gWorldInvTranspose").AsMatrix();
@@ -90,7 +147,8 @@
             _dirLights = FX.GetVariableByName("gDirLights");
             _mat = FX.GetVariableByName("gMaterial");
             _diffuseMap = FX.GetVariableByName("gDiffuseMap").AsResource();
-            
+            _cubeMap = FX.GetVariableByName("gCubeMap").AsResource();
+
         }
         public void SetWorldViewProj(Matrix m) {
             _worldViewProj.SetMatrix(m);
@@ -125,6 +183,9 @@
 
         public void SetDiffuseMap(ShaderResourceView tex) {
             _diffuseMap.SetResource(tex);
+        }
+        public void SetCubeMap(ShaderResourceView tex) {
+            _cubeMap.SetResource(tex);
         }
 
         public void SetFogColor(Color4 c) {

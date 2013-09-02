@@ -89,7 +89,7 @@ namespace Core {
            
         }
 
-        protected virtual void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
+        protected virtual void OnMouseDown(object sender, MouseEventArgs e) {
         }
 
         // ReSharper disable InconsistentNaming
