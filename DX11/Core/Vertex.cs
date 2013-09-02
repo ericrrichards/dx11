@@ -66,6 +66,21 @@ namespace Core {
 
         public static readonly int Stride = Marshal.SizeOf(typeof(TreePointSprite));
     }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PosNormalTexTan {
+        public Vector3 Pos;
+        public Vector3 Normal;
+        public Vector2 Tex;
+        public Vector3 Tan;
+        public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexTan));
+
+        public PosNormalTexTan(Vector3 position, Vector3 normal, Vector2 texC, Vector3 tangentU) {
+            Pos = position;
+            Normal = normal;
+            Tex = texC;
+            Tan = tangentU;
+        }
+    }
 
     public static class InputLayoutDescriptions {
         public static readonly InputElement[] Pos = {
@@ -93,6 +108,12 @@ namespace Core {
             new InputElement("WORLD", 2, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),
             new InputElement("WORLD", 3, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),
             new InputElement("COLOR", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 )
+        };
+        public static readonly InputElement[] PosNormalTexTan = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElement("NORMAL", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
+            new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+            new InputElement("TANGENT", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ) 
         };
     }
     public static class InputLayouts {
@@ -133,6 +154,13 @@ namespace Core {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 Pos = null;
             }
+            try {
+                var passDesc = Effects.NormalMapFX.Light1Tech.GetPassByIndex(0).Description;
+                PosNormalTexTan = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTan);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message + ex.StackTrace);
+                PosNormalTexTan = null;
+            }
             
         }
         public static void DestroyAll() {
@@ -141,6 +169,7 @@ namespace Core {
             Util.ReleaseCom(ref Basic32);
             Util.ReleaseCom(ref TreePointSprite);
             Util.ReleaseCom(ref InstancedBasic32);
+            Util.ReleaseCom(ref PosNormalTexTan);
         }
 
         public static InputLayout PosNormal;
@@ -148,5 +177,6 @@ namespace Core {
         public static InputLayout TreePointSprite;
         public static InputLayout InstancedBasic32;
         public static InputLayout Pos;
+        public static InputLayout PosNormalTexTan;
     }
 }
