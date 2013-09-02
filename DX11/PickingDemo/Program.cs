@@ -116,62 +116,62 @@ namespace PickingDemo {
                 _cam.Strafe(10.0f*dt);
             }
         }
-public override void DrawScene() {
-    base.DrawScene();
-    ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-    ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0 );
+        public override void DrawScene() {
+            base.DrawScene();
+            ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
+            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0 );
 
-    ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
+            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-    var stride = Basic32.Stride;
-    const int offset = 0;
+            var stride = Basic32.Stride;
+            const int offset = 0;
 
-    _cam.UpdateViewMatrix();
+            _cam.UpdateViewMatrix();
 
             
-    var viewProj = _cam.ViewProj;
+            var viewProj = _cam.ViewProj;
 
-    Effects.BasicFX.SetDirLights(_dirLights);
-    Effects.BasicFX.SetEyePosW(_cam.Position);
+            Effects.BasicFX.SetDirLights(_dirLights);
+            Effects.BasicFX.SetEyePosW(_cam.Position);
 
-    var activeTech = Effects.BasicFX.Light3Tech;
+            var activeTech = Effects.BasicFX.Light3Tech;
 
-    for (int p = 0; p < activeTech.Description.PassCount; p++) {
-        if (Util.IsKeyDown(Keys.D1)) {
-            ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
+            for (int p = 0; p < activeTech.Description.PassCount; p++) {
+                if (Util.IsKeyDown(Keys.D1)) {
+                    ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
+                }
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_meshVB, stride, offset));
+                ImmediateContext.InputAssembler.SetIndexBuffer(_meshIB, Format.R32_UInt, 0);
+
+                var world = _meshWorld;
+                var wit = MathF.InverseTranspose(world);
+                var wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetMaterial(_meshMat);
+
+                var pass = activeTech.GetPassByIndex(p);
+                pass.Apply(ImmediateContext);
+                ImmediateContext.DrawIndexed(_meshIndexCount, 0, 0);
+                ImmediateContext.Rasterizer.State = null;
+
+                if (_pickedTriangle >= 0) {
+                    ImmediateContext.OutputMerger.DepthStencilState = RenderStates.LessEqualDSS;
+                    ImmediateContext.OutputMerger.DepthStencilReference = 0;
+
+                    Effects.BasicFX.SetMaterial(_pickedTriangleMat);
+                    pass.Apply(ImmediateContext);
+                    ImmediateContext.DrawIndexed(3, 3*_pickedTriangle, 0);
+
+                    ImmediateContext.OutputMerger.DepthStencilState = null;
+                }
+
+            }
+            SwapChain.Present(0, PresentFlags.None);
         }
-        ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_meshVB, stride, offset));
-        ImmediateContext.InputAssembler.SetIndexBuffer(_meshIB, Format.R32_UInt, 0);
-
-        var world = _meshWorld;
-        var wit = MathF.InverseTranspose(world);
-        var wvp = world * viewProj;
-
-        Effects.BasicFX.SetWorld(world);
-        Effects.BasicFX.SetWorldInvTranspose(wit);
-        Effects.BasicFX.SetWorldViewProj(wvp);
-        Effects.BasicFX.SetMaterial(_meshMat);
-
-        var pass = activeTech.GetPassByIndex(p);
-        pass.Apply(ImmediateContext);
-        ImmediateContext.DrawIndexed(_meshIndexCount, 0, 0);
-        ImmediateContext.Rasterizer.State = null;
-
-        if (_pickedTriangle >= 0) {
-            //ImmediateContext.OutputMerger.DepthStencilState = RenderStates.LessEqualDSS;
-            ImmediateContext.OutputMerger.DepthStencilReference = 0;
-
-            Effects.BasicFX.SetMaterial(_pickedTriangleMat);
-            pass.Apply(ImmediateContext);
-            ImmediateContext.DrawIndexed(3, 3*_pickedTriangle, 0);
-
-            ImmediateContext.OutputMerger.DepthStencilState = null;
-        }
-
-    }
-    SwapChain.Present(0, PresentFlags.None);
-}
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
             if (mouseEventArgs.Button == MouseButtons.Left) {
                 _lastMousePos = mouseEventArgs.Location;
