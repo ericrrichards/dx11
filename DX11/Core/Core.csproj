@@ -20,7 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,6 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AssimpNet">
+      <HintPath>..\packages\Assimp-3.2\AssimpNet.dll</HintPath>
+    </Reference>
     <Reference Include="SlimDX, Version=4.0.13.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=x86">
       <HintPath>..\packages\SlimDX.4.0.13.43\lib\NET40\SlimDX.dll</HintPath>
     </Reference>
@@ -64,6 +67,9 @@
     <Compile Include="Lights.cs" />
     <Compile Include="Camera\LookAtCamera.cs" />
     <Compile Include="MathF.cs" />
+    <Compile Include="Model\BasicModel.cs" />
+    <Compile Include="Model\MeshGeometry.cs" />
+    <Compile Include="Model\TextureManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderStates.cs" />
     <Compile Include="Sky.cs" />

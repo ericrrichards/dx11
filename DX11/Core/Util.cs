@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Drawing;
+using Assimp;
 using SlimDX;
 
 namespace Core {
@@ -30,6 +32,33 @@ namespace Core {
         public static Vector3 ToVector3(this Vector4 v) {
             return new Vector3(v.X, v.Y, v.Z);
         }
+        public static Vector3 ToVector3(this Vector3D v) {
+            return new Vector3(v.X, v.Y, v.Z);
+        }
+        public static Vector2 ToVector2(this Vector3D v) {
+            return new Vector2(v.X, v.Y);
+        }
+        public static Material ToMaterial(this Assimp.Material m) {
+            var ret = new Material() {
+                Ambient = new Color4(m.ColorAmbient.A, m.ColorAmbient.R, m.ColorAmbient.G, m.ColorAmbient.B),
+                Diffuse = new Color4(m.ColorDiffuse.A, m.ColorAmbient.R, m.ColorAmbient.G, m.ColorAmbient.B),
+                Specular = new Color4(m.Shininess, m.ColorSpecular.R, m.ColorSpecular.G, m.ColorSpecular.B),
+                Reflect = new Color4(m.ColorReflective.A, m.ColorReflective.R, m.ColorReflective.G, m.ColorReflective.B)
+            };
+
+            if (ret.Ambient == new Color4(0, 0, 0, 0)) {
+                ret.Ambient = Color.White;
+            }
+            if (ret.Diffuse == new Color4(0, 0, 0, 0) || ret.Diffuse == Color.Black) {
+                ret.Diffuse = Color.White;
+            }
+
+            if (m.ColorSpecular == new Color4D(0, 0, 0, 0) ||  m.ColorSpecular == new Color4D(0,0,0)) {
+                ret.Specular = new Color4(ret.Specular.Alpha, 1.0f, 1.0f, 1.0f);
+            }
+
+            return ret;
+        } 
 
         public static int HighWord(this int i) {
             return (i >> 16) & 0xFFFF;
