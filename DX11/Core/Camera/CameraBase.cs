@@ -24,6 +24,7 @@ namespace Core.Camera {
         public Matrix View { get; protected set; }
         public Matrix Proj { get; protected set; }
         public Matrix ViewProj { get { return View * Proj; } }
+        public Plane[] FrustumPlanes {get { return _frustum.Planes; } }
 
         protected CameraBase() {
             Position = new Vector3();

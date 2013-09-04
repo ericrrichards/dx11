@@ -13,72 +13,91 @@ namespace Core {
 
     using Device = SlimDX.Direct3D11.Device;
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct VertexPC {
-        public Vector3 Pos;
-        public Color4 Color;
+    namespace Vertex {
 
-        public VertexPC(Vector3 pos, Color color) {
-            Pos = pos;
-            Color = color;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct VertexPC {
+            public Vector3 Pos;
+            public Color4 Color;
+
+            public VertexPC(Vector3 pos, Color color) {
+                Pos = pos;
+                Color = color;
+            }
+
+            public VertexPC(Vector3 pos, Color4 color) {
+                Pos = pos;
+                Color = color;
+            }
+
+            public static readonly int Stride = Marshal.SizeOf(typeof (VertexPC));
         }
 
-        public VertexPC(Vector3 pos, Color4 color) {
-            Pos = pos;
-            Color = color;
+        [StructLayout(LayoutKind.Sequential)]
+        public struct VertexPN {
+            public Vector3 Position;
+            public Vector3 Normal;
+
+            public VertexPN(Vector3 position, Vector3 normal) {
+                Position = position;
+                Normal = normal;
+            }
+
+            public static readonly int Stride = Marshal.SizeOf(typeof (VertexPN));
         }
 
-        public static readonly int Stride = Marshal.SizeOf(typeof(VertexPC));
-    }
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Basic32 {
+            public Vector3 Position;
+            public Vector3 Normal;
+            public Vector2 Tex;
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct VertexPN {
-        public Vector3 Position;
-        public Vector3 Normal;
+            public Basic32(Vector3 position, Vector3 normal, Vector2 texC) {
+                Position = position;
+                Normal = normal;
+                Tex = texC;
+            }
 
-        public VertexPN(Vector3 position, Vector3 normal) {
-            Position = position;
-            Normal = normal;
+            public static readonly int Stride = Marshal.SizeOf(typeof (Basic32));
         }
 
-        public static readonly int Stride = Marshal.SizeOf(typeof(VertexPN));
-    }
+        [StructLayout(LayoutKind.Sequential)]
+        public struct TreePointSprite {
+            public Vector3 Pos;
+            public Vector2 Size;
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Basic32 {
-        public Vector3 Position;
-        public Vector3 Normal;
-        public Vector2 Tex;
-
-        public Basic32(Vector3 position, Vector3 normal, Vector2 texC) {
-            Position = position;
-            Normal = normal;
-            Tex = texC;
+            public static readonly int Stride = Marshal.SizeOf(typeof (TreePointSprite));
         }
 
-        public static readonly int Stride = Marshal.SizeOf(typeof(Basic32));
-    }
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PosNormalTexTan {
+            public Vector3 Pos;
+            public Vector3 Normal;
+            public Vector2 Tex;
+            public Vector3 Tan;
+            public static readonly int Stride = Marshal.SizeOf(typeof (PosNormalTexTan));
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct TreePointSprite {
-        public Vector3 Pos;
-        public Vector2 Size;
+            public PosNormalTexTan(Vector3 position, Vector3 normal, Vector2 texC, Vector3 tangentU) {
+                Pos = position;
+                Normal = normal;
+                Tex = texC;
+                Tan = tangentU;
+            }
+        }
 
-        public static readonly int Stride = Marshal.SizeOf(typeof(TreePointSprite));
-    }
-    [StructLayout(LayoutKind.Sequential)]
-    public struct PosNormalTexTan {
-        public Vector3 Pos;
-        public Vector3 Normal;
-        public Vector2 Tex;
-        public Vector3 Tan;
-        public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexTan));
+        public struct Terrain {
+            public Vector3 Pos;
+            public Vector2 Tex;
+            public Vector2 BoundsY;
 
-        public PosNormalTexTan(Vector3 position, Vector3 normal, Vector2 texC, Vector3 tangentU) {
-            Pos = position;
-            Normal = normal;
-            Tex = texC;
-            Tan = tangentU;
+            public Terrain(Vector3 pos, Vector2 tex, Vector2 boundsY) {
+                Pos = pos;
+                Tex = tex;
+                BoundsY = boundsY;
+            }
+
+            public static readonly int Stride = Marshal.SizeOf(typeof (Terrain));
         }
     }
 
@@ -114,6 +133,12 @@ namespace Core {
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
             new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
             new InputElement("TANGENT", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ) 
+        };
+
+        public static readonly InputElement[] Terrain = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+            new InputElement("TEXCOORD", 1, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
         };
     }
     public static class InputLayouts {
@@ -161,6 +186,13 @@ namespace Core {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 PosNormalTexTan = null;
             }
+            try {
+                var passDesc = Effects.TerrainFX.Light1Tech.GetPassByIndex(0).Description;
+                Terrain = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Terrain);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+                Terrain = null;
+            }
             
         }
         public static void DestroyAll() {
@@ -170,6 +202,7 @@ namespace Core {
             Util.ReleaseCom(ref TreePointSprite);
             Util.ReleaseCom(ref InstancedBasic32);
             Util.ReleaseCom(ref PosNormalTexTan);
+            Util.ReleaseCom(ref Terrain);
         }
 
         public static InputLayout PosNormal;
@@ -178,5 +211,6 @@ namespace Core {
         public static InputLayout InstancedBasic32;
         public static InputLayout Pos;
         public static InputLayout PosNormalTexTan;
+        public static InputLayout Terrain;
     }
 }

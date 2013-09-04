@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Assimp;
+using Core.Vertex;
 using SlimDX;
 using SlimDX.Direct3D11;
 

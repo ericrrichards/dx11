@@ -57,10 +57,13 @@
     <Compile Include="DisposableClass.cs" />
     <Compile Include="Frustum.cs" />
     <Compile Include="FX\BasicEffect.cs" />
+    <Compile Include="FX\DisplacementMapEffect.cs" />
     <Compile Include="FX\Effect.cs" />
     <Compile Include="FX\Effects.cs" />
     <Compile Include="FX\InstancedBasicEffect.cs" />
+    <Compile Include="FX\NormalMapEffect.cs" />
     <Compile Include="FX\SkyEffect.cs" />
+    <Compile Include="FX\TerrainEffect.cs" />
     <Compile Include="FX\TreeSpriteEffect.cs" />
     <Compile Include="GameTimer.cs" />
     <Compile Include="GeometryGenerator.cs" />
@@ -73,6 +76,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderStates.cs" />
     <Compile Include="Sky.cs" />
+    <Compile Include="Terrain\Terrain.cs" />
     <Compile Include="TextureAtlas.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Vertex.cs" />
