@@ -151,6 +151,7 @@ namespace AssimpModel {
                 for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
                     Effects.NormalMapFX.SetMaterial(_modelInstance.Model.Materials[i]);
                     Effects.NormalMapFX.SetDiffuseMap(_modelInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_modelInstance.Model.NormalMapSRV[i]);
 
                     activeTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _modelInstance.Model.ModelMesh.Draw(ImmediateContext, i);
