@@ -12,7 +12,6 @@ using SlimDX.Direct3D11;
 namespace Core.Model {
     public class BasicModel : DisposableClass {
         private bool _disposed;
-        private List<ShaderResourceView> _normalMapSRV; 
         private List<MeshGeometry.Subset> _subsets;
         private List<PosNormalTexTan> _vertices;
         private List<short> _indices;
@@ -22,17 +21,18 @@ namespace Core.Model {
         public List<Material> Materials { get; private set; }
         public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
         public MeshGeometry ModelMesh { get { return _modelMesh; } }
+        public List<ShaderResourceView> NormalMapSRV { get; private set; }
 
         public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath ) {
             _subsets = new List<MeshGeometry.Subset>();
             _vertices = new List<PosNormalTexTan>();
             _indices = new List<short>();
             DiffuseMapSRV = new List<ShaderResourceView>();
-            _normalMapSRV = new List<ShaderResourceView>();
+            NormalMapSRV = new List<ShaderResourceView>();
             Materials = new List<Material>();
 
             var importer = new AssimpImporter();
-            var model = importer.ImportFile(filename, PostProcessSteps.GenerateNormals);
+            var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals|PostProcessSteps.CalculateTangentSpace);
             _modelMesh = new MeshGeometry();
             var verts = new List<PosNormalTexTan>();
             for (int s = 0; s < model.Meshes.Length; s++) {
@@ -69,8 +69,15 @@ namespace Core.Model {
                 }
                 var normalPath = mat.GetTexture(TextureType.Normals, 0).FilePath;
                 if (!string.IsNullOrEmpty(normalPath)) {
-                    _normalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
+                    NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
+                } else {
+                    var normalExt = Path.GetExtension(diffusePath);
+                    normalPath = Path.GetFileNameWithoutExtension(diffusePath) + "_nmap" + normalExt;
+                    if (File.Exists(Path.Combine(texturePath, normalPath))) {
+                        NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
+                    }
                 }
+                
             }
             _modelMesh.SetSubsetTable(_subsets);
             _modelMesh.SetVertices(device, _vertices);

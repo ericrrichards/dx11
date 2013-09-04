@@ -47,14 +47,14 @@ namespace Core {
             };
 
             if (ret.Ambient == new Color4(0, 0, 0, 0)) {
-                ret.Ambient = Color.White;
+                ret.Ambient = Color.Gray;
             }
             if (ret.Diffuse == new Color4(0, 0, 0, 0) || ret.Diffuse == Color.Black) {
                 ret.Diffuse = Color.White;
             }
 
             if (m.ColorSpecular == new Color4D(0, 0, 0, 0) ||  m.ColorSpecular == new Color4D(0,0,0)) {
-                ret.Specular = new Color4(ret.Specular.Alpha, 1.0f, 1.0f, 1.0f);
+                ret.Specular = new Color4(ret.Specular.Alpha, 0.5f, 0.5f, 0.5f);
             }
 
             return ret;

@@ -167,6 +167,7 @@ namespace AssimpModel {
                 for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
                     Effects.NormalMapFX.SetMaterial(_stoneInstance.Model.Materials[i]);
                     Effects.NormalMapFX.SetDiffuseMap(_stoneInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_stoneInstance.Model.NormalMapSRV[i]);
 
                     activeTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _stoneInstance.Model.ModelMesh.Draw(ImmediateContext, i);

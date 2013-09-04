@@ -32,7 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AssimpNet">
-      <HintPath>..\packages\Assimp-3.2\AssimpNet.dll</HintPath>
+      <HintPath>..\packages\AssimpNet-3.2\Bin\AssimpNet.dll</HintPath>
     </Reference>
     <Reference Include="SlimDX, Version=4.0.13.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=x86">
       <HintPath>..\packages\SlimDX.4.0.13.43\lib\NET40\SlimDX.dll</HintPath>
