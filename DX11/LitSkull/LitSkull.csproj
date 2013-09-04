@@ -66,6 +66,7 @@
     <Content Include="FX\LightHelper.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="litskull.html" />
     <Content Include="Models\car.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
