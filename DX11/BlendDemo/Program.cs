@@ -14,6 +14,7 @@ using MapFlags = SlimDX.Direct3D11.MapFlags;
 
 namespace BlendDemo {
     using Core.FX;
+    using Core.Vertex;
 
     public class BlendDemo : D3DApp {
 

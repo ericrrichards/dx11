@@ -15,6 +15,8 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Debug = System.Diagnostics.Debug;
 
 namespace HillDemo {
+    using Core.Vertex;
+
     using Effect = SlimDX.Direct3D11.Effect;
 
     public class BoxApp : D3DApp {

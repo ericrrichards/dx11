@@ -11,6 +11,7 @@ namespace CubeMap {
     using Core;
     using Core.Camera;
     using Core.FX;
+    using Core.Vertex;
 
     using SlimDX;
     using SlimDX.DXGI;

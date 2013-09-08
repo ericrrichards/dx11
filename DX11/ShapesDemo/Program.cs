@@ -16,6 +16,7 @@ namespace ShapesDemo {
     using System.Windows.Forms;
 
     using Core;
+    using Core.Vertex;
 
     using SlimDX;
 

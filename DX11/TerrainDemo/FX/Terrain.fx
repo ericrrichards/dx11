@@ -25,7 +25,7 @@ cbuffer cbPerFrame
 	float gTexelCellSpaceU;
 	float gTexelCellSpaceV;
 	float gWorldCellSpace;
-	float2 gTexScale = 50.0f;
+	float2 gTexScale = 66.0f;
 	
 	float4 gWorldFrustumPlanes[6];
 };
@@ -254,9 +254,9 @@ DomainOut DS(PatchTess patchTess,
 		lerp(quad[0].Tex, quad[1].Tex, uv.x),
 		lerp(quad[2].Tex, quad[3].Tex, uv.x),
 		uv.y); 
-		
+			
 	// Tile layer textures over terrain.
-	dout.TiledTex = dout.Tex*gTexScale; 
+	dout.TiledTex = dout.Tex * gTexScale; 
 	
 	// Displacement mapping
 	dout.PosW.y = gHeightMap.SampleLevel( samHeightmap, dout.Tex, 0 ).r;

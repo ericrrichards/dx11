@@ -32,7 +32,7 @@ namespace Core.Terrain {
 
         public Matrix World { get; set; }
 
-        private Material _material;
+        private readonly Material _material;
 
         private List<Vector2> _patchBoundsY;
         private List<float> _heightMap;
@@ -63,10 +63,10 @@ namespace Core.Terrain {
             base.Dispose(disposing);
         }
         public float Width { get { return (_info.HeightMapWidth - 1)*_info.CellSpacing; } }
-        public float Depth { get { return (_info.HeightMapHeight - 1)*-_info.CellSpacing; } }
+        public float Depth { get { return (_info.HeightMapHeight - 1)*_info.CellSpacing; } }
         public float Height(float x, float z) {
             var c = (x + 0.5f*Width)/_info.CellSpacing;
-            var d = (z + 0.5f*Depth)/-_info.CellSpacing;
+            var d = (z - 0.5f*Depth)/-_info.CellSpacing;
             var row = (int)Math.Floor(d);
             var col = (int) Math.Floor(c);
 
@@ -215,11 +215,11 @@ namespace Core.Terrain {
             var y0 = i*CellsPerPatch;
             var y1 = (i + 1)*CellsPerPatch;
 
-            var minY = float.PositiveInfinity;
-            var maxY = float.NegativeInfinity;
+            var minY = float.MaxValue;
+            var maxY = float.MinValue;
 
-            for (var y = y0; y < y1; y++) {
-                for (var x = x0; x < x1; x++) {
+            for (var y = y0; y <= y1; y++) {
+                for (var x = x0; x <= x1; x++) {
                     var k = y*_info.HeightMapWidth + x;
                     minY = Math.Min(minY, _heightMap[k]);
                     maxY = Math.Max(maxY, _heightMap[k]);
@@ -236,6 +236,7 @@ namespace Core.Terrain {
                     dest.Add(Average(i,j));
                 }
             }
+            _heightMap = dest;
         }
 
         private float Average(int i, int j) {
@@ -262,7 +263,7 @@ namespace Core.Terrain {
             _heightMap = input.Select(i => (i/255.0f*_info.HeightScale)).ToList();
         }
         private void BuildQuadPatchVB(Device device) {
-            var patchVerts = new List<Vertex.Terrain>();
+            var patchVerts = new Vertex.Terrain[_numPatchVertRows*_numPatchVertCols];
             var halfWidth = 0.5f*Width;
             var halfDepth = 0.5f*Depth;
 
@@ -272,20 +273,24 @@ namespace Core.Terrain {
             var dv = 1.0f/(_numPatchVertRows - 1);
 
             for (int i = 0; i < _numPatchVertRows; i++) {
-                var z = -halfDepth - i*patchDepth;
+                var z = halfDepth - i*patchDepth;
                 for (int j = 0; j < _numPatchVertCols; j++) {
                     var x = -halfWidth + j*patchWidth;
-                    if (i == _numPatchVertRows - 1 || j == _numPatchVertCols - 1) {
-                        patchVerts.Add(new Vertex.Terrain(new Vector3(x, 0, z), new Vector2(j*du, i*dv), new Vector2()));
-                    } else {
-                        var patchID = i*(_numPatchVertCols - 1) + j;
-                        patchVerts.Add(new Vertex.Terrain(new Vector3(x, 0, z), new Vector2(j*du, i*dv), _patchBoundsY[patchID]));
-                    }
+                    patchVerts[i*_numPatchVertCols+j]=new Vertex.Terrain(new Vector3(x, 0, z), new Vector2(j*du, i*dv), new Vector2());
                 }
             }
-            var vbd = new BufferDescription(Vertex.Terrain.Stride*patchVerts.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-            _quadPatchVB = new Buffer(device, new DataStream(patchVerts.ToArray(), false, false), vbd);
+            for (int i = 0; i < _numPatchVertRows-1; i++) {
+                for (int j = 0; j < _numPatchVertCols-1; j++) {
+                    var patchID = i * (_numPatchVertCols - 1) + j;
+                    patchVerts[i*_numPatchVertCols+j].BoundsY = _patchBoundsY[patchID];
+                }
+            }
 
+            var vbd = new BufferDescription(Vertex.Terrain.Stride*patchVerts.Length, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            _quadPatchVB = new Buffer(device, new DataStream(patchVerts, false, false), vbd);
+            
+                        
+            
         }
     }
 
