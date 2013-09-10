@@ -38,8 +38,8 @@ namespace VoronoiMap.Voronoi {
             var halfEdge = GetHash(bucket);
             if (halfEdge == null) {
                 for (int i = 1;; i++) {
-                    if ((halfEdge = GetHash(bucket - 1)) != null) break;
-                    if ((halfEdge = GetHash(bucket + 1)) != null) break;
+                    if ((halfEdge = GetHash(bucket - i)) != null) break;
+                    if ((halfEdge = GetHash(bucket + i)) != null) break;
                 }
             }
             if (halfEdge == LeftEnd || (halfEdge != RightEnd && halfEdge.IsLeftOf(p))) {

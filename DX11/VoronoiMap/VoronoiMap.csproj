@@ -41,6 +41,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -48,8 +49,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Center.cs" />
+    <Compile Include="Corner.cs" />
+    <Compile Include="Edge.cs" />
+    <Compile Include="IslandShapes.cs" />
+    <Compile Include="Map.cs" />
     <Compile Include="ParkerMillerPnrg.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="VoronoiMapDemo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rectangle.cs" />
     <Compile Include="Voronoi\BoundsCheck.cs" />
@@ -60,6 +66,7 @@
     <Compile Include="Voronoi\HalfEdgePriorityQueue.cs" />
     <Compile Include="Voronoi\ICoord.cs" />
     <Compile Include="Voronoi\LR.cs" />
+    <Compile Include="Voronoi\Polygon.cs" />
     <Compile Include="Voronoi\Site.cs" />
     <Compile Include="Voronoi\SiteList.cs" />
     <Compile Include="Voronoi\Vertex.cs" />
@@ -75,7 +82,16 @@
       <Name>Core</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="FX\color.fx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>cd FX 
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo color.fxo color.fx</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

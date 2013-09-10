@@ -1,39 +1,38 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using SlimDX;
 
 namespace VoronoiMap {
-    class Program {
-        static void Main(string[] args) {
-        }
-    }
-
-    
     public class Map {
-        public const int NumPoints = 2000;
+        public const int NumPoints = 200;
         public const float LakeThreshold = 0.3f;
         public const int NumLloydIterations = 2;
 
-        private float _size;
+        private readonly float _size;
         private IslandShape _islandShape;
-        
 
-        private ParkerMillerPnrg _mapRandom;
 
-        private List<Vector2> _points;
-        private List<Center> _centers;
-        private List<Corner> _corners;
-        private List<Edge> _edges;
+        private Random _mapRandom;
+
+        private List<Vector2> _points = new List<Vector2>();
+        private readonly List<Center> _centers = new List<Center>();
+        private readonly List<Corner> _corners = new List<Corner>();
+        private readonly List<Edge> _edges = new List<Edge>();
         private Dictionary<int, List<Corner>> _cornerMap;
 
         public Map(float size) {
             _size = size;
             Reset();
         }
+
+        public List<Center> Centers { get { return _centers; } }
+        public List<Corner> Corners { get { return _corners; } } 
+
         public void NewIsland(string type, int seed, int variant) {
-            _mapRandom.Seed = variant;
+            _mapRandom = new Random(variant);
+            _islandShape = IslandShapes.Get(type, seed);
         }
 
         public void Reset() {
@@ -167,7 +166,7 @@ namespace VoronoiMap {
 
         private void CreateRivers() {
             for (var i = 0; i < _size/2; i++) {
-                var q = _corners[_mapRandom.NextIntRange(0, _corners.Count - 1)];
+                var q = _corners[_mapRandom.Next(0, _corners.Count - 1)];
                 if ( q.Ocean || q.Elevation < 0.3f || q.Elevation > 0.9f) continue;
                 while (!q.Coast) {
                     if (q == q.Downslope) {
@@ -363,9 +362,9 @@ namespace VoronoiMap {
                 _centers.Add(p);
                 centerLookup[point] = p;
             }
-            foreach (var p in _centers) {
+            /*foreach (var p in _centers) {
                 voronoi.Region(p.Point);
-            }
+            }*/
             _cornerMap = new Dictionary<int, List<Corner>>();
 
             foreach (var libEdge in libEdges) {
@@ -444,7 +443,7 @@ namespace VoronoiMap {
                 }
             }
             bucket = (int) point.X;
-            if (_cornerMap[bucket] == null) {
+            if (!_cornerMap.ContainsKey(bucket) ) {
                 _cornerMap[bucket] = new List<Corner>();
             }
             var c = new Corner {
@@ -464,7 +463,7 @@ namespace VoronoiMap {
         private List<Vector2> GenerateRandomPoints() {
             var ret = new List<Vector2>();
             for (int i = 0; i < NumPoints; i++) {
-                ret.Add(new Vector2(_mapRandom.NextFloatRange(10, _size-10), _mapRandom.NextFloatRange(10, _size-10)));
+                ret.Add(new Vector2(10.0f + (float)_mapRandom.NextDouble() * (_size - 10*2), 10.0f + (float)_mapRandom.NextDouble() * (_size - 10*2)));
             }
             return ret;
         }
@@ -490,65 +489,4 @@ namespace VoronoiMap {
             }
         }
     }
-
-    class Edge {
-        public int Index { get; set; }
-        public Center D0 { get; set; }
-        public Center D1 { get; set; }
-        public Corner V0 { get; set; }
-        public Corner V1 { get; set; }
-        public Vector2? Midpoint { get; set; }
-        public int River { get; set; }
-    }
-
-    class Corner {
-        public int Index { get; set; }
-        public Vector2 Point { get; set; }
-        public bool Water { get; set; }
-        public bool Ocean { get; set; }
-        public bool Coast { get; set; }
-        public bool Border { get; set; }
-        public string Biome { get; set; }
-        public float Elevation { get; set; }
-        public float Moisture { get; set; }
-
-        public List<Center> Touches { get; set; }
-        public List<Edge> Protrudes { get; set; }
-        public List<Corner> Adjacent { get; set; }
-
-        public int River { get; set; }
-        public Corner Downslope { get; set; }
-        public Corner Watershed { get; set; }
-        public int WatershedSize { get; set; }
-
-        public class ElevationComparer : IComparer<Corner> {
-            public int Compare(Corner x, Corner y) {
-                return x.Elevation.CompareTo(y.Elevation);
-            }
-        }
-
-        public class MoistureComparer : IComparer<Corner> {
-            public int Compare(Corner x, Corner y) {
-                return x.Moisture.CompareTo(y.Moisture);
-            }
-        }
-    }
-
-    class Center {
-        public int Index { get; set; }
-        public Vector2 Point { get; set; }
-        public bool Water { get; set; }
-        public bool Ocean { get; set; }
-        public bool Coast { get; set; }
-        public bool Border { get; set; }
-        public string Biome { get; set; }
-        public float Elevation { get; set; }
-        public float Moisture { get; set; }
-
-        public List<Center> Neighbors { get; set; }
-        public List<Edge> Borders { get; set; }
-        public List<Corner> Corners { get; set; }
-    }
-
-    delegate bool IslandShape(Vector2 p);
 }

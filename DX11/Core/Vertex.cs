@@ -102,6 +102,11 @@ namespace Core {
     }
 
     public static class InputLayoutDescriptions {
+        public static readonly InputElement[] PosColor = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElement("COLOR", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+        };
+
         public static readonly InputElement[] Pos = {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0 ), 
         };
@@ -193,6 +198,13 @@ namespace Core {
                 Console.WriteLine(ex.Message);
                 Terrain = null;
             }
+            try {
+                var passDesc = Effects.ColorFX.ColorTech.GetPassByIndex(0).Description;
+                PosColor = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosColor);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+                PosColor = null;
+            }
             
         }
         public static void DestroyAll() {
@@ -203,6 +215,7 @@ namespace Core {
             Util.ReleaseCom(ref InstancedBasic32);
             Util.ReleaseCom(ref PosNormalTexTan);
             Util.ReleaseCom(ref Terrain);
+            Util.ReleaseCom(ref PosColor);
         }
 
         public static InputLayout PosNormal;
@@ -212,5 +225,6 @@ namespace Core {
         public static InputLayout Pos;
         public static InputLayout PosNormalTexTan;
         public static InputLayout Terrain;
+        public static InputLayout PosColor;
     }
 }

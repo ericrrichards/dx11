@@ -57,6 +57,7 @@
     <Compile Include="DisposableClass.cs" />
     <Compile Include="Frustum.cs" />
     <Compile Include="FX\BasicEffect.cs" />
+    <Compile Include="FX\ColorEffect.cs" />
     <Compile Include="FX\DisplacementMapEffect.cs" />
     <Compile Include="FX\Effect.cs" />
     <Compile Include="FX\Effects.cs" />

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using Core;
@@ -33,6 +34,8 @@ namespace VoronoiMap.Voronoi {
         }
 
         private void AddSite(Vector2 p, Color4 color, int index) {
+            if (_sitesIndexedByLocation.ContainsKey(p)) return;
+            
             var weight = MathF.Rand(0, 1.0f) * 100;
             var site = new Site(p, index, weight, color);
             _sites.Push(site);
@@ -57,12 +60,16 @@ namespace VoronoiMap.Voronoi {
                     newIntStar = heap.Min();
                 }
                 if (newSite != null && (heap.Empty || CompareByYThenX(newSite, newIntStar) < 0)) {
+                    Console.WriteLine("smallest: new site " + newSite);
                     var lbnd = edgeList.EdgeListLeftNeighbor(newSite.Coord);
+                    Console.WriteLine("lbnd: " + lbnd);
                     var rbnd = lbnd.EdgeListRightNeighbor;
-
+                    Console.WriteLine("rbnd: " + rbnd);
                     var bottomSite = RightRegion(lbnd) ?? bottomMostSite;
+                    Console.WriteLine("new site is in region of existing site: " + bottomSite);
 
                     var edge = Edge.CreateBisectingEdge(bottomSite, newSite);
+                    Console.WriteLine("new edge: " + edge);
                     Edges.Add(edge);
 
                     var bisector = new HalfEdge(edge, LR.Left);
@@ -100,6 +107,9 @@ namespace VoronoiMap.Voronoi {
                     var topSite = RightRegion(rbnd) ?? bottomMostSite;
 
                     var v = lbnd.Vertex;
+                    if (v == null) {
+                        Debugger.Break();
+                    }
                     v.SetIndex();
                     lbnd.Edge.SetVertex(lbnd.LeftRight, v);
                     rbnd.Edge.SetVertex(rbnd.LeftRight, v);
@@ -118,7 +128,11 @@ namespace VoronoiMap.Voronoi {
                     var bisector = new HalfEdge(edge, leftRight);
                     halfEdges.Add(bisector);
                     edgeList.Insert(llbnd, bisector);
+                    if (v == null) {
+                        Debugger.Break();
+                    }
                     edge.SetVertex(LR.Other(leftRight), v);
+                    
                     Vertex vertex;
                     if ((vertex = Vertex.Intersect(llbnd, bisector)) != null) {
                         vertices.Add(vertex);
@@ -139,6 +153,8 @@ namespace VoronoiMap.Voronoi {
             }
             halfEdges.Clear();
 
+
+            var nullVerts = Edges.Where(e => e.RightVertex == null || e.LeftVertex == null).ToList();
             foreach (var edge in Edges) {
                 edge.ClipVertices(PlotBounds);
             }

@@ -4,10 +4,16 @@ namespace VoronoiMap.Voronoi {
     public class Vertex : ICoord {
         private int _vertexIndex;
         private static int _nVertices = 0;
-        public static readonly ICoord VertexAtInfinity = new Vertex(float.NaN, float.NaN);
+        public static readonly Vertex VertexAtInfinity = new Vertex(float.NaN, float.NaN);
 
         private Vertex(float x, float y) {
             Init(x, y);
+        }
+        private static Vertex Create(float x, float y) {
+            if (float.IsNaN(x) || float.IsNaN(y)) {
+                return VertexAtInfinity;
+            }
+            return new Vertex(x,y);
         }
 
         private void Init(float x, float y) {
@@ -42,12 +48,15 @@ namespace VoronoiMap.Voronoi {
             if ((rightOfSite && halfEdge.LeftRight == LR.Left) || (!rightOfSite && halfEdge.LeftRight == LR.Right)) {
                 return null;
             }
-            return new Vertex(intersectionX, intersectionY);
+            return Vertex.Create(intersectionX, intersectionY);
 
         }
 
         public void SetIndex() {
             _vertexIndex = _nVertices++;
+        }
+        public override string ToString() {
+            return "Vertex (" + _vertexIndex + ")";
         }
     }
 }

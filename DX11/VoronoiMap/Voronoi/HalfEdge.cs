@@ -1,3 +1,4 @@
+using System;
 using SlimDX;
 
 namespace VoronoiMap.Voronoi {
@@ -26,7 +27,7 @@ namespace VoronoiMap.Voronoi {
         public HalfEdge() : this(null, null) {
         }
         public override string ToString() {
-            return string.Format("HalfEdge (leftright: {0}; vertex: {1})", LeftRight, Vertex);
+            return string.Format("HalfEdge (leftright: {0}; vertex: {1})", LeftRight != null ? LeftRight.ToString() : "dummy", Vertex);
         }
 
         public bool IsLeftOf(Vector2 p) {

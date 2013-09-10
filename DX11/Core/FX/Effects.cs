@@ -40,6 +40,11 @@
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+            try {
+                ColorFX = new ColorEffect(device, "FX/color.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
         }
         public static void DestroyAll() {
             Util.ReleaseCom(ref BasicFX);
@@ -49,7 +54,7 @@
             Util.ReleaseCom(ref NormalMapFX);
             Util.ReleaseCom(ref DisplacementMapFX);
             Util.ReleaseCom(ref TerrainFX);
-
+            Util.ReleaseCom(ref ColorFX);
         }
 
         public static BasicEffect BasicFX;
@@ -59,5 +64,6 @@
         public static NormalMapEffect NormalMapFX;
         public static DisplacementMapEffect DisplacementMapFX;
         public static TerrainEffect TerrainFX;
+        public static ColorEffect ColorFX;
     }
 }

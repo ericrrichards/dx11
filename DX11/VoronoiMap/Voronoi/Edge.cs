@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using SlimDX;
 
 namespace VoronoiMap.Voronoi {
@@ -75,6 +76,9 @@ namespace VoronoiMap.Voronoi {
         }
 
         public void SetVertex(LR leftRight, Vertex v) {
+            if (v == null) {
+                Debugger.Break();
+            }
             if (leftRight == LR.Left) {
                 _leftVertex = v;
             } else {
@@ -188,6 +192,12 @@ namespace VoronoiMap.Voronoi {
         public LineSegment VoronoiEdge() {
             if (!Visible) return new LineSegment(null, null);
             return new LineSegment(_clippedVertices[LR.Left], _clippedVertices[LR.Right]);
+        }
+        public override string ToString() {
+            return "Edge: " + _edgeIndex + "; sites " + _sites[LR.Left] + ", " + _sites[LR.Right]
+                   + "; endVertices " + (_leftVertex != null ? LeftVertex.ToString() : "null") + ", " +
+                   (_rightVertex != null ? _rightVertex.ToString() : "null") + "::";
+
         }
     }
 
