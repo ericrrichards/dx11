@@ -16,6 +16,8 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using MapFlags = SlimDX.Direct3D11.MapFlags;
 
 namespace InstancingAndCulling {
+    using Core.Vertex;
+
     struct InstancedData {
         public Matrix World;
         public Color4 Color;

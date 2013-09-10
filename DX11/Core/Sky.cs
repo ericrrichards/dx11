@@ -25,11 +25,25 @@ namespace Core {
 
             var sphere = GeometryGenerator.CreateSphere(skySphereRadius, 30, 30);
             var vertices = sphere.Vertices.Select(v => v.Position).ToArray();
-            var vbd = new BufferDescription(Marshal.SizeOf(typeof(Vector3)) * vertices.Length, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            var vbd = new BufferDescription(
+                Marshal.SizeOf(typeof(Vector3)) * vertices.Length, 
+                ResourceUsage.Immutable, 
+                BindFlags.VertexBuffer, 
+                CpuAccessFlags.None, 
+                ResourceOptionFlags.None, 
+                0
+            );
             _vb = new Buffer(device, new DataStream(vertices, false, false), vbd);
 
             _indexCount = sphere.Indices.Count;
-            var ibd = new BufferDescription(_indexCount * sizeof(int), ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            var ibd = new BufferDescription(
+                _indexCount * sizeof(int), 
+                ResourceUsage.Immutable, 
+                BindFlags.IndexBuffer, 
+                CpuAccessFlags.None, 
+                ResourceOptionFlags.None, 
+                0
+            );
             _ib = new Buffer(device, new DataStream(sphere.Indices.ToArray(), false, false), ibd);
 
         }

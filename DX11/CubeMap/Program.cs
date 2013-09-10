@@ -11,6 +11,7 @@ namespace CubeMap {
     using Core;
     using Core.Camera;
     using Core.FX;
+    using Core.Vertex;
 
     using SlimDX;
     using SlimDX.DXGI;
@@ -296,20 +297,26 @@ namespace CubeMap {
             }
             // draw spheres with reflection
             for (var p = 0; p < activeReflectTech.Description.PassCount; p++) {
+                var pass = activeReflectTech.GetPassByIndex(p);
+                Matrix world;
+                Matrix worldInvTranspose;
+                Matrix wvp;
                 foreach (var matrix in _sphereWorld) {
-                    var world = matrix;
-                    var worldInvTranspose = MathF.InverseTranspose(world);
-                    var wvp = world * viewProj;
+                    world = matrix;
+                    worldInvTranspose = MathF.InverseTranspose(world);
+                    wvp = world * viewProj;
                     Effects.BasicFX.SetWorld(world);
                     Effects.BasicFX.SetWorldInvTranspose(worldInvTranspose);
                     Effects.BasicFX.SetWorldViewProj(wvp);
                     Effects.BasicFX.SetTexTransform(Matrix.Identity);
                     Effects.BasicFX.SetMaterial(_sphereMat);
                     Effects.BasicFX.SetDiffuseMap(_stoneTexSRV);
-                    var pass = activeReflectTech.GetPassByIndex(p);
+                    
                     pass.Apply(ImmediateContext);
                     ImmediateContext.DrawIndexed(_sphereIndexCount, _sphereIndexOffset, _sphereVertexOffset);
                 }
+                
+                
             }
             for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
                 var pass = activeSkullTech.GetPassByIndex(p);

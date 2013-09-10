@@ -1,0 +1,227 @@
+﻿<p>This time, we are going to take a look at a special class of texture, the cube map, and a couple of the common applications for cube maps, skyboxes and environment-mapped reflections.&nbsp; Skyboxes allow us to model far away details, like the sky or distant scenery, to create a sense that the world is more expansive than just our scene geometry, in an inexpensive way.&nbsp; Environment-mapped reflections allow us to model reflections on surfaces that are irregular or curved, rather than on flat, planar surfaces as in our <a href="http://richardssoftware.blogspot.com/2013/08/planar-reflections-and-shadows-using.html" target="_blank">Mirror Demo</a>.</p>
+<p>The code for this example is adapted from the first part of Chapter 17 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0.</a>&nbsp; You can download the full source for this example from my GitHub repository, <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>, under the CubeMap project.</p>
+<table cellspacing="0" cellpadding="2" width="624" border="0">
+<tbody>
+<tr>
+<td valign="top" width="622"><a href="http://lh3.ggpht.com/-xRPSv1ieycc/UiyrOG0iXmI/AAAAAAAADJI/1VWvPsaBzjE/s1600-h/cubemap%25255B7%25255D.png"><img title="cubemap" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="cubemap" src="http://lh6.ggpht.com/-wc5EFIPws44/UiyrP192zCI/AAAAAAAADJQ/IPPs4LHbHHg/cubemap_thumb%25255B3%25255D.png?imgmax=800" width="617" height="484"></a></td></tr>
+<tr>
+<td valign="top" width="622">Our skull &amp; columns scene, with a skybox and environment-mapped reflections on the column tops</td></tr></tbody></table>
+<!--more-->
+<h3>Cube Maps</h3>
+<p>Essentially, a cube map is a texture array of six textures, which are interpreted as the faces of a cube centered on and aligned with a coordinate system.&nbsp; In Direct3D, the textures in the array are laid out, in order, as the [+X, –X, +Y, –Y, +Z, –Z] faces.&nbsp; You can see an unwrapped cube map below:</p>
+<p><a href="http://lh6.ggpht.com/-eHOlmRs8m3I/UizRZKPV6ZI/AAAAAAAADJg/5TAN8m0rP2Y/s1600-h/cubemap-diagram%25255B3%25255D.png"><img title="cubemap-diagram" style="border-left-width: 0px; border-right-width: 0px; border-bottom-width: 0px; display: inline; border-top-width: 0px" border="0" alt="cubemap-diagram" src="http://lh3.ggpht.com/-NLgkMyUj0vU/UizRZgs0OeI/AAAAAAAADJk/hWDVlDclSkQ/cubemap-diagram_thumb%25255B1%25255D.png?imgmax=800" width="484" height="484"></a></p>
+<p>To sample a cube map, we cannot use 2D UV coordinates as we have with textures so far.&nbsp; Instead, we need a 3D <strong>lookup vector</strong>, which defines a direction from the cube map origin.&nbsp; The texel sampled from the cube map will be the texel intersected by a ray shot from the origin of the cube-map coordinate system in the direction of the lookup vector.&nbsp; If you’re struggling to understand just what that means, don’t worry (I’ve struggled for nearly 20 minutes to come up with a better way of explaining it…); we will almost never be explicitly specifying cubemap lookup coordinates.</p>
+<h4>Environment Maps</h4>
+<p>Most commonly, we will be using cube maps where each face of the cube is a 90 degree FOV view down one of the world space axes, so that the cube map captures the entire scene around the point.&nbsp; These kinds of cube maps are commonly called environment maps.&nbsp; Technically, we should create a separate environment map for each object that we will use environment mapping on, as the surrounding environment will vary per object; however, since (in this example, anyway) we will be using a pre-baked cube map texture for some very distant environment details and leaving out the local geometry, we can fudge it and use just the single cube map for all objects needing environment maps.</p>
+<p>Assuming that your pre-baked cube map has been saved correctly as a .DDS cube map, it is dead simple to load the cube map into a shader resource variable, exactly as we have been doing with normal 2D textures.&nbsp; </p><pre class="csharpcode">CubeMapSRV = ShaderResourceView.FromFile(device, filename);</pre>
+<p>Generating an environment map offline is outside my scope of knowledge, so I’m going to assume that you have some pre-rendered environment maps to work with.&nbsp; I’m using the ones available at Mr. Luna’s website, in the <a href="http://www.d3dcoder.net/Data/Book4/d3d11CodeSet3.zip" target="_blank">third section of source code for the book</a>.&nbsp; I’ve also seen references to building them using the <a href="http://planetside.co.uk/" target="_blank">Terragen tool</a>, but again, I haven’t actually done that myself, and this is not a tutorial on using Terragen…</p>
+<h3>Skyboxes</h3>
+<p>To model the sky for our scene, we will generate a sphere, texture it using a cube map, and then render this environment sphere at a fixed offset from the camera position, using some special render states, so that the sky sphere always appears the same, no matter where our camera is located within the scene.&nbsp; To do this, we will be implementing a new shader effect for the skybox rendering, and also a new C# class to encapsulate the skybox geometry and rendering logic.&nbsp; We’ll begin by looking at the HLSL shader code that we’ll use to render the sky sphere.</p><pre class="csharpcode">cbuffer cbPerFrame
+{
+    float4x4 gWorldViewProj;
+};
+ 
+<span class="rem">// Nonnumeric values cannot be added to a cbuffer.</span>
+TextureCube gCubeMap;
+
+SamplerState samTriLinearSam
+{
+    Filter = MIN_MAG_MIP_LINEAR;
+    AddressU = Wrap;
+    AddressV = Wrap;
+};
+
+<span class="kwrd">struct</span> VertexIn
+{
+    float3 PosL : POSITION;
+};
+
+<span class="kwrd">struct</span> VertexOut
+{
+    float4 PosH : SV_POSITION;
+    float3 PosL : POSITION;
+};</pre>
+<p>Our shader constants for this effect consist of a world-view-projection matrix and the cube map texture.&nbsp; This world-view-projection matrix will be constructed from a world matrix, based on the camera’s position, and the camera’s view-projection matrix.&nbsp; We also define a linear texture filtering sampler state object, which we will use to sample the cube map in our pixel shader.</p><pre class="csharpcode">VertexOut VS(VertexIn vin)
+{
+    VertexOut vout;
+    
+    <span class="rem">// Set z = w so that z/w = 1 (i.e., skydome always on far plane).</span>
+    vout.PosH = mul(float4(vin.PosL, 1.0f), gWorldViewProj).xyww;
+    
+    <span class="rem">// Use local vertex position as cubemap lookup vector.</span>
+    vout.PosL = vin.PosL;
+    
+    <span class="kwrd">return</span> vout;
+}
+
+float4 PS(VertexOut pin) : SV_Target
+{
+    <span class="kwrd">return</span> gCubeMap.Sample(samTriLinearSam, pin.PosL);
+}</pre>
+<p>In our vertex shader, we transform the input vertex position into projection space using the global world-view-projection matrix, as normal.&nbsp; After projecting the vertex position, we make use of HLSL’s swizzling feature to discard the projected depth of the vertex, and instead set the z component to the w component, i.e. 1.0f, which forces the skybox to always be considered at the far projection plane.&nbsp; We also output the input vertex position, as we will use it to lookup the appropriate texel from the cube map in our pixel shader.&nbsp; Since the position of the vertex on the sphere is effectively a scaled normal vector radiating from the sphere origin, and the cube-map lookup vector does not care about the magnitude, only the direction, using a sphere for our skybox geometry makes the texture lookup very simple.</p><pre class="csharpcode">RasterizerState NoCull
+{
+    CullMode = None;
+};
+
+DepthStencilState LessEqualDSS
+{
+    <span class="rem">// Make sure the depth function is LESS_EQUAL and not just LESS.  </span>
+    <span class="rem">// Otherwise, the normalized depth values at z = 1 (NDC) will </span>
+    <span class="rem">// fail the depth test if the depth buffer was cleared to 1.</span>
+    DepthFunc = LESS_EQUAL;
+};
+
+technique11 SkyTech
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
+        SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS() ) );
+        
+        SetRasterizerState(NoCull);
+        SetDepthStencilState(LessEqualDSS, 0);
+    }
+}</pre>
+<p>The last thing to note about our skybox shader is that we need to set some render states in order to render the skybox correctly.&nbsp; Because we are viewing the sky sphere from the inside, rather than the outside, the winding order on our triangles will be backward, so we need to disable culling.&nbsp; Also, because we explicitly set the sky sphere to render at the far plane, we need to tweak the depth test to LESS_EQUAL, otherwise our skybox geometry will fail the depth test, assuming we clear the depth buffer to 1.0f, as we have been and will continue doing as the first step of our rendering process.</p>
+<p>Like all of our effect shaders, we will write a C# wrapper class to encapsulate the details of our shader variables and techniques, and add and instance of this wrapper to our Effects static class.&nbsp; Since this shader is pretty simple, and we have implemented a number of these already, I will omit the wrapper class.&nbsp; If you wish to review the code, check out the Core/Effects/SkyEffect.cs file on GitHub.</p>
+<h3>Skybox Class</h3>
+<p>We are also going to write a class to wrap the geometry and cube map texture for a skybox.&nbsp; The primary duties of this class will be to create the vertex and index buffers for our sky sphere, load an environment map from file, and handle drawing the skybox using our skybox shader effect.</p><pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> Sky : DisposableClass {
+    <span class="kwrd">private</span> Buffer _vb;
+    <span class="kwrd">private</span> Buffer _ib;
+    <span class="kwrd">private</span> ShaderResourceView _cubeMapSRV;
+    <span class="kwrd">public</span> ShaderResourceView CubeMapSRV { get { <span class="kwrd">return</span> _cubeMapSRV; } <span class="kwrd">private</span> set { _cubeMapSRV = <span class="kwrd">value</span>; } }
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> <span class="kwrd">int</span> _indexCount;
+    <span class="kwrd">private</span> <span class="kwrd">bool</span> _disposed;
+
+    <span class="kwrd">public</span> Sky(Device device, <span class="kwrd">string</span> filename, <span class="kwrd">float</span> skySphereRadius) {
+        CubeMapSRV = ShaderResourceView.FromFile(device, filename);
+
+        var sphere = GeometryGenerator.CreateSphere(skySphereRadius, 30, 30);
+        var vertices = sphere.Vertices.Select(v =&gt; v.Position).ToArray();
+        var vbd = <span class="kwrd">new</span> BufferDescription(
+            Marshal.SizeOf(<span class="kwrd">typeof</span>(Vector3)) * vertices.Length, 
+            ResourceUsage.Immutable, 
+            BindFlags.VertexBuffer, 
+            CpuAccessFlags.None, 
+            ResourceOptionFlags.None, 
+            0
+        );
+        _vb = <span class="kwrd">new</span> Buffer(device, <span class="kwrd">new</span> DataStream(vertices, <span class="kwrd">false</span>, <span class="kwrd">false</span>), vbd);
+
+        _indexCount = sphere.Indices.Count;
+        var ibd = <span class="kwrd">new</span> BufferDescription(
+            _indexCount * <span class="kwrd">sizeof</span>(<span class="kwrd">int</span>), 
+            ResourceUsage.Immutable, 
+            BindFlags.IndexBuffer, 
+            CpuAccessFlags.None, 
+            ResourceOptionFlags.None, 
+            0
+        );
+        _ib = <span class="kwrd">new</span> Buffer(device, <span class="kwrd">new</span> DataStream(sphere.Indices.ToArray(), <span class="kwrd">false</span>, <span class="kwrd">false</span>), ibd);
+
+    }
+    <span class="kwrd">protected</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Dispose(<span class="kwrd">bool</span> disposing) {
+        <span class="kwrd">if</span> (!_disposed) {
+            <span class="kwrd">if</span> (disposing) {
+                Util.ReleaseCom(<span class="kwrd">ref</span> _vb);
+                Util.ReleaseCom(<span class="kwrd">ref</span> _ib);
+                Util.ReleaseCom(<span class="kwrd">ref</span> _cubeMapSRV);
+            }
+            _disposed = <span class="kwrd">true</span>;
+        }
+        <span class="kwrd">base</span>.Dispose(disposing);
+    }
+    <span class="rem">// snip...</span>
+}</pre>
+<p>There is nothing terribly interesting in our initialization/teardown code for the skybox class.&nbsp; We make use of our GeometryGenerator utility class to create the vertices and indices of the skybox, and pull just the position data from the resulting mesh vertex data.&nbsp; Since this class needs to manage D3D Buffers and textures, we subclass it from our DisposableClass base class and follow the standard pattern for releasing DirectX COM resources.</p><pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> Draw(DeviceContext dc, CameraBase camera) {
+    var eyePos = camera.Position;
+    var t = Matrix.Translation(eyePos);
+    var wvp = t * camera.ViewProj;
+
+    Effects.SkyFX.SetWorldViewProj(wvp);
+    Effects.SkyFX.SetCubeMap(_cubeMapSRV);
+
+    var stride = Marshal.SizeOf(<span class="kwrd">typeof</span>(Vector3));
+    <span class="kwrd">const</span> <span class="kwrd">int</span> Offset = 0;
+    dc.InputAssembler.SetVertexBuffers(0, <span class="kwrd">new</span> VertexBufferBinding(_vb, stride, Offset));
+    dc.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
+    dc.InputAssembler.InputLayout = InputLayouts.Pos;
+    dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+    var tech = Effects.SkyFX.SkyTech;
+    <span class="kwrd">for</span> (var p = 0; p &lt; tech.Description.PassCount; p++) {
+        var pass = tech.GetPassByIndex(p);
+        pass.Apply(dc);
+        dc.DrawIndexed(_indexCount, 0, 0);
+    }
+}</pre>
+<p>Our draw function requires that we pass in a DeviceContext and a CameraBase.&nbsp; We construct a world matrix for our skybox from the camera’s position and set out shader effect variables.&nbsp; Next we setup our buffers and device properties and render the skybox sphere using the sky shader.</p>
+<h3>Rendering a Skybox</h3>
+<p>To add a skybox to one of our demo applications, we simply need to create the skybox in our Init() function, and use the Draw() method of the skybox object at the end of our DrawScene() method.&nbsp; To minimize overdraw, we should always draw the skybox last, as everything else in our scene will pass the depth test over our far-plane skybox pixel, and we will thus waste cycles drawing pixels that will be discarded if we render the skybox early.</p><pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> DrawScene() {
+    ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
+    ImmediateContext.ClearDepthStencilView(DepthStencilView, 
+        DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+
+    <span class="rem">// render everything else...</span>
+
+    _sky.Draw(ImmediateContext, _camera);
+    <span class="rem">// clear states set by the sky effect</span>
+    ImmediateContext.Rasterizer.State = <span class="kwrd">null</span>;
+    ImmediateContext.OutputMerger.DepthStencilState = <span class="kwrd">null</span>;
+    ImmediateContext.OutputMerger.DepthStencilReference = 0;
+
+    SwapChain.Present(0, PresentFlags.None);
+}</pre>
+<table cellspacing="0" cellpadding="2" width="524" border="0">
+<tbody>
+<tr>
+    <td valign="top" width="522"><a href="http://lh5.ggpht.com/-K2q2yGdlJTo/Uiz_h1Qxe8I/AAAAAAAADJ4/roq1Qwgb4Z0/s1600-h/skybox%25255B4%25255D.png"><img title="skybox" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="skybox" src="http://lh5.ggpht.com/-6lQwhzKcqrc/Uiz_jRGv44I/AAAAAAAADKA/u95Ps8CPD-4/skybox_thumb%25255B2%25255D.png?imgmax=800" width="621" height="484"></a>
+        </td></tr>
+<tr>
+<td valign="top" width="522">It’s hard to tell from a static screen-shot, but the terrain and sky remain infinitely far away no matter how you move the position of the camera.</td></tr></tbody></table>
+<h3>Environmental Reflections</h3>
+<p>Another similar application of cube maps is for rendering reflections on arbitrary objects.&nbsp; We saw <a href="http://richardssoftware.blogspot.com/2013/08/planar-reflections-and-shadows-using.html" target="_blank">earlier</a> how to render reflections on planar(flat) surfaces, but for rendering reflections on curved or irregular surfaces, the stenciling method presented there falls apart quickly; one would need to process each triangle separately, and in addition to the speed hit you would take in issuing that many draw calls, the effect would probably look wonky.&nbsp; To get truly accurate reflections, one would need to use ray-tracing techniques, which are generally prohibitively expensive to use for real-time rendering.&nbsp; Instead, we can use environment maps, which, while not perfect, provide generally good results for curvy and irregular surfaces.</p>
+<p>To add environment mapped reflections to our standard Basic.fx shader, we need to add a TextureCube shader constant, and add the following code to our pixel shader, after we have computed the lit color of a pixel.&nbsp; This also necessitates adding another set of EffectTechniques, similar to those we have already implemented, with reflection enabled.</p><pre class="csharpcode"><span class="kwrd">if</span>( gReflectionEnabled )
+{
+    float3 incident = -toEye;
+    float3 reflectionVector = reflect(incident, pin.NormalW);
+    float4 reflectionColor  = gCubeMap.Sample(samAnisotropic, reflectionVector);
+
+    litColor += gMaterial.Reflect*reflectionColor;
+}</pre>
+<p>If we have reflection enabled, we determine the incoming angle to the surface, by inverting the previously computer toEye vector.&nbsp; Next, we compute our cube map lookup by reflecting this incoming view vector using the HLSL <strong>reflect</strong> intrinsic function about the pixel normal vector, and sample the cube map.&nbsp; We then add the sampled cubemap color, scaled by the object’s material reflectance value, to our computed lit pixel color.</p>
+<p>You may recall that when we created our Material structure, way back when we were first covering <a href="http://richardssoftware.blogspot.com/2013/07/lighting-take-1.html" target="_blank">lighting</a>, that we included a Color4 component Reflect.&nbsp; Up until now, we have not used this property, so it has defaulted to a black color.&nbsp; When using reflection, we will now use this property to control the shade of colors that our surfaces reflect; i.e. we can create a material that only reflects red color by setting the Reflect value to Color.Red.</p>
+<p>One limitation of environment mapped reflections like this, is that they do not work all that well for flat surfaces.&nbsp; This is because of the way we sample the cube map to determine the reflected pixel color.&nbsp; If we have multiple flat surfaces, one can observe that the reflection produced for one object viewed at a certain angle will be the same as for all other planar objects viewed from a matching angle.&nbsp; This is because the cube map lookup only takes into consideration the direction of the reflection vector.&nbsp; On curved surfaces, this is not particularly noticeable, since the interpolated pixel normal varies across the surface.</p>
+<table cellspacing="0" cellpadding="2" width="613" border="0">
+<tbody>
+<tr>
+<td valign="top" width="611"><a href="http://lh5.ggpht.com/-aTP4dFUD19w/Uiz_luqWufI/AAAAAAAADKI/DqRBxVQbECE/s1600-h/cubemap-2%25255B3%25255D.png"><img title="cubemap-2" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="cubemap-2" src="http://lh4.ggpht.com/-WK8uhIE1jt4/Uiz_nVb2xmI/AAAAAAAADKQ/F7t49vJHidg/cubemap-2_thumb%25255B1%25255D.png?imgmax=800" width="617" height="484"></a></td></tr>
+<tr>
+<td valign="top" width="611">The skull &amp; columns scene with environment mapped reflections.&nbsp; Note the sun and sky reflected approximately matches the portion of the skybox shown in the previous screenshot.</td></tr></tbody></table>
+<h3>Next Steps…</h3>
+<p>You may have noticed that the reflections we are showing here only include the skybox cubemap.&nbsp; These can be considered static environmental reflections; we do not include the local scene geometry in the reflections, as they are not part of the skybox cubemap.&nbsp; To render the local geometry, we need to dynamically create a cube map from the perspective of each reflective object, by rendering the scene along each axis from the position of the object.&nbsp; This can get very expensive, as we need to render the scene six additional times for each reflective object, but it does allow us to render more realistic reflections.&nbsp; We’ll cover how to do this next time.</p>
+<style type="text/css">.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+</style>

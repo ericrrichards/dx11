@@ -18,6 +18,8 @@ using Effect = SlimDX.Direct3D11.Effect;
 using MapFlags = SlimDX.Direct3D11.MapFlags;
 
 namespace LightingDemo {
+    using Core.Vertex;
+
     public class LightingDemo : D3DApp {
         private Buffer _landVB;
         private Buffer _landIB;

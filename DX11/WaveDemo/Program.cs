@@ -9,6 +9,7 @@ namespace WaveDemo {
     using System.Windows.Forms;
 
     using Core;
+    using Core.Vertex;
 
     using SlimDX;
     using SlimDX.D3DCompiler;

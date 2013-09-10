@@ -6,11 +6,17 @@ namespace Core {
         private readonly Plane[] _frustum;
         public Frustum(Matrix vp) {
             _frustum = new[] {
+                //left
                 new Plane(vp.M14 + vp.M11, vp.M24 + vp.M21, vp.M34 + vp.M31, vp.M44 + vp.M41),
+                // right
                 new Plane(vp.M14 - vp.M11, vp.M24 - vp.M21, vp.M34 - vp.M31, vp.M44 - vp.M41),
-                new Plane(vp.M14 - vp.M12, vp.M24 - vp.M22, vp.M34 - vp.M32, vp.M44 - vp.M42),
+                // bottom
                 new Plane(vp.M14 + vp.M12, vp.M24 + vp.M22, vp.M34 + vp.M32, vp.M44 + vp.M42),
+                // top
+                new Plane(vp.M14 - vp.M12, vp.M24 - vp.M22, vp.M34 - vp.M32, vp.M44 - vp.M42),
+                //near
                 new Plane(vp.M13, vp.M23, vp.M33, vp.M43),
+                //far
                 new Plane(vp.M14 - vp.M13, vp.M24 - vp.M23, vp.M34 - vp.M33, vp.M44 - vp.M43)
             };
             foreach (var plane in Planes) {

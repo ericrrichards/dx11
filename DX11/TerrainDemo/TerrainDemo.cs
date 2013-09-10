@@ -28,11 +28,11 @@ namespace TerrainDemo {
 
         protected TerrainDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Terrain Demo";
-            Enable4xMsaa = false;
+            Enable4xMsaa = true;
             _lastMousePos = new Point();
 
             _camera = new FpsCamera {
-                Position = new Vector3(0, 2, 100)
+                Position = new Vector3(0, 20, 100)
             };
             _dirLights = new[] {
                 new DirectionalLight {

@@ -208,11 +208,16 @@ namespace Core {
                 if (disposing) {
                     Util.ReleaseCom(ref RenderTargetView);
                     Util.ReleaseCom(ref DepthStencilView);
-                    Util.ReleaseCom(ref SwapChain);
+                    
                     Util.ReleaseCom(ref DepthStencilBuffer);
                     if (ImmediateContext != null) {
                         ImmediateContext.ClearState();
                     }
+
+                    if (SwapChain.IsFullScreen) {
+                        SwapChain.SetFullScreenState(false, null);
+                    }
+                    Util.ReleaseCom(ref SwapChain);
                     Util.ReleaseCom(ref ImmediateContext);
                     Util.ReleaseCom(ref Device);
                 }

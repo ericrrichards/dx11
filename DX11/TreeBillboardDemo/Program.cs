@@ -13,6 +13,7 @@ namespace TreeBillboardDemo {
 
     using Core;
     using Core.FX;
+    using Core.Vertex;
 
     using SlimDX;
     using SlimDX.Direct3D11;
