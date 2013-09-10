@@ -1,4 +1,6 @@
-﻿namespace VoronoiMap {
+﻿using System;
+
+namespace VoronoiMap {
     public class ParkerMillerPnrg {
         public int Seed { get; set; }
         public ParkerMillerPnrg() {
@@ -17,6 +19,11 @@
         private int Gen() {
             return Seed = (Seed * 16807) % 2147483647;
         }
-        
+
+        public int NextIntRange(float min, float max) {
+            min -= 0.4999f;
+            max += 0.4999f;
+            return (int) Math.Round(min + ((max - min)*NextFloat()));
+        }
     }
 }

@@ -29,6 +29,11 @@ namespace VoronoiMap.Voronoi {
         public float C { get { return c; } }
         public Vertex LeftVertex { get { return _leftVertex; } }
         public Vertex RightVertex { get { return _rightVertex; } }
+        public bool Visible {
+            get { return _clippedVertices != null; }
+        }
+
+        public Dictionary<LR, Vector2> ClippedEnds { get { return _clippedVertices; } }
 
         private void Init() {
             _sites = new Dictionary<LR, Site>();
@@ -175,5 +180,24 @@ namespace VoronoiMap.Voronoi {
                 _clippedVertices[LR.Left] = new Vector2(x1, y1);
             }
         }
+
+        public LineSegment DelaunayLine() {
+            return new LineSegment(LeftSite.Coord, RightSite.Coord);
+        }
+
+        public LineSegment VoronoiEdge() {
+            if (!Visible) return new LineSegment(null, null);
+            return new LineSegment(_clippedVertices[LR.Left], _clippedVertices[LR.Right]);
+        }
+    }
+
+    public class LineSegment {
+        public LineSegment(Vector2? p0, Vector2? p1) {
+            P0 = p0;
+            P1 = p1;
+        }
+
+        public Vector2? P1 { get; set; }
+        public Vector2? P0 { get; set; }
     }
 }
