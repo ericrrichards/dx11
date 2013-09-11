@@ -14,6 +14,8 @@ using SlimDX.Direct3D11;
 using Buffer = SlimDX.Direct3D11.Buffer;
 
 namespace VoronoiMap {
+    using System.Linq;
+
     class VoronoiMapDemo :D3DApp {
         private FpsCamera _camera;
         private Point _lastMousePos;
@@ -25,6 +27,7 @@ namespace VoronoiMap {
         private bool _disposed;
         private Dictionary<string, Color4> _biomeColors;
         private int _mapVertCount;
+        
 
         protected VoronoiMapDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Voronoi Map Demo";
@@ -43,7 +46,7 @@ namespace VoronoiMap {
             _biomeColors["Taiga"] = Color.DarkGreen;
             _biomeColors["Shrubland"] = Color.DarkOliveGreen;
             _biomeColors["TemperateDesert"] = Color.SaddleBrown;
-            _biomeColors["TemperateRainforest"] = Color.ForestGreen;
+            _biomeColors["TemperateRainForest"] = Color.ForestGreen;
             _biomeColors["TemperateDecidousForest"] = Color.DarkSeaGreen;
             _biomeColors["Grassland"] = Color.YellowGreen;
             _biomeColors["TropicalRainForest"] = Color.LawnGreen;
@@ -52,7 +55,7 @@ namespace VoronoiMap {
 
             _camera = new FpsCamera { Position = new Vector3(0, 2, -15) };
             _map = new Map(100.0f);
-            _map.NewIsland("blob", 0, 0);
+            _map.NewIsland("square", 0, 0);
             _map.Go(0,0);
         }
 
@@ -89,22 +92,25 @@ namespace VoronoiMap {
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
             if (Util.IsKeyDown(Keys.Up)) {
-                _camera.Walk(10.0f * dt);
+                _camera.Walk(100.0f * dt);
             }
             if (Util.IsKeyDown(Keys.Down)) {
-                _camera.Walk(-10.0f * dt);
+                _camera.Walk(-100.0f * dt);
             }
             if (Util.IsKeyDown(Keys.Left)) {
-                _camera.Strafe(-10.0f * dt);
+                _camera.Strafe(-100.0f * dt);
             }
             if (Util.IsKeyDown(Keys.Right)) {
-                _camera.Strafe(10.0f * dt);
+                _camera.Strafe(100.0f * dt);
             }
             if (Util.IsKeyDown(Keys.PageUp)) {
                 _camera.Zoom(-dt);
             }
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
+            }
+            if (Util.IsKeyDown(Keys.Space)) {
+                _camera.LookAt(new Vector3(0, 5, -5), new Vector3(0,0,0), Vector3.UnitY);
             }
         }
         public override void DrawScene() {
@@ -121,6 +127,11 @@ namespace VoronoiMap {
             Matrix viewProj = _camera.ViewProj;
             Effects.ColorFX.SetWorldViewProj(viewProj);
 
+            ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
+            
+            if (Util.IsKeyDown(Keys.W)) {
+                ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
+            }
             ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_mapVB, VertexPC.Stride, 0));
 
             for (int p = 0; p < Effects.ColorFX.ColorTech.Description.PassCount; p++) {
@@ -128,7 +139,10 @@ namespace VoronoiMap {
                 pass.Apply(ImmediateContext);
                 ImmediateContext.Draw(_mapVertCount, 0);
             }
+            ImmediateContext.Rasterizer.State = null;
+
             
+
             SwapChain.Present(0, PresentFlags.None);
         }
 
@@ -158,10 +172,16 @@ namespace VoronoiMap {
                 foreach (var edge in p.Borders) {
                     var c1 = edge.V0;
                     var c2 = edge.V1;
-                    if ( c1 == null || c2 == null) continue;
-                    verts.Add(new VertexPC(new Vector3(p.Point.X, p.Elevation, p.Point.Y), _biomeColors[p.Biome]));
-                    verts.Add(new VertexPC(new Vector3(c1.Point.X, c1.Elevation, c1.Point.Y), _biomeColors[p.Biome] ));
-                    verts.Add(new VertexPC(new Vector3(c2.Point.X, c2.Elevation, c2.Point.Y), _biomeColors[p.Biome] ));
+                    var c3 = edge.Midpoint;
+                    if ( c1 == null || c2 == null ) continue;
+
+                    verts.Add(new VertexPC(new Vector3(p.Point.X, p.Elevation * 2.0f, p.Point.Y), _biomeColors[p.Biome]));
+                    verts.Add(new VertexPC(new Vector3(c1.Point.X, c1.Elevation*2.0f, c1.Point.Y), _biomeColors[p.Biome] ));
+                    verts.Add(new VertexPC(new Vector3(c3.Value.X, (c1.Elevation + c2.Elevation)*1.0f, c3.Value.Y), _biomeColors[p.Biome] ));
+                    verts.Add(new VertexPC(new Vector3(p.Point.X, p.Elevation * 2.0f, p.Point.Y), _biomeColors[p.Biome]));
+                    verts.Add(new VertexPC(new Vector3(c3.Value.X, (c1.Elevation + c2.Elevation) *1.0f, c3.Value.Y), _biomeColors[p.Biome]));
+                    verts.Add(new VertexPC(new Vector3(c2.Point.X, c2.Elevation * 2.0f, c2.Point.Y), _biomeColors[p.Biome]));
+                    
                 }
             }
             _mapVertCount = verts.Count;
@@ -176,7 +196,9 @@ namespace VoronoiMap {
                 return;
             }
             app.Run();
+             
         }
+        
     }
 
 

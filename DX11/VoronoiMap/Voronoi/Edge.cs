@@ -6,11 +6,11 @@ using SlimDX;
 namespace VoronoiMap.Voronoi {
     public class Edge {
         public readonly static Edge Deleted = new Edge();
-        private static int _nedges = 0;
+        private static int nedges;
 
-        private int _edgeIndex;
+        private readonly int _edgeIndex;
 
-        private float a, b, c;
+        private float _a, _b, _c;
 
 
         private Dictionary<LR, Site> _sites;
@@ -19,15 +19,15 @@ namespace VoronoiMap.Voronoi {
         private Dictionary<LR, Vector2> _clippedVertices;
 
         public Edge() {
-            _edgeIndex = _nedges++;
+            _edgeIndex = nedges++;
             Init();
         }
 
         public Site RightSite { get { return _sites[LR.Right]; } set { _sites[LR.Right] = value; } }
         public Site LeftSite { get { return _sites[LR.Left]; } set { _sites[LR.Left] = value; } }
-        public float A { get { return a; } }
-        public float B { get { return b; } }
-        public float C { get { return c; } }
+        public float A { get { return _a; } }
+        public float B { get { return _b; } }
+        public float C { get { return _c; } }
         public Vertex LeftVertex { get { return _leftVertex; } }
         public Vertex RightVertex { get { return _rightVertex; } }
         public bool Visible {
@@ -47,8 +47,8 @@ namespace VoronoiMap.Voronoi {
         public static Edge CreateBisectingEdge(Site s0, Site s1) {
             var dx = s1.X - s0.X;
             var dy = s1.Y - s0.Y;
-            var absDx = Math.Abs(dx);
-            var abdDy = Math.Abs(dy);
+            var absDx = dx > 0 ? dx : -dx;
+            var abdDy = dy > 0 ? dy : -dy;
             var c = s0.X*dx + s0.Y*dy + (dx*dx + dy*dy)*0.5f;
             float a, b;
 
@@ -69,16 +69,15 @@ namespace VoronoiMap.Voronoi {
             s1.AddEdge(edge);
             edge._leftVertex = null;
             edge._rightVertex = null;
-            edge.a = a;
-            edge.b = b;
-            edge.c = c;
+            edge._a = a;
+            edge._b = b;
+            edge._c = c;
+
+            Console.WriteLine("CreateBisectingEdge: a {0} b {1} c {2} - {3}", edge._a, edge._b, edge._c, edge._edgeIndex);
             return edge;
         }
 
         public void SetVertex(LR leftRight, Vertex v) {
-            if (v == null) {
-                Debugger.Break();
-            }
             if (leftRight == LR.Left) {
                 _leftVertex = v;
             } else {
@@ -93,7 +92,7 @@ namespace VoronoiMap.Voronoi {
             var ymax = bounds.Bottom;
 
             Vertex v0, v1;
-            if (Equals(a, 1.0f) && b >= 0.0f) {
+            if (Equals(_a, 1.0f) && _b >= 0.0f) {
                 v0 = _rightVertex;
                 v1 = _leftVertex;
             } else {
@@ -103,7 +102,7 @@ namespace VoronoiMap.Voronoi {
 
             float x0, x1, y0, y1;
 
-            if (Equals(a, 1.0f)) {
+            if (Equals(_a, 1.0f)) {
                 y0 = ymin;
                 if (v0 != null && v0.Y > ymin) {
                     y0 = v0.Y;
@@ -111,7 +110,7 @@ namespace VoronoiMap.Voronoi {
                 if (y0 > ymax) {
                     return;
                 }
-                x0 = c - b*y0;
+                x0 = _c - _b*y0;
                 y1 = ymax;
                 if (v1 != null && v1.Y < ymax) {
                     y1 = v1.Y;
@@ -119,23 +118,23 @@ namespace VoronoiMap.Voronoi {
                 if (y1 < ymin) {
                     return;
                 }
-                x1 = c - b*y1;
+                x1 = _c - _b*y1;
                 if ((x0 > xmax && x1 > xmax) || (x0 < xmin && x1 < xmin)) {
                     return;
                 }
                 if (x0 > xmax) {
                     x0 = xmax;
-                    y0 = (c - x0)/b;
+                    y0 = (_c - x0)/_b;
                 } else if (x0 < xmin) {
                     x0 = xmin;
-                    y0 = (c - x0)/b;
+                    y0 = (_c - x0)/_b;
                 }
                 if (x1 > xmax) {
                     x1 = xmax;
-                    y1 = (c - x1)/b;
+                    y1 = (_c - x1)/_b;
                 } else if (x1 < xmin) {
                     x1 = xmin;
-                    y1 = (c - x1)/b;
+                    y1 = (_c - x1)/_b;
                 }
             } else {
                 x0 = xmin;
@@ -145,7 +144,7 @@ namespace VoronoiMap.Voronoi {
                 if (x0 > xmax) {
                     return;
                 }
-                y0 = c - a*x0;
+                y0 = _c - _a*x0;
                 x1 = xmax;
                 if (v1 != null && v1.X < xmax) {
                     x1 = v1.X;
@@ -153,25 +152,25 @@ namespace VoronoiMap.Voronoi {
                 if (x1 < xmin) {
                     return;
                 }
-                y1 = c - a*x1;
+                y1 = _c - _a*x1;
                 if ((y0 > ymax && y1 > ymax) || (y0 < ymin && y1 < ymin)) {
                     return;
                 }
 
                 if (y0 > ymax) {
                     y0 = ymax;
-                    x0 = (c - y0)/a;
+                    x0 = (_c - y0)/_a;
                 } else if (y0 < ymin) {
                     y0 = ymin;
-                    x0 = (c - y0)/a;
+                    x0 = (_c - y0)/_a;
                 }
 
                 if (y1 > ymax) {
                     y1 = ymax;
-                    x1 = (c - y1)/a;
+                    x1 = (_c - y1)/_a;
                 } else if (y1 < ymin) {
                     y1 = ymin;
-                    x1 = (c - y1)/a;
+                    x1 = (_c - y1)/_a;
                 }
 
             }

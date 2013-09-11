@@ -7,9 +7,9 @@ using Core;
 using SlimDX;
 
 namespace VoronoiMap.Voronoi {
-    class Voronoi {
-        private SiteList _sites;
-        private Dictionary<Vector2, Site> _sitesIndexedByLocation;
+    public class Voronoi {
+        private readonly SiteList _sites;
+        private readonly Dictionary<Vector2, Site> _sitesIndexedByLocation;
         private List<Triangle> _triangles;
         public List<Edge> Edges { get; private set; }
         public Rectangle PlotBounds { get; private set; }
@@ -28,7 +28,7 @@ namespace VoronoiMap.Voronoi {
 
 
         private void AddSites(List<Vector2> points, List<Color4> colors) {
-            for (int i = 0; i < points.Count; i++) {
+            for (var i = 0; i < points.Count; i++) {
                 AddSite(points[i], colors != null ? colors[i] : Color.Black, i);
             }
         }
@@ -40,6 +40,14 @@ namespace VoronoiMap.Voronoi {
             var site = new Site(p, index, weight, color);
             _sites.Push(site);
             _sitesIndexedByLocation[p] = site;
+        }
+
+        public List<Vector2> Region(Vector2 p) {
+            var site = _sitesIndexedByLocation[p];
+            if (site == null) {
+                return new List<Vector2>();
+            }
+            return site.Region(PlotBounds);
         }
 
         private void FortunesAlgorithm() {
@@ -77,8 +85,8 @@ namespace VoronoiMap.Voronoi {
 
                     edgeList.Insert(lbnd, bisector);
 
-                    Vertex vertex;
-                    if ((vertex = Vertex.Intersect(lbnd, bisector)) != null) {
+                    Vertex vertex = Vertex.Intersect(lbnd, bisector);
+                    if (vertex != null) {
                         vertices.Add(vertex);
                         heap.Remove(lbnd);
                         lbnd.Vertex = vertex;
@@ -90,8 +98,8 @@ namespace VoronoiMap.Voronoi {
                     halfEdges.Add(bisector);
 
                     edgeList.Insert(lbnd, bisector);
-
-                    if ((vertex = Vertex.Intersect(bisector, rbnd)) != null) {
+                    vertex = Vertex.Intersect(bisector, rbnd);
+                    if (vertex != null) {
                         vertices.Add(vertex);
                         bisector.Vertex = vertex;
                         bisector.YStar = vertex.Y + newSite.Distance(vertex);
@@ -107,9 +115,6 @@ namespace VoronoiMap.Voronoi {
                     var topSite = RightRegion(rbnd) ?? bottomMostSite;
 
                     var v = lbnd.Vertex;
-                    if (v == null) {
-                        Debugger.Break();
-                    }
                     v.SetIndex();
                     lbnd.Edge.SetVertex(lbnd.LeftRight, v);
                     rbnd.Edge.SetVertex(rbnd.LeftRight, v);
@@ -128,9 +133,7 @@ namespace VoronoiMap.Voronoi {
                     var bisector = new HalfEdge(edge, leftRight);
                     halfEdges.Add(bisector);
                     edgeList.Insert(llbnd, bisector);
-                    if (v == null) {
-                        Debugger.Break();
-                    }
+                    
                     edge.SetVertex(LR.Other(leftRight), v);
                     
                     Vertex vertex;
@@ -155,6 +158,7 @@ namespace VoronoiMap.Voronoi {
 
 
             var nullVerts = Edges.Where(e => e.RightVertex == null || e.LeftVertex == null).ToList();
+            
             foreach (var edge in Edges) {
                 edge.ClipVertices(PlotBounds);
             }
@@ -170,15 +174,6 @@ namespace VoronoiMap.Voronoi {
             var edge = he.Edge;
             return edge == null ? null : edge.Site(LR.Other(he.LeftRight));
         }
-
-        public static int CompareByYThenX(Site s1, ICoord s2) {
-            if (s1.Y < s2.Y) return -1;
-            if (s1.Y > s2.Y) return 1;
-            if (s1.X < s2.X) return -1;
-            if (s1.X > s2.X) return 1;
-
-            return 0;
-        }
         public static int CompareByYThenX(Site s1, Vector2 s2) {
             if (s1.Y < s2.Y) return -1;
             if (s1.Y > s2.Y) return 1;
@@ -188,12 +183,13 @@ namespace VoronoiMap.Voronoi {
             return 0;
         }
 
-        public List<Vector2> Region(Vector2 p) {
-            var site = _sitesIndexedByLocation[p];
-            if (site == null) {
-                return new List<Vector2>();
-            }
-            return site.Region(PlotBounds);
+        public static int CompareByYThenX(Site s1, ICoord s2) {
+            if (s1.Y < s2.Y) return -1;
+            if (s1.Y > s2.Y) return 1;
+            if (s1.X < s2.X) return -1;
+            if (s1.X > s2.X) return 1;
+
+            return 0;
         }
     }
 

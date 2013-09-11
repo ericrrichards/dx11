@@ -6,7 +6,7 @@ using SlimDX;
 
 namespace VoronoiMap {
     public class Map {
-        public const int NumPoints = 200;
+        public const int NumPoints = 2000;
         public const float LakeThreshold = 0.3f;
         public const int NumLloydIterations = 2;
 
@@ -114,7 +114,7 @@ namespace VoronoiMap {
                 if (p.Moisture > 0.83) return "TemperateRainForest";
                 if (p.Moisture > 0.50f) return "TemperateDecidousForest";
                 if (p.Moisture > 0.16f) return "Grassland";
-                return "TermperateDesert";
+                return "TemperateDesert";
             }
             if (p.Moisture > 0.66f) return "TropicalRainForest";
             if (p.Moisture > 0.33f) return "TropicalSeasonalForest";
@@ -362,9 +362,9 @@ namespace VoronoiMap {
                 _centers.Add(p);
                 centerLookup[point] = p;
             }
-            /*foreach (var p in _centers) {
+            foreach (var p in _centers) {
                 voronoi.Region(p.Point);
-            }*/
+            }
             _cornerMap = new Dictionary<int, List<Corner>>();
 
             foreach (var libEdge in libEdges) {
@@ -473,7 +473,9 @@ namespace VoronoiMap {
                 var voronoi = new Voronoi.Voronoi(points, null, new Rectangle(0, 0, _size, _size));
                 for (var index = 0; index < points.Count; index++) {
                     var p = points[index];
+
                     var region = voronoi.Region(p);
+                    if (region.Count == 0) continue;
                     p.X = 0.0f;
                     p.Y = 0.0f;
                     foreach (var q in region) {

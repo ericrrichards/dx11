@@ -9,7 +9,7 @@ namespace VoronoiMap.Voronoi {
 
         public EdgeReorderer(List<Edge> origEdges, Type criterion) {
             if (criterion != typeof (Vertex) && criterion != typeof (Site)) {
-                throw new ArgumentException("Edges: criterion must e Vertex or Site");
+                throw new ArgumentException("Edges: criterion must be Vertex or Site");
             }
             Edges = new List<Edge>();
             EdgeOrientations = new List<LR>();
@@ -37,7 +37,7 @@ namespace VoronoiMap.Voronoi {
             }
             done[i] = true;
             ++nDone;
-
+            var loopCount = 0;
             while (nDone < n) {
                 for (i = 1; i < n; i++) {
                     if (done[i]) {
@@ -74,6 +74,9 @@ namespace VoronoiMap.Voronoi {
                         ++nDone;
                     }
                 }
+                loopCount++;
+                if (loopCount > 1000) 
+                    break;
             }
             return newEdges;
         }

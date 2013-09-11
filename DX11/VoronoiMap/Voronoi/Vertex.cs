@@ -3,7 +3,7 @@ using SlimDX;
 namespace VoronoiMap.Voronoi {
     public class Vertex : ICoord {
         private int _vertexIndex;
-        private static int _nVertices = 0;
+        private static int nVertices;
         public static readonly Vertex VertexAtInfinity = new Vertex(float.NaN, float.NaN);
 
         private Vertex(float x, float y) {
@@ -44,16 +44,16 @@ namespace VoronoiMap.Voronoi {
                 halfEdge = he1;
                 edge = edge1;
             }
-            var rightOfSite = intersectionX > edge.RightSite.X;
+            var rightOfSite = intersectionX >= edge.RightSite.X;
             if ((rightOfSite && halfEdge.LeftRight == LR.Left) || (!rightOfSite && halfEdge.LeftRight == LR.Right)) {
                 return null;
             }
-            return Vertex.Create(intersectionX, intersectionY);
+            return Create(intersectionX, intersectionY);
 
         }
 
         public void SetIndex() {
-            _vertexIndex = _nVertices++;
+            _vertexIndex = nVertices++;
         }
         public override string ToString() {
             return "Vertex (" + _vertexIndex + ")";
