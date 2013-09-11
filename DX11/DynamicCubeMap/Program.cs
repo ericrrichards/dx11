@@ -236,6 +236,7 @@ namespace DynamicCubeMap {
         }
 
         private void BuildDynamicCubeMapViews() {
+            // create the render target cube map texture
             var texDesc = new Texture2DDescription() {
                 Width = CubeMapSize,
                 Height = CubeMapSize,
@@ -249,7 +250,7 @@ namespace DynamicCubeMap {
                 OptionFlags = ResourceOptionFlags.GenerateMipMaps | ResourceOptionFlags.TextureCube
             };
             var cubeTex = new Texture2D(Device, texDesc);
-
+            // create the render target view array
             var rtvDesc = new RenderTargetViewDescription() {
                 Format = texDesc.Format,
                 Dimension = RenderTargetViewDimension.Texture2DArray,
@@ -260,7 +261,7 @@ namespace DynamicCubeMap {
                 rtvDesc.FirstArraySlice = i;
                 _dynamicCubeMapRTV[i] = new RenderTargetView(Device, cubeTex, rtvDesc);
             }
-
+            // Create the shader resource view that we will bind to our effect for the cubemap
             var srvDesc = new ShaderResourceViewDescription() {
                 Format = texDesc.Format,
                 Dimension = ShaderResourceViewDimension.TextureCube,
@@ -268,9 +269,9 @@ namespace DynamicCubeMap {
                 MipLevels = -1
             };
             _dynamicCubeMapSRV = new ShaderResourceView(Device, cubeTex, srvDesc);
-
+            // release the texture, now that it is saved to the views
             Util.ReleaseCom(ref cubeTex);
-
+            // create the depth/stencil texture
             var depthTexDesc = new Texture2DDescription() {
                 Width = CubeMapSize,
                 Height = CubeMapSize,
@@ -294,7 +295,7 @@ namespace DynamicCubeMap {
             _dynamicCubeMapDSV = new DepthStencilView(Device, depthTex, dsvDesc);
 
             Util.ReleaseCom(ref depthTex);
-
+            // create the viewport for rendering the cubemap faces
             _cubeMapViewPort = new Viewport(0, 0, CubeMapSize, CubeMapSize, 0, 1.0f);
         }
 
@@ -469,8 +470,15 @@ namespace DynamicCubeMap {
             ImmediateContext.Rasterizer.SetViewports(_cubeMapViewPort);
             for (int i = 0; i < 6; i++) {
                 ImmediateContext.ClearRenderTargetView(_dynamicCubeMapRTV[i], Color.Silver);
-                ImmediateContext.ClearDepthStencilView(_dynamicCubeMapDSV, DepthStencilClearFlags.Depth| DepthStencilClearFlags.Stencil, 1.0f, 0 );
-                ImmediateContext.OutputMerger.SetTargets(_dynamicCubeMapDSV,_dynamicCubeMapRTV[i]);
+                ImmediateContext.ClearDepthStencilView(
+                    _dynamicCubeMapDSV, 
+                    DepthStencilClearFlags.Depth| 
+                    DepthStencilClearFlags.Stencil, 
+                    1.0f, 0 );
+                ImmediateContext.OutputMerger.SetTargets(
+                    _dynamicCubeMapDSV,
+                    _dynamicCubeMapRTV[i]
+                );
                 DrawScene(_cubeMapCamera[i], false);
             }
             ImmediateContext.Rasterizer.SetViewports(Viewport);
@@ -479,7 +487,9 @@ namespace DynamicCubeMap {
             ImmediateContext.GenerateMips(_dynamicCubeMapSRV);
 
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0 );
+            ImmediateContext.ClearDepthStencilView(DepthStencilView, 
+                DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 
+                1.0f, 0 );
 
             DrawScene(_camera, true);
             SwapChain.Present(0, PresentFlags.None);
@@ -511,7 +521,7 @@ namespace DynamicCubeMap {
             Matrix view = camera.View;
             Matrix proj = camera.Proj;
             Matrix viewProj = camera.ViewProj;
-            Effects.BasicFX.SetEyePosW(_camera.Position);
+            Effects.BasicFX.SetEyePosW(camera.Position);
             Effects.BasicFX.SetDirLights(_dirLights);
 
             var activeTexTech = Effects.BasicFX.Light1TexTech;

@@ -6,7 +6,7 @@ namespace VoronoiMap {
     public delegate bool IslandShape(Vector2 p);
     public static class IslandShapes {
         private static int _seed    ;
-        private static ParkerMillerPnrg _islandRandom;
+        private static Random _islandRandom;
         private static int _bumps;
         private static float _startAngle;
         private static float _dipAngle;
@@ -17,13 +17,11 @@ namespace VoronoiMap {
             _seed = seed;
             switch (type) {
                 case "radial":
-                    _islandRandom = new ParkerMillerPnrg() {
-                        Seed = seed
-                    };
-                    _bumps = _islandRandom.NextIntRange(1, 6);
-                    _startAngle = _islandRandom.NextFloatRange(0, MathF.PI*2);
-                    _dipAngle = _islandRandom.NextFloatRange(0, MathF.PI*2);
-                    _dipWidth = _islandRandom.NextFloatRange(0.2f, 0.7f);
+                    _islandRandom = new Random(seed);
+                    _bumps = _islandRandom.Next(1, 6);
+                    //_startAngle = _islandRandom.Next(0, MathF.PI*2);
+                    //_dipAngle = _islandRandom.Next(0, MathF.PI*2);
+                    //_dipWidth = _islandRandom.Next(0.2f, 0.7f);
                     return Radial;
                 case "perlin":
                     return Perlin;
