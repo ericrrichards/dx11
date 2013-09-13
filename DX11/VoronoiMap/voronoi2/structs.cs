@@ -1,24 +1,191 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SlimDX;
 
-namespace VoronoiMap.voronoi2 {
+namespace VoronoiMap.Voronoi2 {
+    using System.Collections;
+    using System.Diagnostics;
+    using System.Linq;
+
+    [DebuggerDisplay("{SiteID} :: {Coord.X}, {Coord.Y}")]
     public class Site {
         public Vector2 Coord;
         public int SiteID;
+
+        public class Comparer : IComparer<Vector2> {
+            public int Compare(Vector2 x, Vector2 y) {
+                if (x.Y < y.Y) return -1;
+                if (x.Y > y.Y) return 1;
+                if (x.X < y.X) return -1;
+                if (x.X > y.X) return 1;
+                return 0;
+            }
+        }
     }
 
     public class Edge {
         public float A, B, C;
-        public Dictionary<LR, Site> EP = new Dictionary<LR, Site>();
-        public Dictionary<LR, Site> Reg = new Dictionary<LR, Site>();
+        public Dictionary<LR, Site> Vertices = new Dictionary<LR, Site>();
+        public Dictionary<LR, Site> Sites = new Dictionary<LR, Site>();
+        private Dictionary<LR, Vector2> _clippedVertices;
+        public Dictionary<LR, Vector2> ClippedEnds { get { return _clippedVertices; } }
+        public bool Visible {
+            get { return _clippedVertices != null; }
+        }
         public int EdgeID;
         public static readonly Edge Deleted = new Edge();
+
+        internal Edge() {
+            Vertices[LR.Left] = null;
+            Vertices[LR.Right] = null;
+            Sites[LR.Left] = null;
+            Sites[LR.Right] = null;
+        }
+
+        public LineSegment DelaunayLine() {
+            return new LineSegment(Sites[LR.Left].Coord, Sites[LR.Right].Coord);
+        }
+
+        public LineSegment VoronoiEdge() {
+            if (Visible) {
+                return new LineSegment(ClippedEnds[LR.Left], ClippedEnds[LR.Right]);
+            }
+            return new LineSegment(null, null);
+        }
+        public void ClipVertices(Rectangle bounds) {
+            var xmin = bounds.Left;
+            var ymin = bounds.Top;
+            var xmax = bounds.Right;
+            var ymax = bounds.Bottom;
+
+            Site v0, v1;
+            if (Equals(A, 1.0f) && B >= 0.0f) {
+                v0 = Vertices[LR.Right];
+                v1 = Vertices[LR.Left];
+            } else {
+                v0 = Vertices[LR.Left];
+                v1 = Vertices[LR.Right];
+            }
+
+            float x0, x1, y0, y1;
+
+            if (Equals(A, 1.0f)) {
+                y0 = ymin;
+                if (v0 != null && v0.Coord.Y > ymin) {
+                    y0 = v0.Coord.Y;
+                }
+                if (y0 > ymax) {
+                    return;
+                }
+                x0 = C - B * y0;
+                y1 = ymax;
+                if (v1 != null && v1.Coord.Y < ymax) {
+                    y1 = v1.Coord.Y;
+                }
+                if (y1 < ymin) {
+                    return;
+                }
+                x1 = C - B * y1;
+                if ((x0 > xmax && x1 > xmax) || (x0 < xmin && x1 < xmin)) {
+                    return;
+                }
+                if (x0 > xmax) {
+                    x0 = xmax;
+                    y0 = (C - x0) / B;
+                } else if (x0 < xmin) {
+                    x0 = xmin;
+                    y0 = (C - x0) / B;
+                }
+                if (x1 > xmax) {
+                    x1 = xmax;
+                    y1 = (C - x1) / B;
+                } else if (x1 < xmin) {
+                    x1 = xmin;
+                    y1 = (C - x1) / B;
+                }
+            } else {
+                x0 = xmin;
+                if (v0 != null && v0.Coord.X > xmin) {
+                    x0 = v0.Coord.X;
+                }
+                if (x0 > xmax) {
+                    return;
+                }
+                y0 = C - A * x0;
+                x1 = xmax;
+                if (v1 != null && v1.Coord.X < xmax) {
+                    x1 = v1.Coord.X;
+                }
+                if (x1 < xmin) {
+                    return;
+                }
+                y1 = C - A * x1;
+                if ((y0 > ymax && y1 > ymax) || (y0 < ymin && y1 < ymin)) {
+                    return;
+                }
+
+                if (y0 > ymax) {
+                    y0 = ymax;
+                    x0 = (C - y0) / A;
+                } else if (y0 < ymin) {
+                    y0 = ymin;
+                    x0 = (C - y0) / A;
+                }
+
+                if (y1 > ymax) {
+                    y1 = ymax;
+                    x1 = (C - y1) / A;
+                } else if (y1 < ymin) {
+                    y1 = ymin;
+                    x1 = (C - y1) / A;
+                }
+
+            }
+            _clippedVertices = new Dictionary<LR, Vector2>();
+            if (v0 == Vertices[LR.Left]) {
+                _clippedVertices[LR.Left] = new Vector2(x0, y0);
+                _clippedVertices[LR.Right] = new Vector2(x1, y1);
+            } else {
+                _clippedVertices[LR.Right] = new Vector2(x0, y0);
+                _clippedVertices[LR.Left] = new Vector2(x1, y1);
+            }
+        }
+    }
+    public class LineSegment {
+        public LineSegment(Vector2? p0, Vector2? p1) {
+            P0 = p0;
+            P1 = p1;
+        }
+
+        public Vector2? P1 { get; set; }
+        public Vector2? P0 { get; set; }
     }
 
     public class HalfEdge {
+        protected bool Equals(HalfEdge other) {
+            return _index == other._index;
+        }
+
+        public override bool Equals(object obj) {
+            if (ReferenceEquals(null, obj)) {
+                return false;
+            }
+            if (ReferenceEquals(this, obj)) {
+                return true;
+            }
+            if (obj.GetType() != this.GetType()) {
+                return false;
+            }
+            return Equals((HalfEdge)obj);
+        }
+
+        public override int GetHashCode() {
+            return _index;
+        }
+
+        private static int nhe = 0;
+        private readonly int _index;
         public HalfEdge EdgeListRight;
         public HalfEdge EdgeListLeft;
         public Edge Edge;
@@ -27,122 +194,59 @@ namespace VoronoiMap.voronoi2 {
         public float YStar;
         public HalfEdge PriorityQueueNext;
 
-        private HalfEdge(){}
+        internal HalfEdge() {
+            _index = nhe++;
+            
+        }
 
         public static HalfEdge Create(Edge e, LR lr) {
             var answer = new HalfEdge {
                 Edge = e,
                 LeftRight = lr,
                 PriorityQueueNext = null,
-                Vertex = null
+                Vertex = null,
+                
             };
             return answer;
 
         }
-        public class Voronoi {
-            public Voronoi(List<Vector2> points, Rectangle bounds) {
-                Geometry.Init(points.Count, bounds);
-                Edges = new List<Edge>();
-                var sites = new List<Site>();
-                for (int i = 0; i < points.Count; i++) {
-                    sites.Add(new Site(){Coord = points[i], SiteID = i});
-                }
-                Compute(sites);
-            }
-
-
-            public List<Edge> Edges { get; private set; } 
-            public void Compute(List<Site> sites) {
-                var pq = new PriorityQueue(Geometry.SqrtNumSites);
-                var el = new EdgeList(Geometry.SqrtNumSites);
-                var i = 0;
-                el.BottomSite = sites[i++];
-                Out.Site(el.BottomSite);
-                var newSite = sites[i++];
-                var newIntStar = new Vector2(float.MaxValue);
-                while (true) {
-                    if (!pq.Empty) {
-                        newIntStar = pq.Min();
-                    }
-                    if (newSite != null &&
-                        (pq.Empty || newSite.Coord.Y < newIntStar.Y || (newSite.Coord.Y == newIntStar.X && newSite.Coord.X < newIntStar.X))) {
-                        Out.Site(newSite);
-
-                        var lbnd = el.LeftBound(newSite.Coord);
-                        var rbnd = el.Right(lbnd);
-                        var bot = el.RightRegion(lbnd);
-                        var e = Geometry.Bisect(bot, newSite);
-                        var bisector = HalfEdge.Create(e, LR.Left);
-                        el.Insert(lbnd, bisector);
-                        var p = Geometry.Intersect(lbnd, bisector);
-                        if (p != null) {
-                            pq.Delete(lbnd);
-                            pq.Insert(lbnd, p, Geometry.Dist(p, newSite));
-                        }
-                        lbnd = bisector;
-                        bisector = HalfEdge.Create(e, LR.Right);
-                        el.Insert(lbnd, bisector);
-                        p = Geometry.Intersect(bisector, rbnd);
-                        if (p != null) {
-                            pq.Insert(bisector, p, Geometry.Dist(p, newSite));
-                        }
-                        newSite = sites[i++];
-                    } else if (!pq.Empty) {
-                        var lbnd = pq.ExtractMin();
-                        var llbnd = el.Left(lbnd);
-                        var rbnd = el.Right(lbnd);
-                        var rrbnd = el.Right(rbnd);
-                        var bot = el.LeftRegion(lbnd);
-                        var top = el.RightRegion(rbnd);
-                        Out.Triplet(bot, top, el.RightRegion(lbnd));
-                        var v = lbnd.Vertex;
-                        Geometry.Makevertex(v);
-                        Geometry.Endpoint(lbnd.Edge, lbnd.LeftRight, v);
-                        Geometry.Endpoint(rbnd.Edge, rbnd.LeftRight, v);
-                        el.Delete(lbnd);
-                        pq.Delete(rbnd);
-                        el.Delete(rbnd);
-                        var lr = LR.Left;
-                        if (bot.Coord.X > top.Coord.Y) {
-                            var temp = bot;
-                            bot = top;
-                            top = temp;
-                            lr = LR.Right;
-                        }
-                        var e = Geometry.Bisect(bot, top);
-                        var bisector = HalfEdge.Create(e, lr);
-                        el.Insert(llbnd, bisector);
-                        Geometry.Endpoint(e, LR.Other(lr), v);
-                        var p = Geometry.Intersect(llbnd, bisector);
-                        if (p != null) {
-                            pq.Delete(llbnd);
-                            pq.Insert(llbnd, p, Geometry.Dist(p, bot));
-                        }
-                        p = Geometry.Intersect(bisector, rrbnd);
-                        if (p != null) {
-                            pq.Insert(bisector, p, Geometry.Dist(p, bot));
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                for (var lbnd = el.Right(el.LeftEnd); lbnd != el.RightEnd; lbnd = el.Right(lbnd)) {
-                    var e = lbnd.Edge;
-                    Out.Endpoint(e);
-                    Edges.Add(e);
-                }
-            }
-        }
     }
 
-
     public class LR {
-        public static LR Left;
-        public static LR Right;
+        protected bool Equals(LR other) {
+            return _lr == other._lr;
+        }
+
+        public override bool Equals(object obj) {
+            if (ReferenceEquals(null, obj)) {
+                return false;
+            }
+            if (ReferenceEquals(this, obj)) {
+                return true;
+            }
+            if (obj.GetType() != this.GetType()) {
+                return false;
+            }
+            return Equals((LR)obj);
+        }
+
+        public override int GetHashCode() {
+            return _lr;
+        }
+
+        public static LR Left = new LR(0);
+        public static LR Right = new LR(1);
+        private readonly int _lr;
+
         public static LR Other(LR lr) {
             return lr == Left ? Right : Left;
         }
-        private LR(){}
-    }
 
+        private LR(int i) {
+            _lr = i;
+        }
+
+    }
 }
+
+

@@ -1,7 +1,7 @@
 ﻿using System;
 using SlimDX;
 
-namespace VoronoiMap.voronoi2 {
+namespace VoronoiMap.Voronoi2 {
     public static class Geometry {
         public static int NumVertices;
         public static int NumEdges;
@@ -20,10 +20,10 @@ namespace VoronoiMap.voronoi2 {
 
         internal static Edge Bisect(Site s1, Site s2) {
             var newEdge = new Edge();
-            newEdge.Reg[LR.Left] = s1;
-            newEdge.Reg[LR.Right] = s2;
+            newEdge.Sites[LR.Left] = s1;
+            newEdge.Sites[LR.Right] = s2;
 
-            newEdge.EP[LR.Left] = newEdge.EP[LR.Right] = null;
+            newEdge.Vertices[LR.Left] = newEdge.Vertices[LR.Right] = null;
             var dx = s2.Coord.X - s1.Coord.X;
             var dy = s2.Coord.Y - s1.Coord.Y;
             var adx = dx > 0 ? dx : -dx;
@@ -50,7 +50,7 @@ namespace VoronoiMap.voronoi2 {
             if ((e1 == null) || e2 == null) {
                 return null;
             }
-            if (e1.Reg[LR.Right] == e2.Reg[LR.Right]) {
+            if (e1.Sites[LR.Right] == e2.Sites[LR.Right]) {
                 return null;
             }
             var d = (e1.A*e2.B) - (e1.B*e2.A);
@@ -61,16 +61,16 @@ namespace VoronoiMap.voronoi2 {
             var yint = (e2.C*e1.A - e1.C*e2.A)/d;
             HalfEdge el;
             Edge e;
-            if ((e1.Reg[LR.Right].Coord.Y < e2.Reg[LR.Right].Coord.Y) ||
-                (e1.Reg[LR.Right].Coord.Y == e2.Reg[LR.Right].Coord.Y &&
-                 e1.Reg[LR.Right].Coord.X < e2.Reg[LR.Right].Coord.X)) {
+            if ((e1.Sites[LR.Right].Coord.Y < e2.Sites[LR.Right].Coord.Y) ||
+                (e1.Sites[LR.Right].Coord.Y == e2.Sites[LR.Right].Coord.Y &&
+                 e1.Sites[LR.Right].Coord.X < e2.Sites[LR.Right].Coord.X)) {
                 el = el1;
                 e = e1;
             } else {
                 el = el2;
                 e = e2;
             }
-            var rightOfSite = (xint >= e.Reg[LR.Right].Coord.X);
+            var rightOfSite = (xint >= e.Sites[LR.Right].Coord.X);
             if ((rightOfSite && (el.LeftRight == LR.Left)) ||
                 (!rightOfSite && (el.LeftRight == LR.Right))) {
                 return null;
@@ -83,7 +83,7 @@ namespace VoronoiMap.voronoi2 {
 
         internal static bool RightOf(HalfEdge el, Vector2 p) {
             var e = el.Edge;
-            var topSite = e.Reg[LR.Right];
+            var topSite = e.Sites[LR.Right];
             var rightOfSite = (p.X > topSite.Coord.X);
             if (rightOfSite && (el.LeftRight == LR.Left)) {
                 return true;
@@ -108,7 +108,7 @@ namespace VoronoiMap.voronoi2 {
                     }
                 }
                 if (!fast) {
-                    var dxs = topSite.Coord.X - e.Reg[LR.Left].Coord.X;
+                    var dxs = topSite.Coord.X - e.Sites[LR.Left].Coord.X;
                     above = (e.B*(dxp*dxp - dyp*dyp)) < (dxs*dyp*(1.0f + 2.0f*dxp/dxs + e.B*e.B));
                     if (e.B < 0.0f) {
                         above = !above;
@@ -124,8 +124,8 @@ namespace VoronoiMap.voronoi2 {
             return (el.LeftRight == LR.Left ? above : !above);
         }
         public static void Endpoint(Edge e, LR lr, Site s) {
-            e.EP[lr] = s;
-            if (e.EP[LR.Other(lr)] == null) {
+            e.Vertices[lr] = s;
+            if (e.Vertices[LR.Other(lr)] == null) {
                 return;
             }
             Out.Endpoint(e);
