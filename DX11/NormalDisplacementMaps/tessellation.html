@@ -1,0 +1,151 @@
+﻿<p>In our last example on <a href="http://richardssoftware.blogspot.com/2013/09/bump-and-displacement-mapping-with.html" target="_blank">normal mapping and displacement mapping</a>, we made use of the new Direct3D 11 tessellation stages when implementing our displacement mapping effect.&nbsp; For the purposes of the example, we did not examine too closely the concepts involved in making use of these new features, namely the Hull and Domain shaders.&nbsp; These new shader types are sufficiently complicated that they deserve a separate treatment of their own, particularly since we will continue to make use of them for more complicated effects in the future.</p>
+<p>The Hull and Domain shaders are covered in Chapter 13 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>, which I had previously skipped over.&nbsp; Rather than use the example from that chapter, I am going to use the shader effect we developed for our last example instead, so that we can dive into the details of how the hull and domain shaders work in the context of a useful example that we have some background with.</p>
+<p>The primary motivation for using the tessellation stages is to offload work from the the CPU and main memory onto the GPU.&nbsp; We have already looked at a couple of the benefits of this technique in our previous post, but some of the advantages of using the tessellation stages are:</p>
+<ul>
+<li>We can use a lower detail mesh, and specify additional detail using less memory-intensive techniques, like the displacement mapping technique presented earlier, to produce the final, high-quality mesh that is displayed. 
+<li>We can adjust the level of detail of a mesh on-the-fly, depending on the distance of the mesh from the camera or other criteria that we define. 
+<li>We can perform expensive calculations, like collisions and physics calculations, on the simplified mesh stored in main memory, and still render the highly-detailed generated mesh.</li></ul>
+<h3>The Tessellation Stages</h3>
+<p>The tessellation stages sit in the graphics pipeline between the vertex shader and the geometry shader.&nbsp; When we render using the tessellation stages, the vertices created by the vertex shader are not really the vertices that will be rendered to the screen; instead, they are <strong>control points</strong> which define a triangular or quad <strong>patch</strong>, which will be further refined by the tessellation stages into vertices.&nbsp; For most of our usages, we will either be working with triangular patches, with 3 control points, or quad patches, with 4 control points, which correspond to the corner vertices of the triangle or quad.&nbsp; Direct3D 11 supports patches with up to 32 control points, which might be suitable for rendering meshes based on Bezier curves.</p>
+<p>The tessellation stages can be broken down into three component stages:</p>
+<ul>
+<li><strong>Hull Shader Stage</strong> – The hull shader operates on each control point for a geometry patch, and can add, remove or modify its input control points before passing the patch onto the the tessellator stage.&nbsp; The Hull shader also calculates the tessellation factors for a patch, which instruct the tessellator stage how to break the patch up into individual vertices.&nbsp; The hull shader is fully programmable, meaning that we need to define an HLSL function that will be evaluated to construct the patch control points and tessellation factors. 
+<li><strong>Tessellator Stage</strong> – The tessellator stage is a fixed-function (meaning that we do not have to write a shader for it) stage, which samples the input patch and generates a set of vertices that divide the patch, according to the tessellation factors supplied by the hull shader and a partitioning scheme, which defines the algorithm used to subdivide the patch.&nbsp; Vertices created by the tessellator are normalized; i.e. quad patch vertices are specified by referring to them by their (u,v) coordinates on the surface of the quad, while triangle patch vertices use barycentric coordinates to specify their location within the triangle patch. 
+<li><strong>Domain Shader Stage</strong> – The domain shader is a programmable stage (we need to write a shader function for it), which operates on the normalized vertices input from the tessellator stage, and maps them into their final positions within the patch.&nbsp; Typically, the domain shader will interpolate the final vertex value from the patch control points using the uv or barycentric coordinates output by the tessellator.&nbsp; The output vertices from the domain shader will then be passed along to the next stage in the pipeline, either the geometry shader or the pixel shader.</li></ul>
+<!--more-->
+<p>With these definitions out of the way, we can now dive into the displacement mapping effect from our previous example and examine just how the tessellation stages generate the displacement mapped geometry we see on the screen.</p>
+<p>First, let’s take a look at one of the techniques we have defined in our DisplacementMap.fx shader.&nbsp; The Light1 technique is probably our most basic technique, using only a single directional light and no advanced pixel shading techniques.</p><pre class="csharpcode">technique11 Light1
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
+        SetHullShader( CompileShader( hs_5_0, HS() ) );
+        SetDomainShader( CompileShader( ds_5_0, DS() ) );
+        SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS(1, <span class="kwrd">false</span>, <span class="kwrd">false</span>, <span class="kwrd">false</span>, <span class="kwrd">false</span>) ) );
+    }
+}</pre>
+<p>Notice that in addition to setting the vertex and pixel shaders as we have done in our Basic.fx shader, we also have to set the hull and domain shader.&nbsp; These two stage operate as a pair; you should always have a hull shader if you have a domain shader, and vice-versa.&nbsp; </p>
+<h4>Setting up to Render with the DisplacementMap Effect</h4>
+<p>To draw our geometry correctly with the tessellation stages, we have to instruct the GPU that the data in our vertex buffers defines a triangle patch, rather than a simple triangle.&nbsp; Thus, we have to set the PrimitiveTopology to one of the PatchListWithXControlPoints enumeration members, rather than TriangleList.</p><pre class="csharpcode">ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith3ControlPoints;</pre>
+<h4>Vertex Shader</h4>
+<p>Remember that our vertex buffer data, when using the tessellation stages, defines the control points of a patch, rather than actual vertices.&nbsp; Besides the normal transformations that we would perform on a vertex, we also will need to calculate any control values that the tessellation stages will need for control points.&nbsp; For our displacement mapping effect, this is a per-vertex tessellation factor, based on the distance of the vertex from the camera viewpoint.</p><pre class="csharpcode"><span class="kwrd">struct</span> VertexOut
+{
+    float3 PosW       : POSITION;
+    float3 NormalW    : NORMAL;
+    float3 TangentW   : TANGENT;
+    float2 Tex        : TEXCOORD;
+    <span class="kwrd">float</span>  TessFactor : TESS;
+};
+
+VertexOut VS(VertexIn vin)
+{
+    VertexOut vout;
+    
+    <span class="rem">// Transform to world space space.</span>
+    vout.PosW     = mul(float4(vin.PosL, 1.0f), gWorld).xyz;
+    vout.NormalW  = mul(vin.NormalL, (float3x3)gWorldInvTranspose);
+    vout.TangentW = mul(vin.TangentL, (float3x3)gWorld);
+
+    <span class="rem">// Output vertex attributes for interpolation across triangle.</span>
+    vout.Tex = mul(float4(vin.Tex, 0.0f, 1.0f), gTexTransform).xy;
+    
+    <span class="kwrd">float</span> d = distance(vout.PosW, gEyePosW);
+
+    <span class="rem">// Normalized tessellation factor. </span>
+    <span class="rem">// The tessellation is </span>
+    <span class="rem">//   0 if d &gt;= gMinTessDistance and</span>
+    <span class="rem">//   1 if d &lt;= gMaxTessDistance.  </span>
+    <span class="kwrd">float</span> tess = saturate( (gMinTessDistance - d) / (gMinTessDistance - gMaxTessDistance) );
+    
+    <span class="rem">// Rescale [0,1] --&gt; [gMinTessFactor, gMaxTessFactor].</span>
+    vout.TessFactor = gMinTessFactor + tess*(gMaxTessFactor-gMinTessFactor);
+
+    <span class="kwrd">return</span> vout;
+}</pre>
+<h3>Hull Shader</h3>
+<p>Our hull shader actually consists of two parts: one portion that runs per control point that is to be output, transforming the input control points from the vertex shader into the form expected by the domain shader, and a parallel portion that computes the per-patch constants that instruct the tessellator stage how to subdivide the patch.&nbsp; The first component is our hull shader proper, while the second is called the patch constant function.</p>
+<p>For our DisplacementMap effect, our hull shader simply passes through the control points from the vertex shader, stripping off the TessFactor element, as only the hull shader cares about that information.&nbsp; Our hull shader has visibility into all of the control points comprising the patch in the InputPatch parameter, with the control point currently being processed indexed by the SV_OutputControlPointID semantic parameter.&nbsp; The index of the patch being processed can also be accessed using the SV_PrimitiveID semantic parameter.</p><pre class="csharpcode"><span class="kwrd">struct</span> HullOut
+{
+    float3 PosW     : POSITION;
+    float3 NormalW  : NORMAL;
+    float3 TangentW : TANGENT;
+    float2 Tex      : TEXCOORD;
+};
+
+[domain(<span class="str">"tri"</span>)]
+[partitioning(<span class="str">"fractional_odd"</span>)]
+[outputtopology(<span class="str">"triangle_cw"</span>)]
+[outputcontrolpoints(3)]
+[patchconstantfunc(<span class="str">"PatchHS"</span>)]
+HullOut HS(InputPatch&lt;VertexOut,3&gt; p, 
+           <span class="kwrd">uint</span> i : SV_OutputControlPointID,
+           <span class="kwrd">uint</span> patchId : SV_PrimitiveID)
+{
+    HullOut hout;
+    
+    <span class="rem">// Pass through shader.</span>
+    hout.PosW     = p[i].PosW;
+    hout.NormalW  = p[i].NormalW;
+    hout.TangentW = p[i].TangentW;
+    hout.Tex      = p[i].Tex;
+    
+    <span class="kwrd">return</span> hout;
+}</pre>
+<p>The hull shader declaration has a number of attributes applied to it, which serve different purposes.</p>
+<ul>
+<li><strong>[domain(domain_type)]</strong> – The domain attribute defines the type of patch used by the hull shader.&nbsp; Valid values in DX11 are “tri”, “quad” or “isoline.”&nbsp; This domain hints to the tessellator how to subdivide the patch, as well as indicating the coordinate system used to specify the point sampled from the patch; a 2D UV coordinate if using quad or isoline, and a 3D barycentric coordinate if using tri.</li>
+<li><strong>[partitioning(partition_scheme)]</strong> – This attribute instructs which partitioning scheme the tessellator should follow when it subdivides the patch.&nbsp; Valid values are:</li>
+<ul>
+<li><strong>integer</strong> – The tessellation factor is always rounded up to the nearest integral value, in the range [1..64]</li>
+<li><strong>pow2</strong> – The tessellation is rounded to the next greatest power of 2, yielding the effective range [1, 2, 4, 8, 16, 32, 64]</li>
+<li><strong>fractional_even</strong> – The tessellation is rounded up to the next even integer, however, the samples will be spaced differently, depending on the fractional component, resulting in smaller triangles for two of the strips of vertices.&nbsp; </li>
+<li><strong>fractional_odd</strong> – Similar to fractional_even, except the tessellation factor is rounded to the next odd integer, i.e. [1, 3, 5..63]</li></ul>
+<li><strong>[outputtopology(topology)]</strong> – This attribute specifies the type of primitive the tessellator generates.&nbsp; Valid values are “point”, “line”, “triangle_cw” and “triangle_ccw.”&nbsp; The last two primitive types specify the winding order of the triangles produced (c)lock(w)ise or (c)ounter-(c)lock(w)ise.</li>
+<li><strong>[outputcontrolpoints(n)]</strong> – This attribute specifies the number of control points the hull shader outputs per patch.&nbsp; In our examples, this will match the number of input coordinates, but you could output more or less control points per patch, if you desired.</li>
+<li><strong>[patchconstantfunc(“function_name”)]</strong> – The attribute specifies the name of the patch constant function, which will be evaluated once per patch and set the inner and outer tessellation factors, as well as any other per-patch data.&nbsp; We’ll cover this in more detail in just a bit.</li>
+<li><strong>[maxtessfactor(f)]</strong> – We don’t use this attribute here, but if we know the maximum tessellation factor that we will compute for the patch, then we can specify it here, which may allow the GPU to make certain optimizations.</li></ul>
+<h4>Patch Constant Function</h4>
+<p>The primary role of the patch constant function is to compute the tessellation factor that will instruct the tessellator how much to subdivide the patch.&nbsp; This constant function will most likely be unique to your particular application, and highly dependent on the particular domain used.&nbsp; The tessellation factors required for each particular domain are different:</p><pre class="csharpcode"><span class="kwrd">struct</span> TriTess {
+    <span class="kwrd">float</span> EdgeTess[3] : SV_TessFactor;
+    <span class="kwrd">float</span> InsideTess  : SV_InsideTessFactor;
+}
+<span class="kwrd">struct</span> QuadTess {
+    <span class="kwrd">float</span> EdgeTess[4] : SV_TessFactor;
+    <span class="kwrd">float</span> InsideTess[2]  : SV_InsideTessFactor;
+}
+<span class="kwrd">struct</span> IsolineTess{
+    <span class="kwrd">float</span> DensityDetail[2] : SV_TessFactor;
+}</pre>
+<p>For triangles, we have a tessellation factor for each edge, and an interior tessellation factor; for quads, an exterior tessellation factor for each edge and two factors for the interior factor (rows and columns), while for isolines, we have a density factor, which controls the number of instances of the line that are created, and a detail factor, which controls the number of points in the line.</p>
+<p>If we wanted to ignore a patch and not display it to the screen, for instance, if we implemented frustum culling in the hull shader, we can specify a tessellation factor &lt;= 0.&nbsp; This will cull the entire patch.</p>
+<p>The patch constant takes as an input an InputPatch consisting of the control points for the patch, and an integer id, which identifies the patch.</p>
+<p>In our DisplacementMap effect, we average the edge tessellation factors of our control points, and select one of these values for the interior tessellation factor.&nbsp; </p><pre class="csharpcode"><span class="kwrd">struct</span> PatchTess
+{
+    <span class="kwrd">float</span> EdgeTess[3] : SV_TessFactor;
+    <span class="kwrd">float</span> InsideTess  : SV_InsideTessFactor;
+};
+
+PatchTess PatchHS(InputPatch&lt;VertexOut,3&gt; patch, 
+                  <span class="kwrd">uint</span> patchID : SV_PrimitiveID)
+{
+    PatchTess pt;
+    
+    <span class="rem">// Average tess factors along edges, and pick an edge tess factor for </span>
+    <span class="rem">// the interior tessellation.  It is important to do the tess factor</span>
+    <span class="rem">// calculation based on the edge properties so that edges shared by </span>
+    <span class="rem">// more than one triangle will have the same tessellation factor.  </span>
+    <span class="rem">// Otherwise, gaps can appear.</span>
+    pt.EdgeTess[0] = 0.5f*(patch[1].TessFactor + patch[2].TessFactor);
+    pt.EdgeTess[1] = 0.5f*(patch[2].TessFactor + patch[0].TessFactor);
+    pt.EdgeTess[2] = 0.5f*(patch[0].TessFactor + patch[1].TessFactor);
+    pt.InsideTess  = pt.EdgeTess[0];
+    
+    <span class="kwrd">return</span> pt;
+}</pre>
+<h3>Tessellator Stage</h3>
+<p>We do not have to write any code for the tessellator, as it is a purely fixed-function component.&nbsp; We have already set all of the state for the tessellator, as attributes on our hull shader function.</p>
+<h3>Domain Shader Stage</h3>
+<p>The domain shader is invoked for each vertex generated by the tessellator.&nbsp; The inputs for the domain shader are the patch constant data, computed per-patch by the hull shader patch constant function, the normalized position of the generated vertex within the patch, generated by the tessellator, and the control points of the patch, as returned by the main hull shader.&nbsp; Generally, we will want to interpolate the final vertex data from the tessellated position and the patch control points.&nbsp; Often, we will then modify this vertex data, for instance by sampling a texture and modifying the vertex position, as simply tessellating the patch will not add any additional detail.</p>
+<p>For our DisplacementMap effect, we sample the heighmap stored in the alpha channel of the normal map, and offset the vertex position along the vertex normal using this value.&nbsp; Note that we must project the vertex position into clip space using the camera’s view-projection matrix in the domain shader after we have modified the vertex world position.&nbsp; Also note that we have to select the mip-map level of the texture to sample ourselves, using the Texture2D.SampleLevel method, since the Sample method we have used previously is only available in the pixel shader stage.</p>
+<p>After passing through the domain shader stage, the generated vertices are passed to the pixel shader and processed as usual.</p>
