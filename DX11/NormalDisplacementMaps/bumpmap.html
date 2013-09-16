@@ -1,0 +1,328 @@
+﻿<p>Today, we are going to cover a couple of additional techniques that we can use to achieve more realistic lighting in our 3D scenes.&nbsp; Going back to our first discussion of <a href="http://richardssoftware.blogspot.com/2013/07/lighting-take-1.html" target="_blank">lighting</a>, recall that thus far, we have been using per-pixel, <a href="http://en.wikipedia.org/wiki/Phong_shading" target="_blank">Phong lighting</a>.&nbsp; This style of lighting was an improvement upon the earlier method of <a href="http://en.wikipedia.org/wiki/Gouraud_shading" target="_blank">Gourad lighting</a>, by interpolating the vertex normals over the resulting surface pixels, and calculating the color of an object per-pixel, rather than per-vertex.&nbsp; Generally, the Phong model gives us good results, but it is limited, in that we can only specify the normals to be interpolated from at the vertices.&nbsp; For objects that should appear smooth, this is sufficient to give realistic-looking lighting; for surfaces that have more uneven textures applied to them, the illusion can break down, since the specular highlights computed from the interpolated normals will not match up with the apparent topology of the surface.</p>
+<p>
+    <a href="http://lh3.ggpht.com/-vAcHcR2YNyA/Ujbe4jI-JfI/AAAAAAAADK4/tEQ33g8UZRA/s1600-h/image3.png"><img title="image" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="image" src="http://lh4.ggpht.com/-gPazCXYaGcs/Ujbe7cscW2I/AAAAAAAADLA/AUcfzo7PKzU/image_thumb1.png?imgmax=800" width="617" height="484"></a></p>
+<p>In the screenshot above, you can see that the highlights on the nearest column are very smooth, and match the geometry of the cylinder.&nbsp; However, the column has a texture applied that makes it appear to be constructed out of stone blocks, jointed with mortar.&nbsp; In real life, such a material would have all kinds of nooks and crannies and deformities that would affect the way light hits the surface and create much more irregular highlights than in the image above.&nbsp; Ideally, we would want to model those surface details in our scene, for the greatest realism.&nbsp; This is the motivation for the techniques we are going to discuss today.</p>
+<p>One technique to improve the lighting of textured objects is called bump or normal mapping.&nbsp; Instead of just using the interpolated pixel normal, we will combine it with a normal sampled from a special texture, called a normal map, which allows us to match the per-pixel normal to the perceived surface texture, and achieve more believable lighting.</p>
+<p>The other technique is called displacement mapping.&nbsp; Similarly, we use an additional texture to specify the per-texel surface details, but this time, rather than a surface normal, the texture, called a displacement map or heightmap, stores an offset that indicates how much the texel sticks out or is sunken in from its base position.&nbsp; We use this offset to modify the position of the vertices of an object along the vertex normal.&nbsp; For best results, we can increase the tessellation of the mesh using a domain shader, so that the vertex resolution of our mesh is as great as the resolution of our heightmap.&nbsp; Displacement mapping is often combined with normal mapping, for the highest level of realism.</p>
+<table cellspacing="0" cellpadding="2" width="1225" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+                <a href="http://lh3.ggpht.com/-fVDtZ_Y4WzA/Ujbe9FYsEYI/AAAAAAAADLI/wPtVeVwrgH4/s1600-h/normal-mapped3.png"><img title="normal-mapped" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="normal-mapped" src="http://lh6.ggpht.com/-HNx0Kik9geg/Ujbe-tGt9RI/AAAAAAAADLQ/k_zVFnFf5KY/normal-mapped_thumb1.png?imgmax=800" width="617" height="484"></a>            </td>
+            <td valign="top" width="600">
+                <a href="http://lh3.ggpht.com/-qVHBRiKK6WE/UjbfAtySUGI/AAAAAAAADLY/kuhxO8zM5kk/s1600-h/displacement-mapped3.png"><img title="displacement-mapped" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="displacement-mapped" src="http://lh3.ggpht.com/-uUxjAP7tmlE/UjbfB6I12vI/AAAAAAAADLg/4ZczEwZKAq8/displacement-mapped_thumb1.png?imgmax=800" width="617" height="484"></a>            </td>
+        </tr>
+        <tr>
+            <td valign="top">The scene with normal mapping enabled.&nbsp; Note the highlights are much less regular.</td>
+            <td valign="top" width="600">The scene with displacement mapping enabled.&nbsp; Note that the mesh geometry is much more detailed, and the sides of the column are no longer smooth.</td>
+        </tr>
+    </tbody>
+</table>
+<p>This example is based off of Chapter 18 of <a href="http://www.d3dcoder.net/d3d11.htm">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>.&nbsp; You can download the full source for this example from my GitHub repository, at<a href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>, under the NormalDisplacementMaps project.</p>
+<p><em>NOTE: You will need to have a DirectX 11 compatible video card in order to use the displacement mapping method presented here, as it makes use of the Domain and Hull shaders, which are new to DX 11.</em></p>
+<!--more-->
+<h3>Normal Mapping</h3>
+<p>For normal mapping, we will use a kind of texture known as a normal map, or sometimes a bump map.&nbsp; Rather than RGB color information, each texel of the normal map will contain a normalized 3D vector.&nbsp; Since we have been using 32-bit textures, we will store the XYZ components of the normal vector in the RGB components of each texel; the alpha component will remain unused for normal mapping (although we could utilize it for some other piece of information, such as the heightmap data that we will use later for displacement mapping).&nbsp; This requires that we compress each floating point component of the normal into an 8-bit integer, usually according to the formula f(x) = (0.5x+0.5) * 255. </p>
+<p>Normal map normals are defined in <em>Texture space</em>, where the UV texture axes that we use to sample the texture comprise the X and Y axes.&nbsp; Since most normals will tend to be pointing more or less straight up from the UV texture surface, the normals that we compute will tend to be dominated by the Z component.&nbsp; Because of the way we are compressing the float normal components into 8-bit integers, normal maps tend to be mostly a medium blue color, as you can see in the normal map below:</p>
+<table cellspacing="0" cellpadding="2" width="213" border="0">
+    <tbody>
+        <tr>
+            <td valign="top" width="211">
+                <p>
+                    <a href="http://lh4.ggpht.com/-7kwCm2lNLPM/UjbfF2tGPeI/AAAAAAAADLo/Ujo8MZSF5CA/s1600-h/image%25255B11%25255D.png"><img title="image" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="image" src="http://lh6.ggpht.com/-XlPjkJKHL5U/UjbfHoQRVNI/AAAAAAAADLw/cWm0RHnieLs/image_thumb%25255B3%25255D.png?imgmax=800" width="503" height="484"></a>                </p>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="211">Normal map applied to the columns</td>
+        </tr>
+    </tbody>
+</table>
+<p>Since the normal map normals are defined in texture space, we will need to convert them to world space in order to use them for our lighting.&nbsp; We can do this by creating an appropriate transformation matrix to convert between the texture-space coordinate axes and the world space coordinate axes.&nbsp; Remember that we can specify an orthonormal basis with two vectors, and compute the third by using the cross-product of the other two.&nbsp; The surface normal that we have previously used for lighting comprises one axis of this basis, so now we need an additional basis vector, tangent to the surface.&nbsp; </p>
+<p>You may recall that our <a href="http://richardssoftware.blogspot.com/2013/07/shapes-demo-with-direct3d11-and-slimdx.html" target="_blank">GeometryGenerator class</a> already computes a tangent vector for each vertex, based on the mathematical formula for the solid.&nbsp; For arbitrary meshes, we need to compute the tangent vector for each face and average these face tangents for each vertex.&nbsp; This will produce an object-space tangent vector, which we can transform into world-space in our vertex shader.&nbsp; Using the cross-product, we can then compute the third component of the per-vertex orthonormal basis, the bitangent, as needed.</p>
+<p>After interpolating the vertex normal and tangent for the pixel shader, the interpolated basis may no longer be orthonormal, but we can re-orthonormalize it by subtracting any component of the tangent along the direction of the normal.</p>
+<p>We will add a shader function to our LightHelper.fx shader file that will handle this conversion from texture space to world space for us:</p>
+<pre class="csharpcode"><span class="rem">//---------------------------------------------------------------------------------------</span>
+<span class="rem">// Transforms a normal map sample to world space.</span>
+<span class="rem">//---------------------------------------------------------------------------------------</span>
+float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
+{
+    <span class="rem">// Uncompress each component from [0,1] to [-1,1].</span>
+    float3 normalT = 2.0f*normalMapSample - 1.0f;
+
+    <span class="rem">// Build orthonormal basis.</span>
+    float3 N = unitNormalW;
+    float3 T = normalize(tangentW - dot(tangentW, N)*N);
+    float3 B = cross(N, T);
+
+    float3x3 TBN = float3x3(T, B, N);
+
+    <span class="rem">// Transform from tangent space to world space.</span>
+    float3 bumpedNormalW = mul(normalT, TBN);
+
+    <span class="kwrd">return</span> bumpedNormalW;
+}</pre>
+<h3>NormalMap Effect</h3>
+<p>We will create a new shader file for a normal-mapping effect.&nbsp; You can use the Basic.fx shader as a base, as we will only be making a few changes to support normal mapping.&nbsp; First, we need to add a Texture2D for our normal map texture.&nbsp; Next, we need to add tangent coordinates to our vertex structures, and transform the object-space tangent to world-space in our vertex shader.&nbsp; Lastly, we will sample the normal map at each pixel, convert the sampled normal to world space, and use the resulting normal for our lighting calculations.&nbsp; I’ll omit the actual code, as it only differs in about six lines from our Basic.fx, and instead refer you to <a href="https://github.com/ericrrichards/dx11/blob/master/DX11/NormalDisplacementMaps/FX/NormalMap.fx" target="_blank">GitHub for the full source</a>.</p>
+<p>Because our NormalMap.fx shader is so similar to our Basic.fx shader, we will actually derive the C# wrapper class for this effect from our BasicEffect wrapper, adding only the necessary effect variables and methods to support the additional normal map texture.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> NormalMapEffect : BasicEffect {
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectResourceVariable _normalMap;
+    <span class="kwrd">public</span> NormalMapEffect(Device device, <span class="kwrd">string</span> filename) : <span class="kwrd">base</span>(device, filename) {
+        _normalMap = FX.GetVariableByName(<span class="str">"gNormalMap"</span>).AsResource();
+    }
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetNormalMap(ShaderResourceView tex) {
+        _normalMap.SetResource(tex);
+    }
+}</pre>
+<h3>Vertex Structure</h3>
+<p>We will need to define a new vertex structure that supports a tangent vector, along with a matching InputLayout.</p>
+<pre class="csharpcode">[StructLayout(LayoutKind.Sequential)]
+<span class="kwrd">public</span> <span class="kwrd">struct</span> PosNormalTexTan {
+    <span class="kwrd">public</span> Vector3 Pos;
+    <span class="kwrd">public</span> Vector3 Normal;
+    <span class="kwrd">public</span> Vector2 Tex;
+    <span class="kwrd">public</span> Vector3 Tan;
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> <span class="kwrd">int</span> Stride = Marshal.SizeOf(<span class="kwrd">typeof</span> (PosNormalTexTan));
+
+    <span class="kwrd">public</span> PosNormalTexTan(Vector3 position, Vector3 normal, Vector2 texC, Vector3 tangentU) {
+        Pos = position;
+        Normal = normal;
+        Tex = texC;
+        Tan = tangentU;
+    }
+}
+
+<span class="rem">// in InputLayoutDescriptions</span>
+<span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> InputElement[] PosNormalTexTan = {
+    <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+    <span class="kwrd">new</span> InputElement(<span class="str">"NORMAL"</span>, 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
+    <span class="kwrd">new</span> InputElement(<span class="str">"TEXCOORD"</span>, 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+    <span class="kwrd">new</span> InputElement(<span class="str">"TANGENT"</span>, 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ) 
+};
+
+<span class="rem">// in InputLayouts.InitAll()</span>
+<span class="kwrd">try</span> {
+    var passDesc = Effects.NormalMapFX.Light1Tech.GetPassByIndex(0).Description;
+    PosNormalTexTan = <span class="kwrd">new</span> InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTan);
+} <span class="kwrd">catch</span> (Exception ex) {
+    Console.WriteLine(ex.Message + ex.StackTrace);
+    PosNormalTexTan = <span class="kwrd">null</span>;
+}</pre>
+<h3>Displacement Mapping</h3>
+<p>While normal mapping only modified the per-pixel normals of an object’s surface, with displacement mapping, we will actually perturb the geometry of the object’s mesh, to match the apparent nooks and crannies of the surface.&nbsp; To do this, we will use the domain and hull shaders to increase the level of tessellation of the mesh, and offset the new vertices according to a texture called a heightmap.&nbsp; We will actually store this heightmap in the unused alpha channel of our normal map, so that we can utilize both techniques with only a single additional texture.</p>
+<p>Because we are going to use tessellation, we need to render our triangles using the primitive topology <strong>PrimitiveTopology.PatchListWith3ControlPoints</strong>, rather than as a <strong>TriangleList</strong>.&nbsp; Rendering as a triangle patch allows us to increase the level of tessellation using the hull shader, based on the distance of the object from the camera viewpoint; closer objects will have increased detail, since we will be able to see it more clearly, while farther objects are rendered at a lower level of detail.&nbsp; We control this level of tessellation by setting a minimum and maximum tessellation factor, and distances at which we use the maximum and minimum levels of tessellation, then computing the tessellation factor for each vertex in the vertex shader.&nbsp; The changes to the vertex shader to support this kind of level-of-detail tessellation is as follows:</p>
+<pre class="csharpcode">cbuffer cbPerFrame
+{
+    <span class="kwrd">float</span> gMaxTessDistance;
+    <span class="kwrd">float</span> gMinTessDistance;
+    <span class="kwrd">float</span> gMinTessFactor;
+    <span class="kwrd">float</span> gMaxTessFactor;
+};
+
+<span class="kwrd">struct</span> VertexOut
+{
+    float3 PosW       : POSITION;
+    float3 NormalW    : NORMAL;
+    float3 TangentW   : TANGENT;
+    float2 Tex        : TEXCOORD;
+    <span class="kwrd">float</span>  TessFactor : TESS;
+};
+
+VertexOut VS(VertexIn vin)
+{
+    VertexOut vout;
+    
+    <span class="rem">// Transform to world space space.</span>
+    vout.PosW     = mul(float4(vin.PosL, 1.0f), gWorld).xyz;
+    vout.NormalW  = mul(vin.NormalL, (float3x3)gWorldInvTranspose);
+    vout.TangentW = mul(vin.TangentL, (float3x3)gWorld);
+
+    <span class="rem">// Output vertex attributes for interpolation across triangle.</span>
+    vout.Tex = mul(float4(vin.Tex, 0.0f, 1.0f), gTexTransform).xy;
+    
+    <span class="kwrd">float</span> d = distance(vout.PosW, gEyePosW);
+
+    <span class="rem">// Normalized tessellation factor. </span>
+    <span class="rem">// The tessellation is </span>
+    <span class="rem">//   0 if d &gt;= gMinTessDistance and</span>
+    <span class="rem">//   1 if d &lt;= gMaxTessDistance.  </span>
+    <span class="kwrd">float</span> tess = saturate( (gMinTessDistance - d) / (gMinTessDistance - gMaxTessDistance) );
+    
+    <span class="rem">// Rescale [0,1] --&gt; [gMinTessFactor, gMaxTessFactor].</span>
+    vout.TessFactor = gMinTessFactor + tess*(gMaxTessFactor-gMinTessFactor);
+
+    <span class="kwrd">return</span> vout;
+}</pre>
+<h4>Hull Shader</h4>
+<p>The primary job of our hull shader is to select the interior and exterior tessellation factors that will instruct the GPU how to tessellate the triangle patch.&nbsp; We do this by averaging the tessellation factor for the two vertices in each edge for the exterior patch tessellation factors, and select a matching factor for the interior factor.</p>
+<pre class="csharpcode"><span class="kwrd">struct</span> PatchTess
+{
+    <span class="kwrd">float</span> EdgeTess[3] : SV_TessFactor;
+    <span class="kwrd">float</span> InsideTess  : SV_InsideTessFactor;
+};
+
+PatchTess PatchHS(InputPatch&lt;VertexOut,3&gt; patch, 
+                  <span class="kwrd">uint</span> patchID : SV_PrimitiveID)
+{
+    PatchTess pt;
+    
+    <span class="rem">// Average tess factors along edges, and pick an edge tess factor for </span>
+    <span class="rem">// the interior tessellation.  It is important to do the tess factor</span>
+    <span class="rem">// calculation based on the edge properties so that edges shared by </span>
+    <span class="rem">// more than one triangle will have the same tessellation factor.  </span>
+    <span class="rem">// Otherwise, gaps can appear.</span>
+    pt.EdgeTess[0] = 0.5f*(patch[1].TessFactor + patch[2].TessFactor);
+    pt.EdgeTess[1] = 0.5f*(patch[2].TessFactor + patch[0].TessFactor);
+    pt.EdgeTess[2] = 0.5f*(patch[0].TessFactor + patch[1].TessFactor);
+    pt.InsideTess  = pt.EdgeTess[0];
+    
+    <span class="kwrd">return</span> pt;
+}
+
+<span class="kwrd">struct</span> HullOut
+{
+    float3 PosW     : POSITION;
+    float3 NormalW  : NORMAL;
+    float3 TangentW : TANGENT;
+    float2 Tex      : TEXCOORD;
+};
+
+[domain(<span class="str">"tri"</span>)]
+[partitioning(<span class="str">"fractional_odd"</span>)]
+[outputtopology(<span class="str">"triangle_cw"</span>)]
+[outputcontrolpoints(3)]
+[patchconstantfunc(<span class="str">"PatchHS"</span>)]
+HullOut HS(InputPatch&lt;VertexOut,3&gt; p, 
+           <span class="kwrd">uint</span> i : SV_OutputControlPointID,
+           <span class="kwrd">uint</span> patchId : SV_PrimitiveID)
+{
+    HullOut hout;
+    
+    <span class="rem">// Pass through shader.</span>
+    hout.PosW     = p[i].PosW;
+    hout.NormalW  = p[i].NormalW;
+    hout.TangentW = p[i].TangentW;
+    hout.Tex      = p[i].Tex;
+    
+    <span class="kwrd">return</span> hout;
+}</pre>
+<h4>Domain Shader</h4>
+<p>The domain shader is invoked for each vertex created by the hull shader and tessellation stage.&nbsp; The inputs to this shader are the <a href="http://en.wikipedia.org/wiki/Barycentric_coordinate_system" target="_blank">barycentric coordinates</a> of the generated vertex, relative to the input patch, along with the control points of the patch.&nbsp; We interpolate the position, normal, tangent and texture coordinates of the new vertex from the control points and the barycentric coordinate.&nbsp; Next, we sample the heightmap, stored in the alpha channel of the normal map, and displace the position of the vertex along the normal vector.&nbsp; Finally, we transform the vertex position to clip space using the view-projection matrix.&nbsp; One thing to note is that we need to select the mipmap level of the texture to sample ourselves.</p>
+<pre class="csharpcode"><span class="kwrd">struct</span> DomainOut
+{
+    float4 PosH     : SV_POSITION;
+    float3 PosW     : POSITION;
+    float3 NormalW  : NORMAL;
+    float3 TangentW : TANGENT;
+    float2 Tex      : TEXCOORD;
+};
+
+<span class="rem">// The domain shader is called for every vertex created by the tessellator.  </span>
+<span class="rem">// It is like the vertex shader after tessellation.</span>
+[domain(<span class="str">"tri"</span>)]
+DomainOut DS(PatchTess patchTess, 
+             float3 bary : SV_DomainLocation, 
+             <span class="kwrd">const</span> OutputPatch&lt;HullOut,3&gt; tri)
+{
+    DomainOut dout;
+    
+    <span class="rem">// Interpolate patch attributes to generated vertices.</span>
+    dout.PosW     = bary.x*tri[0].PosW     + bary.y*tri[1].PosW     + bary.z*tri[2].PosW;
+    dout.NormalW  = bary.x*tri[0].NormalW  + bary.y*tri[1].NormalW  + bary.z*tri[2].NormalW;
+    dout.TangentW = bary.x*tri[0].TangentW + bary.y*tri[1].TangentW + bary.z*tri[2].TangentW;
+    dout.Tex      = bary.x*tri[0].Tex      + bary.y*tri[1].Tex      + bary.z*tri[2].Tex;
+    
+    <span class="rem">// Interpolating normal can unnormalize it, so normalize it.</span>
+    dout.NormalW = normalize(dout.NormalW);
+    
+    <span class="rem">//</span>
+    <span class="rem">// Displacement mapping.</span>
+    <span class="rem">//</span>
+    
+    <span class="rem">// Choose the mipmap level based on distance to the eye; specifically, choose</span>
+    <span class="rem">// the next miplevel every MipInterval units, and clamp the miplevel in [0,6].</span>
+    <span class="kwrd">const</span> <span class="kwrd">float</span> MipInterval = 20.0f;
+    <span class="kwrd">float</span> mipLevel = clamp( (distance(dout.PosW, gEyePosW) - MipInterval) / MipInterval, 0.0f, 6.0f);
+    
+    <span class="rem">// Sample height map (stored in alpha channel).</span>
+    <span class="kwrd">float</span> h = gNormalMap.SampleLevel(samLinear, dout.Tex, mipLevel).a;
+    
+    <span class="rem">// Offset vertex along normal.</span>
+    dout.PosW += (gHeightScale*(h-1.0))*dout.NormalW;
+    
+    <span class="rem">// Project to homogeneous clip space.</span>
+    dout.PosH = mul(float4(dout.PosW, 1.0f), gViewProj);
+    
+    <span class="kwrd">return</span> dout;
+}</pre>
+<h4>Pixel Shader</h4>
+<p>You may notice that the DomainOut structure is the same as the VertexOut structure we have used for our normal mapping pixel shader.&nbsp; In fact, the pixel shader for our displacement mapping effect is exactly the same as in the previous technique.</p>
+<h4>C# Effect Wrapper Class:&nbsp; DisplacementMapEffect</h4>
+<p>Because of the similarities between the displacement mapping effect and the previous normal mapping effect, we can subclass our NormalMapEffect wrapper class as a basis for our DisplacementMapEffect.&nbsp; We need only add the necessary effect variable handles to access the additional shader constants and functions to set their values.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> DisplacementMapEffect : NormalMapEffect {
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectScalarVariable _heightScale;
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectScalarVariable _maxTessDistance;
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectScalarVariable _minTessDistance;
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectScalarVariable _minTessFactor;
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectScalarVariable _maxTessFactor;
+    <span class="kwrd">private</span> <span class="kwrd">readonly</span> EffectMatrixVariable _viewProj;
+
+    <span class="kwrd">public</span> DisplacementMapEffect(Device device, <span class="kwrd">string</span> filename) : <span class="kwrd">base</span>(device, filename) {
+        _heightScale = FX.GetVariableByName(<span class="str">"gHeightScale"</span>).AsScalar();
+        _maxTessDistance = FX.GetVariableByName(<span class="str">"gMaxTessDistance"</span>).AsScalar();
+        _minTessDistance = FX.GetVariableByName(<span class="str">"gMinTessDistance"</span>).AsScalar();
+        _minTessFactor = FX.GetVariableByName(<span class="str">"gMinTessFactor"</span>).AsScalar();
+        _maxTessFactor = FX.GetVariableByName(<span class="str">"gMaxTessFactor"</span>).AsScalar();
+        _viewProj = FX.GetVariableByName(<span class="str">"gViewProj"</span>).AsMatrix();
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetHeightScale(<span class="kwrd">float</span> f) {
+        _heightScale.Set(f);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetMaxTessDistance(<span class="kwrd">float</span> f) {
+        _maxTessDistance.Set(f);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetMinTessDistance(<span class="kwrd">float</span> f) {
+        _minTessDistance.Set(f);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetMinTessFactor(<span class="kwrd">float</span> f) {
+        _minTessFactor.Set(f);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetMaxTessFactor(<span class="kwrd">float</span> f) {
+        _maxTessFactor.Set(f);
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">void</span> SetViewProj(Matrix viewProj) {
+        _viewProj.SetMatrix(viewProj);
+    }
+}</pre>
+<h3>The Demo</h3>
+<p>As the only complexity involved in the demo application arises from the feature that allows the user to switch between the basic, normal mapping, and displacement mapping effects, I will forgo discussing the implementation; you may peruse the full source on <a href="https://github.com/ericrrichards/dx11/blob/master/DX11/NormalDisplacementMaps/Program.cs" target="_blank">GitHub</a>.&nbsp; Instead, we’ll close by comparing the three rendering methods side-by-side.</p>
+<table cellspacing="0" cellpadding="2" width="1" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">Basic rendering</td>
+            <td valign="top">
+                <a href="http://lh5.ggpht.com/-r_4KNw8ZdV4/UjbfJu0MtRI/AAAAAAAADL4/VoL-at2WPtM/s1600-h/basic-1%25255B4%25255D.png"><img title="basic-1" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="basic-1" src="http://lh5.ggpht.com/-TGUyMZdhEfw/UjbfMvj0aPI/AAAAAAAADMA/l45QnkvuGOw/basic-1_thumb%25255B2%25255D.png?imgmax=800" width="985" height="772"></a>            </td>
+        </tr>    
+        <tr>
+            <td valign="top">Normal Mapped</td>
+            <td valign="top">
+                <a href="http://lh5.ggpht.com/-mDWjAxlqbqg/UjbfOsG47NI/AAAAAAAADMI/yz64pGWnfT8/s1600-h/normal-1%25255B4%25255D.png"><img title="normal-1" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="normal-1" src="http://lh4.ggpht.com/-wBxIcUA_ydc/UjbfRZzwoDI/AAAAAAAADMQ/DRyZcy93kCU/normal-1_thumb%25255B2%25255D.png?imgmax=800" width="985" height="772"></a>            
+
+            </td>
+            
+        </tr>
+        <tr>
+            <td valign="top">Displacement Mapped</td>
+            <td valign="top">
+                <a href="http://lh3.ggpht.com/-d4jGcJAOJm4/UjbfTQlnEiI/AAAAAAAADMY/mKUr-79SMB8/s1600-h/displacement-1%25255B4%25255D.png"><img title="displacement-1" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="displacement-1" src="http://lh3.ggpht.com/-0XSUrTM0VvQ/UjbfWOlI7VI/AAAAAAAADMg/2SYMjTTphxI/displacement-1_thumb%25255B2%25255D.png?imgmax=800" width="985" height="772"></a>            </td>
+            
+        </tr>
+    </tbody>
+</table>
+<h3>Next Time</h3>
+<p>The next section in the book is on rendering a terrain, using heightmaps, texture splatting and a level-of-detail effect similar to the one we used here for displacement mapping.&nbsp; I may bounce back to Chapter 13 instead, and brush up on the Hull Shader and Domain Shader, since I am realizing that skipping them was an oversight; the hull and domain shaders are relatively complex, and I can’t do them full justice in the midst of explaining another concept.</p>

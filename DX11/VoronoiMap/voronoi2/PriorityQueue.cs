@@ -1,6 +1,8 @@
 ﻿using SlimDX;
 
-namespace VoronoiMap.voronoi2 {
+namespace VoronoiMap.Voronoi2 {
+    using System.Linq;
+
     public class PriorityQueue {
         private int _min;
         private int _count;
@@ -66,7 +68,7 @@ namespace VoronoiMap.voronoi2 {
         public PriorityQueue(int sqrtNSites) {
             _count = _min = 0;
             _hashSize = 4*sqrtNSites;
-            _hash = new HalfEdge[_hashSize];
+            _hash = Enumerable.Repeat(new HalfEdge(), _hashSize).ToArray();
             for (int i = 0; i < _hashSize; i++) {
                 _hash[i].PriorityQueueNext = null;
             }

@@ -1,6 +1,8 @@
 ﻿using SlimDX;
 
-namespace VoronoiMap.voronoi2 {
+namespace VoronoiMap.Voronoi2 {
+    using System.Linq;
+
     public class EdgeList {
         private int HashSize;
         internal Site BottomSite;
@@ -15,7 +17,7 @@ namespace VoronoiMap.voronoi2 {
             RightEnd = HalfEdge.Create(null, LR.Left);
             LeftEnd.EdgeListLeft = null;
             LeftEnd.EdgeListRight = RightEnd;
-            RightEnd.EdgeListRight = LeftEnd;
+            RightEnd.EdgeListLeft = LeftEnd;
             RightEnd.EdgeListRight = null;
             Hash[0] = LeftEnd;
             Hash[HashSize - 1] = RightEnd;
@@ -72,7 +74,7 @@ namespace VoronoiMap.voronoi2 {
             return he;
         }
         public void Delete(HalfEdge he) {
-            (he.EdgeListLeft).EdgeListLeft = he.EdgeListRight;
+            (he.EdgeListLeft).EdgeListRight= he.EdgeListRight;
             (he.EdgeListRight).EdgeListLeft = he.EdgeListLeft;
             he.Edge = Edge.Deleted;
         }
@@ -86,13 +88,13 @@ namespace VoronoiMap.voronoi2 {
             if (he.Edge == null) {
                 return BottomSite;
             }
-            return (he.LeftRight == LR.Left ? he.Edge.Reg[LR.Left] : he.Edge.Reg[LR.Right]);
+            return (he.LeftRight == LR.Left ? he.Edge.Sites[LR.Left] : he.Edge.Sites[LR.Right]);
         }
         public Site RightRegion(HalfEdge he) {
             if (he.Edge == null) {
                 return BottomSite;
             }
-            return (he.LeftRight == LR.Left ? he.Edge.Reg[LR.Right] : he.Edge.Reg[LR.Left]);
+            return (he.LeftRight == LR.Left ? he.Edge.Sites[LR.Right] : he.Edge.Sites[LR.Left]);
         }
     }
 }

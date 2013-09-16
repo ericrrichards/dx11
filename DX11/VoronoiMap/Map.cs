@@ -6,7 +6,7 @@ using SlimDX;
 
 namespace VoronoiMap {
     public class Map {
-        public const int NumPoints = 2000;
+        public const int NumPoints = 200;
         public const float LakeThreshold = 0.3f;
         public const int NumLloydIterations = 2;
 
@@ -51,7 +51,7 @@ namespace VoronoiMap {
             ImproveRandomPoints(_points);
 
             Console.WriteLine("Build graph...");
-            var voronoi = new Voronoi.Voronoi(_points, null, new Rectangle(0, 0, _size, _size));
+            var voronoi = new Voronoi2.Voronoi(_points, new Rectangle(0, 0, _size, _size));
             BuildGraph(_points, voronoi);
             InmproveCorners();
             _points = null;
@@ -346,8 +346,8 @@ namespace VoronoiMap {
                 }
             }
         }
-
-        private void BuildGraph(IEnumerable<Vector2> points, Voronoi.Voronoi voronoi) {
+        
+        private void BuildGraph(IEnumerable<Vector2> points, Voronoi2.Voronoi voronoi) {
             var libEdges = voronoi.Edges;
             var centerLookup = new Dictionary<Vector2, Center>();
 
@@ -470,7 +470,7 @@ namespace VoronoiMap {
 
         private void ImproveRandomPoints(List<Vector2> points) {
             for (var i = 0; i < NumLloydIterations; i++) {
-                var voronoi = new Voronoi.Voronoi(points, null, new Rectangle(0, 0, _size, _size));
+                var voronoi = new Voronoi2.Voronoi(points, new Rectangle(0, 0, _size, _size));
                 for (var index = 0; index < points.Count; index++) {
                     var p = points[index];
 

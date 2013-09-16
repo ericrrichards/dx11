@@ -54,11 +54,12 @@
     <Compile Include="Edge.cs" />
     <Compile Include="IslandShapes.cs" />
     <Compile Include="Map.cs" />
-    <Compile Include="voronoi2\EdgeList.cs" />
-    <Compile Include="voronoi2\Geometry.cs" />
-    <Compile Include="voronoi2\Out.cs" />
-    <Compile Include="voronoi2\PriorityQueue.cs" />
-    <Compile Include="voronoi2\structs.cs" />
+    <Compile Include="Voronoi2\EdgeList.cs" />
+    <Compile Include="Voronoi2\Geometry.cs" />
+    <Compile Include="Voronoi2\Out.cs" />
+    <Compile Include="Voronoi2\PriorityQueue.cs" />
+    <Compile Include="Voronoi2\structs.cs" />
+    <Compile Include="Voronoi2\Voronoi.cs" />
     <Compile Include="VoronoiMapDemo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rectangle.cs" />

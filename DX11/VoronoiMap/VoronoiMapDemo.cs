@@ -115,7 +115,7 @@ namespace VoronoiMap {
         }
         public override void DrawScene() {
 
-            ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
+            ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.White);
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosColor;
@@ -177,11 +177,11 @@ namespace VoronoiMap {
 
                     verts.Add(new VertexPC(new Vector3(p.Point.X, p.Elevation * 2.0f, p.Point.Y), _biomeColors[p.Biome]));
                     verts.Add(new VertexPC(new Vector3(c1.Point.X, c1.Elevation*2.0f, c1.Point.Y), _biomeColors[p.Biome] ));
-                    verts.Add(new VertexPC(new Vector3(c3.Value.X, (c1.Elevation + c2.Elevation)*1.0f, c3.Value.Y), _biomeColors[p.Biome] ));
-                    verts.Add(new VertexPC(new Vector3(p.Point.X, p.Elevation * 2.0f, p.Point.Y), _biomeColors[p.Biome]));
+                    verts.Add(new VertexPC(new Vector3(c2.Point.X, c2.Elevation*2.0f, c2.Point.Y), _biomeColors[p.Biome] ));
+                    /*verts.Add(new VertexPC(new Vector3(p.Point.X, p.Elevation * 2.0f, p.Point.Y), _biomeColors[p.Biome]));
                     verts.Add(new VertexPC(new Vector3(c3.Value.X, (c1.Elevation + c2.Elevation) *1.0f, c3.Value.Y), _biomeColors[p.Biome]));
                     verts.Add(new VertexPC(new Vector3(c2.Point.X, c2.Elevation * 2.0f, c2.Point.Y), _biomeColors[p.Biome]));
-                    
+                    */
                 }
             }
             _mapVertCount = verts.Count;

@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Content Include="bumpmap.html" />
     <Content Include="tessellation.html" />
     <Content Include="Textures\bricks.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
