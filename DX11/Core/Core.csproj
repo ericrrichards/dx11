@@ -73,6 +73,7 @@
     <Compile Include="MathF.cs" />
     <Compile Include="Model\BasicModel.cs" />
     <Compile Include="Model\MeshGeometry.cs" />
+    <Compile Include="Model\SkinnedModel.cs" />
     <Compile Include="Model\TextureManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderStates.cs" />

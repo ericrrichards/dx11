@@ -9,6 +9,7 @@ using Assimp;
 using Core.Vertex;
 using SlimDX;
 using SlimDX.Direct3D11;
+using Quaternion = SlimDX.Quaternion;
 
 namespace Core.Model {
     public class BasicModel : DisposableClass {
@@ -97,5 +98,69 @@ namespace Core.Model {
     public struct BasicModelInstance {
         public BasicModel Model;
         public Matrix World;
+    }
+
+    
+
+    public class SkinnedData {
+        private List<int> _boneHierarchy;
+        private List<Matrix> _boneOffsets;
+        private Dictionary<string, AnimationClip> _animations;
+    }
+
+    class AnimationClip {
+        private List<BoneAnimation> _boneAnimations;
+    }
+
+    class BoneAnimation {
+        private List<Keyframe> _keyframes;
+
+        public float StartTime { get { return _keyframes.First().TimePos; } }
+        public float EndTime { get { return _keyframes.Last().TimePos; } }
+        public Matrix Interpolate(float t) {
+            if (t <= _keyframes.First().TimePos) {
+                var s = _keyframes.First().Scale;
+                var p = _keyframes.First().Translation;
+                var q = _keyframes.First().RotationQuat;
+
+                return Matrix.RotationQuaternion(q)*Matrix.Scaling(s)*Matrix.Translation(p);
+            } else if (t >= _keyframes.Last().TimePos) {
+                var s = _keyframes.Last().Scale;
+                var p = _keyframes.Last().Translation;
+                var q = _keyframes.Last().RotationQuat;
+
+                return Matrix.RotationQuaternion(q)*Matrix.Scaling(s)*Matrix.Translation(p);
+            } else {
+                for (int i = 0; i < _keyframes.Count-1; i++) {
+                    var k0 = _keyframes[i];
+                    var k1 = _keyframes[i + 1];
+                    if (t >= k0.TimePos && t <= k1.TimePos) {
+                        var lerpPercent = (t - k0.TimePos)/(k1.TimePos - k0.TimePos);
+                        var s0 = k0.Scale;
+                        var s1 = k1.Scale;
+
+                        var p0 = k0.Translation;
+                        var p1 = k1.Translation;
+
+                        var q0 = k0.RotationQuat;
+                        var q1 = k1.RotationQuat;
+                    }
+                }
+            }
+        }
+    }
+
+    class Keyframe {
+        public Keyframe() {
+            TimePos = 0.0f;
+            Translation = new Vector3(0);
+            Scale = new Vector3(1);
+            RotationQuat = Quaternion.Identity;
+        }
+
+        internal float TimePos;
+        internal Vector3 Translation;
+        internal Vector3 Scale;
+        internal Quaternion RotationQuat;
     }
 }
