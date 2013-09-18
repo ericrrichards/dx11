@@ -22,6 +22,8 @@ namespace AssimpModel {
         private BasicModel _stoneModel;
         private BasicModelInstance _modelInstance;
         private BasicModelInstance _stoneInstance;
+        private SkinnedModel _drone;
+        private SkinnedModelInstance _droneInstance;
 
         private readonly DirectionalLight[] _dirLights;
 
@@ -95,6 +97,14 @@ namespace AssimpModel {
                 Model = _stoneModel,
                 World = Matrix.Scaling(0.1f, 0.1f, 0.1f)*Matrix.Translation(2, 0, 2)
             };
+            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true, true);
+            _droneInstance = new SkinnedModelInstance() {
+                ClipName = "Run",
+                World = Matrix.Scaling(new Vector3(0.01f)) * Matrix.RotationX(MathF.PI*0.5f),
+                Model = _drone,
+                TimePos = 0.0f
+
+            };
 
             return true;
         }
@@ -122,6 +132,7 @@ namespace AssimpModel {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
+            _droneInstance.Update(dt);
         }
         public override void DrawScene() {
             base.DrawScene();
@@ -136,6 +147,8 @@ namespace AssimpModel {
 
             Effects.NormalMapFX.SetDirLights(_dirLights);
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
+            Effects.BasicFX.SetDirLights(_dirLights);
+            Effects.BasicFX.SetEyePosW(_camera.Position);
 
             var activeTech = Effects.NormalMapFX.Light3TexTech;
             for (int p = 0; p < activeTech.Description.PassCount; p++) {
@@ -173,8 +186,32 @@ namespace AssimpModel {
                     activeTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _stoneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
-
+                
             }
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTanSkinned;
+            for (int p = 0; p < Effects.BasicFX.Light3TexSkinnedTech.Description.PassCount; p++) {
+                var world = _droneInstance.World;
+                var wit = MathF.InverseTranspose(world);
+                var wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetTexTransform(Matrix.Identity);
+                //Effects.BasicFX.SetBoneTransforms(_droneInstance.FinalTransforms);
+
+
+                //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
+                for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
+                    Effects.BasicFX.SetMaterial(_droneInstance.Model.Materials[i]);
+                    Effects.BasicFX.SetDiffuseMap(_droneInstance.Model.DiffuseMapSRV[i]);
+                    //Effects.NormalMapFX.SetNormalMap(null);
+
+                    Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _droneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                }
+            }
+            
             SwapChain.Present(0, PresentFlags.None);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {

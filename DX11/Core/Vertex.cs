@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using SlimDX;
 using SlimDX.D3DCompiler;
@@ -99,6 +100,36 @@ namespace Core {
 
             public static readonly int Stride = Marshal.SizeOf(typeof (Terrain));
         }
+        public struct PosNormalTexTanSkinned {
+            public Vector3 Pos;
+            public Vector3 Normal;
+            public Vector2 Tex;
+            public Vector4 TangentU;
+            public Vector3 Weights;
+            public UInt32 BoneIndices;
+
+            public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexTanSkinned));
+
+            public PosNormalTexTanSkinned(Vector3 pos, Vector3 norm, Vector2 uv, Vector4 tanU, float[] weights, uint[] boneIndices) {
+                Pos = pos;
+                Normal = norm;
+                Tex = uv;
+                TangentU = tanU;
+                var ws = weights.Take(3).ToArray();
+                if (ws.Length == 1) {
+                    Weights = new Vector3(ws[0], 0, 0);
+                } else if (ws.Length == 2) {
+                    Weights = new Vector3(ws[0], ws[1], 0);
+                } else {
+                    Weights = new Vector3(ws[0], ws[1], ws[2]);
+                }
+                BoneIndices = 0;
+                    for (int index = 0; index < boneIndices.Length; index++) {
+                        BoneIndices |= (boneIndices[index] << ((4-index)*4));
+                    }
+                
+            }
+        }
     }
 
     public static class InputLayoutDescriptions {
@@ -144,6 +175,15 @@ namespace Core {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
             new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
             new InputElement("TEXCOORD", 1, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+        };
+
+        public static readonly InputElement[] PosNormalTexTanSkinned = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElement("NORMAL", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
+            new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+            new InputElement("TANGENT", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ) ,
+            new InputElement("WEIGHTS", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+            new InputElement("BONEINDICES", 0, Format.R8G8B8A8_UInt, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
         };
     }
     public static class InputLayouts {
@@ -205,6 +245,13 @@ namespace Core {
                 Console.WriteLine(ex.Message);
                 PosColor = null;
             }
+            try {
+                var passDesc = Effects.BasicFX.Light1SkinnedTech.GetPassByIndex(0).Description;
+                PosNormalTexTanSkinned = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTanSkinned);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message + ex.StackTrace);
+                PosNormalTexTan = null;
+            }
             
         }
         public static void DestroyAll() {
@@ -216,6 +263,7 @@ namespace Core {
             Util.ReleaseCom(ref PosNormalTexTan);
             Util.ReleaseCom(ref Terrain);
             Util.ReleaseCom(ref PosColor);
+            Util.ReleaseCom(ref PosNormalTexTanSkinned);
         }
 
         public static InputLayout PosNormal;
@@ -226,5 +274,6 @@ namespace Core {
         public static InputLayout PosNormalTexTan;
         public static InputLayout Terrain;
         public static InputLayout PosColor;
+        public static InputLayout PosNormalTexTanSkinned;
     }
 }

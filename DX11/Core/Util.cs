@@ -2,6 +2,7 @@
 using System.Drawing;
 using Assimp;
 using SlimDX;
+using Quaternion = SlimDX.Quaternion;
 
 namespace Core {
     using System.Linq;
@@ -59,6 +60,18 @@ namespace Core {
 
             return ret;
         } 
+        public static Matrix ToMatrix(this Assimp.Matrix4x4 m) {
+            var ret = Matrix.Identity;
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    ret[j, i] = m[i, j];
+                }
+            }
+            return ret;
+        }
+        public static Quaternion ToQuat(this Assimp.Quaternion q) {
+            return new Quaternion(q.X, q.Y, q.Z, q.W);
+        }
 
         public static int HighWord(this int i) {
             return (i >> 16) & 0xFFFF;

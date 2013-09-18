@@ -61,6 +61,61 @@
         public readonly EffectTechnique Light2TexAlphaClipFogReflectTech;
         public readonly EffectTechnique Light3TexAlphaClipFogReflectTech;
 
+        public readonly EffectTechnique Light1SkinnedTech;
+        public readonly EffectTechnique Light2SkinnedTech;
+        public readonly EffectTechnique Light3SkinnedTech;
+
+        public readonly EffectTechnique Light0TexSkinnedTech;
+        public readonly EffectTechnique Light1TexSkinnedTech;
+        public readonly EffectTechnique Light2TexSkinnedTech;
+        public readonly EffectTechnique Light3TexSkinnedTech;
+
+        public readonly EffectTechnique Light0TexAlphaClipSkinnedTech;
+        public readonly EffectTechnique Light1TexAlphaClipSkinnedTech;
+        public readonly EffectTechnique Light2TexAlphaClipSkinnedTech;
+        public readonly EffectTechnique Light3TexAlphaClipSkinnedTech;
+
+        public readonly EffectTechnique Light1FogSkinnedTech;
+        public readonly EffectTechnique Light2FogSkinnedTech;
+        public readonly EffectTechnique Light3FogSkinnedTech;
+
+        public readonly EffectTechnique Light0TexFogSkinnedTech;
+        public readonly EffectTechnique Light1TexFogSkinnedTech;
+        public readonly EffectTechnique Light2TexFogSkinnedTech;
+        public readonly EffectTechnique Light3TexFogSkinnedTech;
+
+        public readonly EffectTechnique Light0TexAlphaClipFogSkinnedTech;
+        public readonly EffectTechnique Light1TexAlphaClipFogSkinnedTech;
+        public readonly EffectTechnique Light2TexAlphaClipFogSkinnedTech;
+        public readonly EffectTechnique Light3TexAlphaClipFogSkinnedTech;
+
+        public readonly EffectTechnique Light1ReflectSkinnedTech;
+        public readonly EffectTechnique Light2ReflectSkinnedTech;
+        public readonly EffectTechnique Light3ReflectSkinnedTech;
+
+        public readonly EffectTechnique Light0TexReflectSkinnedTech;
+        public readonly EffectTechnique Light1TexReflectSkinnedTech;
+        public readonly EffectTechnique Light2TexReflectSkinnedTech;
+        public readonly EffectTechnique Light3TexReflectSkinnedTech;
+
+        public readonly EffectTechnique Light0TexAlphaClipReflectSkinnedTech;
+        public readonly EffectTechnique Light1TexAlphaClipReflectSkinnedTech;
+        public readonly EffectTechnique Light2TexAlphaClipReflectSkinnedTech;
+        public readonly EffectTechnique Light3TexAlphaClipReflectSkinnedTech;
+
+        public readonly EffectTechnique Light1FogReflectSkinnedTech;
+        public readonly EffectTechnique Light2FogReflectSkinnedTech;
+        public readonly EffectTechnique Light3FogReflectSkinnedTech;
+
+        public readonly EffectTechnique Light0TexFogReflectSkinnedTech;
+        public readonly EffectTechnique Light1TexFogReflectSkinnedTech;
+        public readonly EffectTechnique Light2TexFogReflectSkinnedTech;
+        public readonly EffectTechnique Light3TexFogReflectSkinnedTech;
+
+        public readonly EffectTechnique Light0TexAlphaClipFogReflectSkinnedTech;
+        public readonly EffectTechnique Light1TexAlphaClipFogReflectSkinnedTech;
+        public readonly EffectTechnique Light2TexAlphaClipFogReflectSkinnedTech;
+        public readonly EffectTechnique Light3TexAlphaClipFogReflectSkinnedTech;
         
         private readonly EffectMatrixVariable _worldViewProj;
         private readonly EffectMatrixVariable _world;
@@ -75,7 +130,7 @@
 
         private readonly EffectResourceVariable _diffuseMap;
         private readonly EffectResourceVariable _cubeMap;
-        
+        private readonly EffectMatrixVariable _boneTransforms;
 
         public BasicEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -134,6 +189,63 @@
             Light2TexAlphaClipFogReflectTech = FX.GetTechniqueByName("Light2TexAlphaClipFogReflect");
             Light3TexAlphaClipFogReflectTech = FX.GetTechniqueByName("Light3TexAlphaClipFogReflect");
 
+            // skinned techs
+            Light1SkinnedTech = FX.GetTechniqueByName("Light1Skinned");
+            Light2SkinnedTech = FX.GetTechniqueByName("Light2Skinned");
+            Light3SkinnedTech = FX.GetTechniqueByName("Light3Skinned");
+
+            Light0TexSkinnedTech = FX.GetTechniqueByName("Light0TexSkinned");
+            Light1TexSkinnedTech = FX.GetTechniqueByName("Light1TexSkinned");
+            Light2TexSkinnedTech = FX.GetTechniqueByName("Light2TexSkinned");
+            Light3TexSkinnedTech = FX.GetTechniqueByName("Light3TexSkinned");
+
+            Light0TexAlphaClipSkinnedTech = FX.GetTechniqueByName("Light0TexAlphaClipSkinned");
+            Light1TexAlphaClipSkinnedTech = FX.GetTechniqueByName("Light1TexAlphaClipSkinned");
+            Light2TexAlphaClipSkinnedTech = FX.GetTechniqueByName("Light2TexAlphaClipSkinned");
+            Light3TexAlphaClipSkinnedTech = FX.GetTechniqueByName("Light3TexAlphaClipSkinned");
+
+            Light1FogSkinnedTech = FX.GetTechniqueByName("Light1FogSkinned");
+            Light2FogSkinnedTech = FX.GetTechniqueByName("Light2FogSkinned");
+            Light3FogSkinnedTech = FX.GetTechniqueByName("Light3FogSkinned");
+
+            Light0TexFogSkinnedTech = FX.GetTechniqueByName("Light0TexFogSkinned");
+            Light1TexFogSkinnedTech = FX.GetTechniqueByName("Light1TexFogSkinned");
+            Light2TexFogSkinnedTech = FX.GetTechniqueByName("Light2TexFogSkinned");
+            Light3TexFogSkinnedTech = FX.GetTechniqueByName("Light3TexFogSkinned");
+
+            Light0TexAlphaClipFogSkinnedTech = FX.GetTechniqueByName("Light0TexAlphaClipFogSkinned");
+            Light1TexAlphaClipFogSkinnedTech = FX.GetTechniqueByName("Light1TexAlphaClipFogSkinned");
+            Light2TexAlphaClipFogSkinnedTech = FX.GetTechniqueByName("Light2TexAlphaClipFogSkinned");
+            Light3TexAlphaClipFogSkinnedTech = FX.GetTechniqueByName("Light3TexAlphaClipFogSkinned");
+
+            Light1ReflectSkinnedTech = FX.GetTechniqueByName("Light1ReflectSkinned");
+            Light2ReflectSkinnedTech = FX.GetTechniqueByName("Light2ReflectSkinned");
+            Light3ReflectSkinnedTech = FX.GetTechniqueByName("Light3ReflectSkinned");
+
+            Light0TexReflectSkinnedTech = FX.GetTechniqueByName("Light0TexReflectSkinned");
+            Light1TexReflectSkinnedTech = FX.GetTechniqueByName("Light1TexReflectSkinned");
+            Light2TexReflectSkinnedTech = FX.GetTechniqueByName("Light2TexReflectSkinned");
+            Light3TexReflectSkinnedTech = FX.GetTechniqueByName("Light3TexReflectSkinned");
+
+            Light0TexAlphaClipReflectSkinnedTech = FX.GetTechniqueByName("Light0TexAlphaClipReflectSkinned");
+            Light1TexAlphaClipReflectSkinnedTech = FX.GetTechniqueByName("Light1TexAlphaClipReflectSkinned");
+            Light2TexAlphaClipReflectSkinnedTech = FX.GetTechniqueByName("Light2TexAlphaClipReflectSkinned");
+            Light3TexAlphaClipReflectSkinnedTech = FX.GetTechniqueByName("Light3TexAlphaClipReflectSkinned");
+
+            Light1FogReflectSkinnedTech = FX.GetTechniqueByName("Light1FogReflectSkinned");
+            Light2FogReflectSkinnedTech = FX.GetTechniqueByName("Light2FogReflectSkinned");
+            Light3FogReflectSkinnedTech = FX.GetTechniqueByName("Light3FogReflectSkinned");
+
+            Light0TexFogReflectSkinnedTech = FX.GetTechniqueByName("Light0TexFogReflectSkinned");
+            Light1TexFogReflectSkinnedTech = FX.GetTechniqueByName("Light1TexFogReflectSkinned");
+            Light2TexFogReflectSkinnedTech = FX.GetTechniqueByName("Light2TexFogReflectSkinned");
+            Light3TexFogReflectSkinnedTech = FX.GetTechniqueByName("Light3TexFogReflectSkinned");
+
+            Light0TexAlphaClipFogReflectSkinnedTech = FX.GetTechniqueByName("Light0TexAlphaClipFogReflectSkinned");
+            Light1TexAlphaClipFogReflectSkinnedTech = FX.GetTechniqueByName("Light1TexAlphaClipFogReflectSkinned");
+            Light2TexAlphaClipFogReflectSkinnedTech = FX.GetTechniqueByName("Light2TexAlphaClipFogReflectSkinned");
+            Light3TexAlphaClipFogReflectSkinnedTech = FX.GetTechniqueByName("Light3TexAlphaClipFogReflectSkinned");
+
             _worldViewProj = FX.GetVariableByName("gWorldViewProj").AsMatrix();
             _world = FX.GetVariableByName("gWorld").AsMatrix();
             _worldInvTranspose = FX.GetVariableByName("gWorldInvTranspose").AsMatrix();
@@ -148,6 +260,8 @@
             _mat = FX.GetVariableByName("gMaterial");
             _diffuseMap = FX.GetVariableByName("gDiffuseMap").AsResource();
             _cubeMap = FX.GetVariableByName("gCubeMap").AsResource();
+
+            _boneTransforms = FX.GetVariableByName("gBoneTransforms").AsMatrix();
 
         }
         public void SetWorldViewProj(Matrix m) {
@@ -196,6 +310,10 @@
         }
         public void SetFogRange(float f) {
             _fogRange.Set(f);
+        }
+
+        public void SetBoneTransforms(List<Matrix> bones) {
+            _boneTransforms.SetMatrixArray(bones.ToArray());
         }
     }
 }

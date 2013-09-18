@@ -21,6 +21,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>false</UseVSHostingProcess>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -71,8 +72,12 @@
     <Compile Include="Lights.cs" />
     <Compile Include="Camera\LookAtCamera.cs" />
     <Compile Include="MathF.cs" />
+    <Compile Include="Model\AnimationClip.cs" />
     <Compile Include="Model\BasicModel.cs" />
+    <Compile Include="Model\BoneAnimation.cs" />
+    <Compile Include="Model\Keyframe.cs" />
     <Compile Include="Model\MeshGeometry.cs" />
+    <Compile Include="Model\SkinnedData.cs" />
     <Compile Include="Model\SkinnedModel.cs" />
     <Compile Include="Model\TextureManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
