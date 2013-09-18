@@ -30,7 +30,7 @@ namespace Core.Model {
             var toRootTransforms = new Matrix[numBones];
             toRootTransforms[0] = toParentTransforms[0];
 
-            for (int i = 0; i < numBones; i++) {
+            for (int i = 1; i < numBones; i++) {
                 var toParent = toParentTransforms[i];
                 var parentIndex = _boneHierarchy[i];
                 var parentToRoot = toRootTransforms[parentIndex];

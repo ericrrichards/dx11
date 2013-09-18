@@ -161,7 +161,7 @@ namespace Core {
             }
             ImmediateContext = Device.ImmediateContext;
             if (Device.FeatureLevel != FeatureLevel.Level_11_0) {
-                MessageBox.Show("Direct3D Feature Level 11 unsupported\nSupported feature level: " + Enum.GetName(Device.FeatureLevel.GetType(), Device.FeatureLevel));
+                Console.WriteLine("Direct3D Feature Level 11 unsupported\nSupported feature level: " + Enum.GetName(Device.FeatureLevel.GetType(), Device.FeatureLevel));
                 //return false;
             }
             //Debug.Assert((Msaa4XQuality = Device.CheckMultisampleQualityLevels(Format.R8G8B8A8_UNorm, 4)) > 0);

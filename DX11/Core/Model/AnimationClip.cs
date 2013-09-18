@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using SlimDX;
 
@@ -18,7 +19,10 @@ namespace Core.Model {
 
         public float ClipEndTime {
             get {
-                var t = _boneAnimations.Select(t1 => t1.EndTime).Concat(new[] { 0.0f }).Max();
+                var t = 0.0f;
+                foreach (var boneAnimation in _boneAnimations) {
+                    t = Math.Max(t, boneAnimation.EndTime);
+                }
                 return t;
             }
         }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Assimp;
@@ -36,35 +37,40 @@ namespace Core.Model {
             var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace | (flipWinding ? PostProcessSteps.FlipWindingOrder : PostProcessSteps.None));
             _modelMesh = new MeshGeometry();
 
+            var bones = ExtractBones(model.RootNode);
 
-            int[] boneHierarchy = null;
-            Matrix[] boneOffsets = null;
+            var boneOffsets = bones.Select(b => b.Transform.ToMatrix()).ToList();
+            var boneHierarchy = new List<int>();
+            var boneNameToIndex = new Dictionary<string, uint>();
+            var k = 0;
+            foreach (var bone in bones) {
+                boneHierarchy.Add(bones.IndexOf(bone.Parent));
+                boneNameToIndex[bone.Name] = (uint) k++;
+            }
+            
             var vertToBoneWeight = new Dictionary<uint, List<VertexWeight>>();
+
+
+
             var animations = new Dictionary<string, AnimationClip>();
             var verts = new List<PosNormalTexTanSkinned>();
-            var boneNameToIndex = new Dictionary<string, uint>();
+            
             for (int s = 0; s < model.Meshes.Length; s++) {
 
                 var mesh = model.Meshes[s];
-                if (s == 0 && mesh.HasBones) {
-                    boneHierarchy = new int[mesh.Bones.Length];
-                    boneOffsets = new Matrix[mesh.Bones.Length];
+                
 
-                    var i = 0;
-                    foreach (var bone in mesh.Bones) {
-                        boneNameToIndex[bone.Name] = (uint)i;
-                        boneOffsets[i] = bone.OffsetMatrix.ToMatrix();
-                        boneHierarchy[i] = i;
-                        foreach (var weight in bone.VertexWeights) {
-                            if (vertToBoneWeight.ContainsKey(weight.VertexID)) {
-                                vertToBoneWeight[weight.VertexID].Add(new VertexWeight((uint)i, weight.Weight));
-                            } else {
-                                vertToBoneWeight[weight.VertexID] = new List<VertexWeight>(new[] { new VertexWeight((uint)i, weight.Weight) });
-                            }
+                foreach (var bone in mesh.Bones) {
+                    var boneIndex = boneNameToIndex[bone.Name];
+                    foreach (var weight in bone.VertexWeights) {
+                        if (vertToBoneWeight.ContainsKey(weight.VertexID)) {
+                            vertToBoneWeight[weight.VertexID].Add(new VertexWeight(boneIndex, weight.Weight));
+                        } else {
+                            vertToBoneWeight[weight.VertexID] = new List<VertexWeight>(new[] { new VertexWeight(boneIndex, weight.Weight) });
                         }
-                        i++;
                     }
                 }
+                
                 
                 foreach (var animation in model.Animations) {
                     var key = animation.Name;
@@ -161,6 +167,24 @@ namespace Core.Model {
 
 
         }
+
+        private static List<Node> ExtractBones(Node rootNode) {
+            var ret = new List<Node>();
+            
+            if (!string.IsNullOrEmpty(rootNode.Name) && rootNode.MeshCount == 0) {
+                Console.WriteLine(rootNode.Name);
+                if (!rootNode.Name.StartsWith("$")) {
+                    ret.Add(rootNode);
+                }
+                if (rootNode.HasChildren) {
+                    foreach (var child in rootNode.Children) {
+                        ret.AddRange(ExtractBones(child));
+                    }
+                }
+            }
+            return ret;
+        }
+
 
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
