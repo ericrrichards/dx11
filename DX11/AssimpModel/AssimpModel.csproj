@@ -59,11 +59,23 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="FX\color.fx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="FX\NormalMap.fx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\axe.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Textures\drone.dds">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\dwarf.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\Tiny_skin.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Textures\tree_nmap.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -93,7 +105,25 @@
     <Content Include="Models\drone.X">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Models\magician.X">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\soldier.X">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\dwarf.x">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Models\tiny.x">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
+    <Content Include="Textures\magician.dds">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\soldier.dds">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Textures\stone.jpg">
@@ -110,11 +140,13 @@
   <PropertyGroup>
     <PostBuildEvent>cd FX
 
-fxc /Od /Fc /Zi /T  fx_5_0 /Fo Basic.fxo Basic.fx
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Basic.fxo Basic.fx
 
 fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Sky.fxo Sky.fx
 
-fxc /O0 /Fc /Zi /T  fx_5_0 /Fo NormalMap.fxo NormalMap.fx</PostBuildEvent>
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo NormalMap.fxo NormalMap.fx
+
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo color.fxo color.fx</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

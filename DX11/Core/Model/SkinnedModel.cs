@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Assimp;
+using Core.Camera;
+using Core.Model.dx9;
 using Core.Vertex;
 using SlimDX;
 using SlimDX.Direct3D11;
+using SlimDX.Direct3D9;
+using Device = SlimDX.Direct3D11.Device;
 
 namespace Core.Model {
     public class SkinnedModel : DisposableClass {
@@ -21,7 +25,6 @@ namespace Core.Model {
         public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
         public MeshGeometry ModelMesh { get { return _modelMesh; } }
         public List<ShaderResourceView> NormalMapSRV { get; private set; }
-        //public SkinnedData SkinnedData { get { return _skinnedData; } }
         public SceneAnimator Animator { get; private set; }
 
         public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipTexY = false, bool flipWinding = false) {
@@ -31,32 +34,21 @@ namespace Core.Model {
             DiffuseMapSRV = new List<ShaderResourceView>();
             NormalMapSRV = new List<ShaderResourceView>();
             Materials = new List<Material>();
-            //_skinnedData = new SkinnedData();
+            
             Animator = new SceneAnimator();
 
+           
             var importer = new AssimpImporter();
-            var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals |  PostProcessSteps.CalculateTangentSpace | (flipWinding ? PostProcessSteps.FlipWindingOrder : PostProcessSteps.None) );
+            importer.AttachLogStream(new ConsoleLogStream());
+            importer.VerboseLoggingEnabled = true;
+            var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals  |  PostProcessSteps.CalculateTangentSpace | (flipWinding ? PostProcessSteps.FlipWindingOrder : PostProcessSteps.None) );
             _modelMesh = new MeshGeometry();
+            
 
             Animator.Init(model);
             
-
-            /*var bones = ExtractBones(model.RootNode);
-
-            var boneOffsets = bones.Select(b => b.Transform.ToMatrix()).ToList();
-            var boneHierarchy = new List<int>();
-            var boneNameToIndex = new Dictionary<string, uint>();
-            var k = 0;
-            foreach (var bone in bones) {
-                boneHierarchy.Add(bones.IndexOf(bone.Parent));
-                boneNameToIndex[bone.Name] = (uint) k++;
-            }
-            */
             var vertToBoneWeight = new Dictionary<uint, List<VertexWeight>>();
 
-
-
-            //var animations = new Dictionary<string, AnimationClip>();
             var verts = new List<PosNormalTexTanSkinned>();
             
             for (int s = 0; s < model.Meshes.Length; s++) {
@@ -66,7 +58,7 @@ namespace Core.Model {
 
                 foreach (var bone in mesh.Bones) {
                     var boneIndex = Animator.GetBoneIndex(bone.Name);
-                    //boneOffsets[(int)boneIndex] *= bone.OffsetMatrix.ToMatrix();
+                    
                     foreach (var weight in bone.VertexWeights) {
                         if (vertToBoneWeight.ContainsKey(weight.VertexID)) {
                             vertToBoneWeight[weight.VertexID].Add(new VertexWeight((uint)boneIndex, weight.Weight));
@@ -75,38 +67,6 @@ namespace Core.Model {
                         }
                     }
                 }
-                
-                
-                /*foreach (var animation in model.Animations) {
-                    var key = animation.Name;
-                    var clip = new AnimationClip();
-                    
-                    BoneAnimation[] boneAnims = new BoneAnimation[animation.NodeAnimationChannelCount];
-                    foreach (var nodeAnimationChannel in animation.NodeAnimationChannels) {
-                        if (!boneNameToIndex.ContainsKey(nodeAnimationChannel.NodeName)) {
-                            continue;
-                        }
-                        var boneIndex = boneNameToIndex[nodeAnimationChannel.NodeName];
-                        boneAnims[boneIndex] = new BoneAnimation();
-
-                        var keyFrames = new List<Keyframe>();
-                        for (int i = 0; i < nodeAnimationChannel.PositionKeyCount; i++) {
-                            var kf = new Keyframe();
-                            kf.TimePos = (float) nodeAnimationChannel.PositionKeys[i].Time;
-                            kf.Translation = nodeAnimationChannel.PositionKeys[i].Value.ToVector3();
-                            kf.Scale = nodeAnimationChannel.ScalingKeys[i].Value.ToVector3();
-                            kf.RotationQuat = nodeAnimationChannel.RotationKeys[i].Value.ToQuat();
-                            keyFrames.Add(kf);
-                        }
-                        boneAnims[boneIndex].SetKeyFrames(keyFrames);
-                    }
-                    clip.SetBoneAnimations(boneAnims.Where(b=>b!=null).ToList());
-                    animations[key] = clip;
-                }*/
-
-                
-
-
                 var subset = new MeshGeometry.Subset {
                     Id = s,
                     VertexCount = mesh.VertexCount,
@@ -173,21 +133,51 @@ namespace Core.Model {
 
         }
 
-        private static List<Node> ExtractBones(Node rootNode) {
-            var ret = new List<Node>();
+        public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath) {
+            _subsets = new List<MeshGeometry.Subset>();
+            _vertices = new List<PosNormalTexTanSkinned>();
+            _indices = new List<short>();
+            DiffuseMapSRV = new List<ShaderResourceView>();
+            NormalMapSRV = new List<ShaderResourceView>();
+            Materials = new List<Material>();
+            _modelMesh = new MeshGeometry();
             
-            if (!string.IsNullOrEmpty(rootNode.Name) && rootNode.MeshCount == 0) {
-                Console.WriteLine(rootNode.Name);
-                if (!rootNode.Name.StartsWith("$")) {
-                    ret.Add(rootNode);
-                }
-                if (rootNode.HasChildren) {
-                    foreach (var child in rootNode.Children) {
-                        ret.AddRange(ExtractBones(child));
-                    }
-                }
+            Animator = new SceneAnimator();
+
+            var smesh = new SkinnedMesh(filename);
+            
+            var mesh = smesh.MeshContainer.MeshData.Mesh;
+           // mesh.ComputeTangentFrame(TangentOptions.GenerateInPlace);
+
+            var attTable = mesh.GetAttributeTable();
+            foreach (var attributeRange in attTable) {
+                var s = new MeshGeometry.Subset() {
+                    FaceCount = attributeRange.FaceCount,
+                    FaceStart = attributeRange.FaceStart,
+                    Id = attributeRange.AttribId,
+                    VertexCount = attributeRange.VertexCount,
+                    VertexStart = attributeRange.VertexStart
+                };
+                _subsets.Add(s);
             }
-            return ret;
+            _modelMesh.SetSubsetTable(_subsets);
+
+            var verts = new List<PosNormalTexTanSkinned>();
+            var vbs = mesh.LockVertexBuffer(LockFlags.None);
+            var dec = mesh.GetDeclaration();
+
+            var pos = vbs.Read<Vector3>();
+            var normal = vbs.Read<Vector3>();
+            var tex = vbs.Read<Vector2>();
+            var weight = vbs.Read<float>();
+            var b0 = vbs.Read<byte>();
+            var b1 = vbs.Read<byte>();
+            var b2 = vbs.Read<byte>();
+            var b3 = vbs.Read<byte>();
+
+            mesh.UnlockVertexBuffer();
+
+
         }
 
 
@@ -205,9 +195,10 @@ namespace Core.Model {
     public class SkinnedModelInstance {
         public SkinnedModel Model;
         public float TimePos;
+        private int frame = 0;
         public string ClipName;
         public Matrix World;
-        public List<Matrix> FinalTransforms;
+        public List<Matrix> FinalTransforms = new List<Matrix>();
         public void Update(float dt) {
             TimePos += dt;
             /*FinalTransforms = Model.SkinnedData.GetFinalTransforms(ClipName, TimePos);
@@ -216,7 +207,21 @@ namespace Core.Model {
             }
              */
             Model.Animator.SetAnimation(ClipName);
+            var oldTransforms = new List<Matrix>(FinalTransforms);
             FinalTransforms = Model.Animator.GetTransforms(TimePos);
+            if (oldTransforms.Any() && oldTransforms[0] == FinalTransforms[0]) {
+                Console.WriteLine("transform has not changed");
+            }
+        }
+        public void DrawSkeleton(DeviceContext dc, CameraBase camera) {
+            Model.Animator.RenderSkeleton(dc, camera, null, null, Matrix.Identity);
+        }
+
+        public void NextFrame() {
+            Model.Animator.SetAnimation(ClipName);
+            frame++;
+            FinalTransforms = Model.Animator.GetTransforms(frame);
+
         }
     }
 }

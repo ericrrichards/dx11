@@ -24,7 +24,7 @@
             PlayAnimationForward = true;
             Transforms = new List<List<Matrix>>();
         }
-        public AnimEvaluator(Animation anim) {
+        public AnimEvaluator(Animation anim, SceneAnimator scene) {
             LastTime = 0.0f;
             TicksPerSecond = anim.TicksPerSecond != 0.0f ? (float)anim.TicksPerSecond : 100.0f;
             Duration = (float)anim.DurationInTicks;
@@ -36,9 +36,11 @@
                 c.PositionKeys = channel.PositionKeys.ToList();
                 c.RotationKeys = channel.RotationKeys.ToList();
                 c.ScalingKeys = channel.ScalingKeys.ToList();
+                Channels.Add(c);
             }
             LastPositions = Enumerable.Repeat(new Tuple<int, int, int>(0, 0, 0), anim.NodeAnimationChannelCount).ToList();
             Transforms = new List<List<Matrix>>();
+            PlayAnimationForward = true;
         }
 
         public void Evaluate(float dt, Dictionary<string, Bone> bones) {
@@ -53,7 +55,7 @@
                     Console.WriteLine("Did not find the bone node " + channel.Name);
                     continue;
                 }
-                var pPosition = new Vector3();
+                var pPosition = new Vector3D();
                 if (channel.PositionKeys.Count > 0) {
                     var frame = (time >= LastTime) ? LastPositions[i].Item1 : 0;
                     while (frame < channel.PositionKeys.Count - 1) {
@@ -62,6 +64,10 @@
                         }
                         frame++;
                     }
+                    if (frame >=channel.PositionKeys.Count) {
+                        frame = 0;
+                    }
+                    
                     var nextFrame = (frame + 1) % channel.PositionKeys.Count;
 
                     var key = channel.PositionKeys[frame];
@@ -72,14 +78,14 @@
                     }
                     if (diffTime > 0.0) {
                         var factor = (float)((time - key.Time) / diffTime);
-                        pPosition = (key.Value + (nextKey.Value - key.Value) * factor).ToVector3();
+                        pPosition = key.Value + (nextKey.Value - key.Value)*factor;
                     } else {
-                        pPosition = key.Value.ToVector3();
+                        pPosition = key.Value;
                     }
                     LastPositions[i].Item1 = frame;
 
                 }
-                var pRot = new SlimDX.Quaternion(1, 0, 0, 0);
+                var pRot = new Assimp.Quaternion(1, 0, 0, 0);
                 if (channel.RotationKeys.Count > 0) {
                     var frame = (time >= LastTime) ? LastPositions[i].Item2 : 0;
                     while (frame < channel.RotationKeys.Count - 1) {
@@ -88,24 +94,29 @@
                         }
                         frame++;
                     }
+                    if (frame >= channel.RotationKeys.Count) {
+                        frame = 0;
+                    }
                     var nextFrame = (frame + 1) % channel.RotationKeys.Count;
 
                     var key = channel.RotationKeys[frame];
                     var nextKey = channel.RotationKeys[nextFrame];
+                    key.Value.Normalize();
+                    nextKey.Value.Normalize();
                     var diffTime = nextKey.Time - key.Time;
                     if (diffTime < 0.0) {
                         diffTime += Duration;
                     }
                     if (diffTime > 0) {
                         var factor = (float)((time - key.Time) / diffTime);
-                        pRot = SlimDX.Quaternion.Slerp(key.Value.ToQuat(), nextKey.Value.ToQuat(), factor);
+                        pRot = Assimp.Quaternion.Slerp(key.Value, nextKey.Value, factor);
                     } else {
-                        pRot = key.Value.ToQuat();
+                        pRot = key.Value;
                     }
                     LastPositions[i].Item2 = frame;
 
                 }
-                var pscale = new Vector3(1);
+                var pscale = new Vector3D(1);
                 if (channel.ScalingKeys.Count > 0) {
                     var frame = (time >= LastTime) ? LastPositions[i].Item3 : 0;
                     while (frame < channel.ScalingKeys.Count - 1) {
@@ -114,11 +125,35 @@
                         }
                         frame++;
                     }
-                    pscale = channel.ScalingKeys[frame].Value.ToVector3();
+                    if (frame >= channel.ScalingKeys.Count) {
+                        frame = 0;
+                    }
+                    var nextFrame = (frame + 1) % channel.ScalingKeys.Count;
+                    var key = channel.ScalingKeys[frame];
+                    var nextKey = channel.ScalingKeys[nextFrame];
+                    var diffTime = nextKey.Time - key.Time;
+                    if (diffTime < 0.0) {
+                        diffTime += Duration;
+                    }
+                    pscale = key.Value;
+                    /*
+                    if (diffTime > 0.0) {
+                        var factor = (float) ((time - key.Time)/diffTime);
+                        pscale = Vector3.Lerp(key.Value.ToVector3(), nextKey.Value.ToVector3(), factor);
+                    } else {
+
+                        pscale = channel.ScalingKeys[frame].Value.ToVector3();
+                    }*/
                     LastPositions[i].Item3 = frame;
                 }
-                var mat = Matrix.RotationQuaternion(pRot) * Matrix.Scaling(pscale) * Matrix.Translation(pPosition);
-                bones[channel.Name].LocalTransform = mat;
+                var mat = new Assimp.Matrix4x4(pRot.GetMatrix());
+                mat.A1 *= pscale.X;mat.B1 *= pscale.X;mat.C1 *= pscale.X;
+                mat.A2 *= pscale.Y; mat.B2 *= pscale.Y; mat.C2 *= pscale.Y;
+                mat.A3 *= pscale.Z; mat.B3 *= pscale.Z; mat.C3 *= pscale.Z;
+                mat.A4 = pPosition.X;mat.B4 = pPosition.Y;mat.C4 = pPosition.Z;
+
+                mat.Transpose();
+                bones[channel.Name].LocalTransform = mat.ToMatrix();
             }
             LastTime = time;
         }
@@ -136,7 +171,8 @@
             if (!PlayAnimationForward) {
                 percent = (percent - 1.0f) * -1.0f;
             }
-            return (int)(Transforms.Count * percent);
+            var frameIndexAt = (int) (Transforms.Count*percent);
+            return frameIndexAt;
         }
     }
     

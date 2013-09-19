@@ -76,10 +76,13 @@
     <Compile Include="Model\AnimEvaluator.cs" />
     <Compile Include="Model\BasicModel.cs" />
     <Compile Include="Model\BoneAnimation.cs" />
+    <Compile Include="Model\dx9\AllocMeshHierarchy.cs" />
+    <Compile Include="Model\dx9\CustomMeshContainer.cs" />
+    <Compile Include="Model\dx9\FrameEx.cs" />
+    <Compile Include="Model\dx9\SkinnedMesh.cs" />
     <Compile Include="Model\Keyframe.cs" />
     <Compile Include="Model\MeshGeometry.cs" />
     <Compile Include="Model\SceneAnimator.cs" />
-    <Compile Include="Model\SkinnedData.cs" />
     <Compile Include="Model\SkinnedModel.cs" />
     <Compile Include="Model\TextureManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

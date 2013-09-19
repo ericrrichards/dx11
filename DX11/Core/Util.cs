@@ -64,7 +64,7 @@ namespace Core {
             var ret = Matrix.Identity;
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    ret[i, j] = m[i, j];
+                    ret[i, j] = m[i+1, j+1];
                 }
             }
             return ret;

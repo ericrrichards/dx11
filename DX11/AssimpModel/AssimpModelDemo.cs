@@ -9,6 +9,7 @@ using Core;
 using Core.Camera;
 using Core.FX;
 using Core.Model;
+using Core.Model.dx9;
 using SlimDX;
 using SlimDX.DXGI;
 using SlimDX.Direct3D11;
@@ -97,14 +98,15 @@ namespace AssimpModel {
                 Model = _stoneModel,
                 World = Matrix.Scaling(0.1f, 0.1f, 0.1f)*Matrix.Translation(2, 0, 2)
             };
-            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true, true);
+            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true);
             _droneInstance = new SkinnedModelInstance() {
-                ClipName = "Still",
-                World = Matrix.Scaling(new Vector3(0.01f)) * Matrix.RotationX(MathF.PI*0.5f),
+                ClipName = "Run",
+                World =Matrix.Identity,
                 Model = _drone,
                 TimePos = 0.0f
 
             };
+            var smesh = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures");
 
             return true;
         }
@@ -132,7 +134,7 @@ namespace AssimpModel {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            _droneInstance.Update(dt);
+            //_droneInstance.Update(dt);
         }
         public override void DrawScene() {
             base.DrawScene();
@@ -167,7 +169,7 @@ namespace AssimpModel {
                     Effects.NormalMapFX.SetNormalMap(_modelInstance.Model.NormalMapSRV[i]);
 
                     activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _modelInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                    //_modelInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
                 world = _stoneInstance.World;
                 wit = MathF.InverseTranspose(world);
@@ -184,7 +186,7 @@ namespace AssimpModel {
                     Effects.NormalMapFX.SetNormalMap(_stoneInstance.Model.NormalMapSRV[i]);
 
                     activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _stoneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                    //_stoneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
                 
             }
@@ -198,11 +200,11 @@ namespace AssimpModel {
                 Effects.BasicFX.SetWorldInvTranspose(wit);
                 Effects.BasicFX.SetWorldViewProj(wvp);
                 Effects.BasicFX.SetTexTransform(Matrix.Identity);
-                //Effects.BasicFX.SetBoneTransforms(_droneInstance.FinalTransforms);
-                Effects.BasicFX.SetBoneTransforms(Enumerable.Repeat(Matrix.Identity, 96).ToList());
-
+                _droneInstance.NextFrame();
+                Effects.BasicFX.SetBoneTransforms(_droneInstance.FinalTransforms);
+                
                 //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
-                for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
+                for (int i = 0; i < _droneInstance.Model.SubsetCount; i++) {
                     Effects.BasicFX.SetMaterial(_droneInstance.Model.Materials[i]);
                     Effects.BasicFX.SetDiffuseMap(_droneInstance.Model.DiffuseMapSRV[i]);
                     //Effects.NormalMapFX.SetNormalMap(null);
@@ -211,6 +213,7 @@ namespace AssimpModel {
                     _droneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
             }
+            //_droneInstance.DrawSkeleton(ImmediateContext, _camera);
             
             SwapChain.Present(0, PresentFlags.None);
         }
