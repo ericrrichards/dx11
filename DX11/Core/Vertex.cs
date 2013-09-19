@@ -106,7 +106,7 @@ namespace Core {
             public Vector2 Tex;
             public Vector4 TangentU;
             public Vector3 Weights;
-            public UInt32 BoneIndices;
+            public BonePalette BoneIndices;
 
             public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexTanSkinned));
 
@@ -123,12 +123,28 @@ namespace Core {
                 } else {
                     Weights = new Vector3(ws[0], ws[1], ws[2]);
                 }
-                BoneIndices = 0;
-                    for (int index = 0; index < boneIndices.Length; index++) {
-                        BoneIndices |= (boneIndices[index] << ((4-index)*4));
+                BoneIndices = new BonePalette();
+                for (int index = 0; index < boneIndices.Length; index++) {
+                    switch (index) {
+                        case 0:
+                            BoneIndices.B0 = boneIndices[index];
+                            break;
+                        case 1:
+                            BoneIndices.B1 = boneIndices[index];
+                            break;
+                        case 2:
+                            BoneIndices.B2 = boneIndices[index];
+                            break;
+                        case 3:
+                            BoneIndices.B3 = boneIndices[index];
+                            break;
                     }
+                }
                 
             }
+        }
+        public struct BonePalette {
+            public uint B0, B1, B2, B3;
         }
     }
 
@@ -183,8 +199,9 @@ namespace Core {
             new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
             new InputElement("TANGENT", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ) ,
             new InputElement("WEIGHTS", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
-            new InputElement("BONEINDICES", 0, Format.R8G8B8A8_UInt, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
+            new InputElement("BONEINDICES", 0, Format.R32G32B32A32_UInt, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
         };
+
     }
     public static class InputLayouts {
         public static void InitAll(Device device) {
@@ -276,4 +293,8 @@ namespace Core {
         public static InputLayout PosColor;
         public static InputLayout PosNormalTexTanSkinned;
     }
+}
+
+namespace Core.Vertex {
+    
 }

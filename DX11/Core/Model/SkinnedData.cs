@@ -3,6 +3,8 @@ using System.Linq;
 using SlimDX;
 
 namespace Core.Model {
+    using Assimp;
+
     public class SkinnedData {
         private List<int> _boneHierarchy;
         private List<Matrix> _boneOffsets;
@@ -34,15 +36,17 @@ namespace Core.Model {
                 var toParent = toParentTransforms[i];
                 var parentIndex = _boneHierarchy[i];
                 var parentToRoot = toRootTransforms[parentIndex];
-                var toRoot = toParent*parentToRoot;
+                var toRoot = toParent * parentToRoot;
                 toRootTransforms[i] = toRoot;
             }
             for (int i = 0; i < numBones; i++) {
                 var offset = _boneOffsets[i];
                 var toRoot = toRootTransforms[i];
-                finalTransforms[i] = offset*toRoot;
+                finalTransforms[i] = offset * toRoot;
             }
             return finalTransforms.ToList();
-        } 
+        }
     }
+
+    
 }

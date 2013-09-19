@@ -73,10 +73,12 @@
     <Compile Include="Camera\LookAtCamera.cs" />
     <Compile Include="MathF.cs" />
     <Compile Include="Model\AnimationClip.cs" />
+    <Compile Include="Model\AnimEvaluator.cs" />
     <Compile Include="Model\BasicModel.cs" />
     <Compile Include="Model\BoneAnimation.cs" />
     <Compile Include="Model\Keyframe.cs" />
     <Compile Include="Model\MeshGeometry.cs" />
+    <Compile Include="Model\SceneAnimator.cs" />
     <Compile Include="Model\SkinnedData.cs" />
     <Compile Include="Model\SkinnedModel.cs" />
     <Compile Include="Model\TextureManager.cs" />

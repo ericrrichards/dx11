@@ -99,7 +99,7 @@ namespace AssimpModel {
             };
             _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true, true);
             _droneInstance = new SkinnedModelInstance() {
-                ClipName = "Run",
+                ClipName = "Still",
                 World = Matrix.Scaling(new Vector3(0.01f)) * Matrix.RotationX(MathF.PI*0.5f),
                 Model = _drone,
                 TimePos = 0.0f
@@ -199,7 +199,7 @@ namespace AssimpModel {
                 Effects.BasicFX.SetWorldViewProj(wvp);
                 Effects.BasicFX.SetTexTransform(Matrix.Identity);
                 //Effects.BasicFX.SetBoneTransforms(_droneInstance.FinalTransforms);
-
+                Effects.BasicFX.SetBoneTransforms(Enumerable.Repeat(Matrix.Identity, 96).ToList());
 
                 //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
                 for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
