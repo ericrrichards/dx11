@@ -16,7 +16,7 @@ namespace Core.Model {
         private MeshGeometry _modelMesh;
         //private SkinnedData _skinnedData;
         private readonly List<MeshGeometry.Subset> _subsets;
-        private readonly List<PosNormalTexTanSkinned> _vertices;
+        private readonly List<PosNormalTexSkinned> _vertices;
         private readonly List<short> _indices;
         private bool _disposed;
 
@@ -25,129 +25,28 @@ namespace Core.Model {
         public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
         public MeshGeometry ModelMesh { get { return _modelMesh; } }
         public List<ShaderResourceView> NormalMapSRV { get; private set; }
-        public SceneAnimator Animator { get; private set; }
 
-        public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipTexY = false, bool flipWinding = false) {
-            _subsets = new List<MeshGeometry.Subset>();
-            _vertices = new List<PosNormalTexTanSkinned>();
-            _indices = new List<short>();
-            DiffuseMapSRV = new List<ShaderResourceView>();
-            NormalMapSRV = new List<ShaderResourceView>();
-            Materials = new List<Material>();
-            
-            Animator = new SceneAnimator();
-
-           
-            var importer = new AssimpImporter();
-            importer.AttachLogStream(new ConsoleLogStream());
-            importer.VerboseLoggingEnabled = true;
-            var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals  |  PostProcessSteps.CalculateTangentSpace | (flipWinding ? PostProcessSteps.FlipWindingOrder : PostProcessSteps.None) );
-            _modelMesh = new MeshGeometry();
-            
-
-            Animator.Init(model);
-            
-            var vertToBoneWeight = new Dictionary<uint, List<VertexWeight>>();
-
-            var verts = new List<PosNormalTexTanSkinned>();
-            
-            for (int s = 0; s < model.Meshes.Length; s++) {
-
-                var mesh = model.Meshes[s];
-                
-
-                foreach (var bone in mesh.Bones) {
-                    var boneIndex = Animator.GetBoneIndex(bone.Name);
-                    
-                    foreach (var weight in bone.VertexWeights) {
-                        if (vertToBoneWeight.ContainsKey(weight.VertexID)) {
-                            vertToBoneWeight[weight.VertexID].Add(new VertexWeight((uint)boneIndex, weight.Weight));
-                        } else {
-                            vertToBoneWeight[weight.VertexID] = new List<VertexWeight>(new[] { new VertexWeight((uint)boneIndex, weight.Weight) });
-                        }
-                    }
-                }
-                var subset = new MeshGeometry.Subset {
-                    Id = s,
-                    VertexCount = mesh.VertexCount,
-                    VertexStart = _vertices.Count,
-                    FaceStart = _indices.Count / 3,
-                    FaceCount = mesh.FaceCount
-                };
-                _subsets.Add(subset);
-                for (int i = 0; i < mesh.VertexCount; i++) {
-                    var pos = mesh.HasVertices ? mesh.Vertices[i] : new Vector3D();
-                    var norm = mesh.HasNormals ? mesh.Normals[i] : new Vector3D();
-                    if (flipWinding) {
-                        norm = -norm;
-                    }
-                    var texC = new Vector3D();
-                    if (mesh.HasTextureCoords(0)) {
-                        var coord = mesh.GetTextureCoords(0)[i];
-                        if (flipTexY) {
-                            coord.Y = -coord.Y;
-                        }
-                        texC = coord;
-                    }
-
-                    var tan = mesh.HasTangentBasis ? mesh.Tangents[i] : new Vector3D();
-                    var weights = vertToBoneWeight[(uint)i].Select(w => w.Weight).ToArray();
-                    var boneIndices = vertToBoneWeight[(uint)i].Select(w => w.VertexID).ToArray();
-
-                    var v = new PosNormalTexTanSkinned(pos.ToVector3(), norm.ToVector3(), texC.ToVector2(), new Vector4(tan.ToVector3(), 0), weights, boneIndices);
-                    verts.Add(v);
-                }
-                _vertices.AddRange(verts);
-                var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
-                _indices.AddRange(indices);
-
-                var mat = model.Materials[mesh.MaterialIndex];
-                var material = mat.ToMaterial();
-
-                Materials.Add(material);
-
-                var diffusePath = mat.GetTexture(TextureType.Diffuse, 0).FilePath;
-                if (!string.IsNullOrEmpty(diffusePath)) {
-                    DiffuseMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, diffusePath)));
-                }
-                var normalPath = mat.GetTexture(TextureType.Normals, 0).FilePath;
-                if (!string.IsNullOrEmpty(normalPath)) {
-                    NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
-                } else {
-                    var normalExt = Path.GetExtension(diffusePath);
-                    normalPath = Path.GetFileNameWithoutExtension(diffusePath) + "_nmap" + normalExt;
-                    if (File.Exists(Path.Combine(texturePath, normalPath))) {
-                        NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
-                    }
-                }
-
-            }
-            //_skinnedData.Set(boneHierarchy.ToList(), boneOffsets.ToList(), animations);
-
-
-            _modelMesh.SetSubsetTable(_subsets);
-            _modelMesh.SetVertices(device, _vertices);
-            _modelMesh.SetIndices(device, _indices);
-
-
-
-        }
+        private readonly AnimationController _animationController;
+        private readonly BoneCombination[] _boneCombinations;
+        private readonly int _paletteEntries;
+        private readonly FrameEx[] _boneMatricesLookup;
+        private readonly Matrix[] _boneOffsets;
+        private readonly Frame _root;
+        internal readonly Dictionary<string, int> Animations;
 
         public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath) {
             _subsets = new List<MeshGeometry.Subset>();
-            _vertices = new List<PosNormalTexTanSkinned>();
+            _vertices = new List<PosNormalTexSkinned>();
             _indices = new List<short>();
             DiffuseMapSRV = new List<ShaderResourceView>();
             NormalMapSRV = new List<ShaderResourceView>();
             Materials = new List<Material>();
             _modelMesh = new MeshGeometry();
             
-            Animator = new SceneAnimator();
-
             var smesh = new SkinnedMesh(filename);
-            
+
             var mesh = smesh.MeshContainer.MeshData.Mesh;
-           // mesh.ComputeTangentFrame(TangentOptions.GenerateInPlace);
+            // mesh.ComputeTangentFrame(TangentOptions.GenerateInPlace);
 
             var attTable = mesh.GetAttributeTable();
             foreach (var attributeRange in attTable) {
@@ -162,24 +61,98 @@ namespace Core.Model {
             }
             _modelMesh.SetSubsetTable(_subsets);
 
-            var verts = new List<PosNormalTexTanSkinned>();
             var vbs = mesh.LockVertexBuffer(LockFlags.None);
             var dec = mesh.GetDeclaration();
-
-            var pos = vbs.Read<Vector3>();
-            var normal = vbs.Read<Vector3>();
-            var tex = vbs.Read<Vector2>();
-            var weight = vbs.Read<float>();
-            var b0 = vbs.Read<byte>();
-            var b1 = vbs.Read<byte>();
-            var b2 = vbs.Read<byte>();
-            var b3 = vbs.Read<byte>();
-
+            while (vbs.Position < vbs.Length) {
+                var pos = vbs.Read<Vector3>();
+                var weight = vbs.Read<float>();
+                var b0 = vbs.Read<byte>();
+                var b1 = vbs.Read<byte>();
+                var b2 = vbs.Read<byte>();
+                var b3 = vbs.Read<byte>();
+                var normal = vbs.Read<Vector3>();
+                var tex = vbs.Read<Vector2>();
+                _vertices.Add(new PosNormalTexSkinned(pos, normal, tex,  weight, new []{b0,b1, b2, b3} ));
+            }
+            
             mesh.UnlockVertexBuffer();
+            _modelMesh.SetVertices(device, _vertices);
+            var ibs = mesh.LockIndexBuffer(LockFlags.None);
+            while (ibs.Position < ibs.Length) {
+                var i = ibs.Read<short>();
+                _indices.Add(i);
+            }
 
+            mesh.UnlockIndexBuffer();
+            _modelMesh.SetIndices(device, _indices);
 
+            foreach (var mat in smesh.MeshContainer.GetMaterials()) {
+                var m = new Material();
+                m.Ambient = mat.MaterialD3D.Ambient;
+                m.Diffuse = mat.MaterialD3D.Diffuse;
+                m.Specular = mat.MaterialD3D.Specular;
+                m.Reflect = m.Specular;
+                m.Specular.Alpha = mat.MaterialD3D.Power;
+
+                Materials.Add(m);
+                var diffusePath = mat.TextureFileName;
+                DiffuseMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, diffusePath)));
+            }
+            _animationController = smesh.AnimationController;
+
+            _boneCombinations = smesh.MeshContainer.BoneCombinations;
+            _paletteEntries = smesh.MeshContainer.PaletteEntries;
+            _boneOffsets = smesh.MeshContainer.BoneOffsets;
+            _boneMatricesLookup = smesh.MeshContainer.BoneMatricesLookup;
+            Animations = smesh.Animations;
+            _root = smesh.Root;
+        }
+        public void Update(float dt, AnimationController anim = null) {
+            
+            if (anim == null) {
+                _animationController.AdvanceTime(dt, null);
+            } else {
+                anim.AdvanceTime(dt, null);
+            }
+
+            UpdateFrameMatrices(_root, Matrix.Identity);
+        }
+        private void UpdateFrameMatrices(Frame frame, Matrix matrix) {
+            var frameEx = frame as FrameEx;
+            if (frameEx != null) {
+                frameEx.ToRoot = frameEx.TransformationMatrix * matrix;
+
+                if (frame.Sibling != null) {
+                    UpdateFrameMatrices(frame.Sibling, matrix);
+                }
+                if (frame.FirstChild != null) {
+                    UpdateFrameMatrices(frameEx.FirstChild, frameEx.ToRoot);
+                }
+            }
         }
 
+        public Matrix[] GetBoneMatrices() {
+            var boneMatrices = new Matrix[_paletteEntries];
+            var combinations = _boneCombinations;
+
+            for (int i = 0; i < combinations.Length; i++) {
+                for (int p = 0; p < _paletteEntries; p++) {
+                    var index = combinations[i].BoneIds[p];
+                    if (index != -1) {
+                        boneMatrices[p] = _boneOffsets[index] * _boneMatricesLookup[index].ToRoot;
+                    }
+                }
+            }
+            return boneMatrices;
+        }
+        public void SetAnimation(string name) {
+            if (Animations.ContainsKey(name)) {
+                _animationController.SetTrackAnimationSet(0, _animationController.GetAnimationSet<AnimationSet>(Animations[name]));
+            }
+        }
+        public AnimationController GetAnimationControllerClone() {
+            return _animationController.Clone(_animationController.MaxAnimationOutputs, _animationController.MaxAnimationSets, _animationController.MaxTracks, _animationController.MaxEvents);
+        }
 
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
@@ -196,32 +169,26 @@ namespace Core.Model {
         public SkinnedModel Model;
         public float TimePos;
         private int frame = 0;
-        public string ClipName;
+        public string ClipName { get { return _clipName; } set {
+            if (_clipName != value) {
+                _clipName = value;
+                _animationController.SetTrackAnimationSet(0, _animationController.GetAnimationSet<AnimationSet>(Animations[_clipName]));
+            }
+        } }
         public Matrix World;
         public List<Matrix> FinalTransforms = new List<Matrix>();
+        private AnimationController _animationController;
+        private Dictionary<string, int> Animations;
+        private string _clipName;
+
+        public SkinnedModelInstance(SkinnedModel model) {
+            Model = model;
+            _animationController = model.GetAnimationControllerClone();
+            Animations = model.Animations;
+        }
         public void Update(float dt) {
-            TimePos += dt;
-            /*FinalTransforms = Model.SkinnedData.GetFinalTransforms(ClipName, TimePos);
-            if (TimePos > Model.SkinnedData.GetClipEndTime(ClipName)) {
-                TimePos = 0.0f;
-            }
-             */
-            Model.Animator.SetAnimation(ClipName);
-            var oldTransforms = new List<Matrix>(FinalTransforms);
-            FinalTransforms = Model.Animator.GetTransforms(TimePos);
-            if (oldTransforms.Any() && oldTransforms[0] == FinalTransforms[0]) {
-                Console.WriteLine("transform has not changed");
-            }
-        }
-        public void DrawSkeleton(DeviceContext dc, CameraBase camera) {
-            Model.Animator.RenderSkeleton(dc, camera, null, null, Matrix.Identity);
-        }
-
-        public void NextFrame() {
-            Model.Animator.SetAnimation(ClipName);
-            frame++;
-            FinalTransforms = Model.Animator.GetTransforms(frame);
-
+            Model.Update(dt, _animationController);
+            FinalTransforms = Model.GetBoneMatrices().ToList();
         }
     }
 }

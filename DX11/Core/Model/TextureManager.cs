@@ -2,6 +2,8 @@
 using SlimDX.Direct3D11;
 
 namespace Core.Model {
+    using System.IO;
+
     public class TextureManager :DisposableClass {
         private bool _disposed;
         private Device _device;
@@ -27,7 +29,11 @@ namespace Core.Model {
         }
         public ShaderResourceView CreateTexture(string path) {
             if (!_textureSRVs.ContainsKey(path)) {
-                _textureSRVs[path] = ShaderResourceView.FromFile(_device, path);
+                if (File.Exists(path)) {
+                    _textureSRVs[path] = ShaderResourceView.FromFile(_device, path);
+                } else {
+                    return null;
+                }
             }
             return _textureSRVs[path];
             

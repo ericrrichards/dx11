@@ -4,7 +4,6 @@ using SlimDX.Direct3D9;
 namespace Core.Model.dx9 {
     public class CustomMeshContainer : MeshContainer {
         public Texture[] Textures { get; set; }
-        public string[] TextureFiles { get; set; }
         public Mesh OriginalMesh { get; set; }
 
         public FrameEx[] BoneMatricesLookup { get; set; }
@@ -12,8 +11,6 @@ namespace Core.Model.dx9 {
         public BoneCombination[] BoneCombinations { get; set; }
         public int Influences { get; set; }
         public int PaletteEntries { get; set; }
-
-        public CustomMeshContainer() { }
 
         protected override void Dispose(bool disposing) {
             if (disposing) {

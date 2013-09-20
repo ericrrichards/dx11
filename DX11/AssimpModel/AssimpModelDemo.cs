@@ -98,15 +98,14 @@ namespace AssimpModel {
                 Model = _stoneModel,
                 World = Matrix.Scaling(0.1f, 0.1f, 0.1f)*Matrix.Translation(2, 0, 2)
             };
-            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true);
-            _droneInstance = new SkinnedModelInstance() {
+            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures");
+            _droneInstance = new SkinnedModelInstance(_drone) {
                 ClipName = "Run",
                 World =Matrix.Identity,
-                Model = _drone,
                 TimePos = 0.0f
 
             };
-            var smesh = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures");
+            
 
             return true;
         }
@@ -134,7 +133,7 @@ namespace AssimpModel {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            //_droneInstance.Update(dt);
+            
         }
         public override void DrawScene() {
             base.DrawScene();
@@ -200,7 +199,7 @@ namespace AssimpModel {
                 Effects.BasicFX.SetWorldInvTranspose(wit);
                 Effects.BasicFX.SetWorldViewProj(wvp);
                 Effects.BasicFX.SetTexTransform(Matrix.Identity);
-                _droneInstance.NextFrame();
+                _droneInstance.Update(0.0001f);
                 Effects.BasicFX.SetBoneTransforms(_droneInstance.FinalTransforms);
                 
                 //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;

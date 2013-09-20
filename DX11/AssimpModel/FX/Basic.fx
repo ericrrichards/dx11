@@ -51,12 +51,11 @@ struct VertexIn
 };
 struct SkinnedVertexIn
 {
-	float3 PosL       : POSITION;
-	float3 NormalL    : NORMAL;
-	float2 Tex        : TEXCOORD;
-	float4 TangentL   : TANGENT;
-	float3 Weights    : WEIGHTS;
-	uint4 BoneIndices : BONEINDICES;
+	float3 PosL    : POSITION;
+    float3 PormalL : NORMAL, 
+    float2 Tex    : TEXCOORD,
+    float Weight0  : BLENDWEIGHT, 
+    int4 boneIndex : BLENDINDICES
 };
 
 struct VertexOut
@@ -88,31 +87,25 @@ VertexOut SkinnedVS(SkinnedVertexIn vin)
     VertexOut vout;
 
 	// Init array or else we get strange warnings about SV_POSITION.
-	float weights[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-	weights[0] = vin.Weights.x;
-	weights[1] = vin.Weights.y;
-	weights[2] = vin.Weights.z;
-	weights[3] = 1.0f - weights[0] - weights[1] - weights[2];
+	
+	float weight0 = vin.Weight0;
+	float weight1 = 1.0f - weight0;
 
-	float3 posL     = float3(0.0f, 0.0f, 0.0f);
-	float3 normalL  = float3(0.0f, 0.0f, 0.0f);
-	float3 tangentL = float3(0.0f, 0.0f, 0.0f);
-	for(int i = 0; i < 4; ++i)
-	{
-	    // Assume no nonuniform scaling when transforming normals, so 
-		// that we do not have to use the inverse-transpose.
+	float4 p     = weight0 * mul(float4(vin.PosL, 1.0f), gBoneTransforms[vin.BoneIndex[0]]);
+	p += weight1 * mul(float4(vin.PosL, 1.0f), gBoneTransforms[vin.BoneIndex[1]]);
+	p.w = 1.0f;
+	
+	float4 n     = weight0 * mul(float4(vin.NormalL, 0.0f), gBoneTransforms[vin.BoneIndex[0]]);
+	n += weight1 * mul(float4(vin.NormalL, 0.0f), gBoneTransforms[vin.BoneIndex[1]]);
+	n.w = 0.0f;
 
-	    posL     += weights[i]*mul(float4(vin.PosL, 1.0f), gBoneTransforms[vin.BoneIndices[i]]).xyz;
-		normalL  += weights[i]*mul(vin.NormalL,  (float3x3)gBoneTransforms[vin.BoneIndices[i]]);
-		tangentL += weights[i]*mul(vin.TangentL.xyz, (float3x3)gBoneTransforms[vin.BoneIndices[i]]);
-	}
  
 	// Transform to world space space.
-	vout.PosW     = mul(float4(posL, 1.0f), gWorld).xyz;
-	vout.NormalW  = mul(normalL, (float3x3)gWorldInvTranspose);
+	vout.PosW     = mul(p, gWorld).xyz;
+	vout.NormalW  = mul(n, gWorldInvTranspose).xyz;
 
 	// Transform to homogeneous clip space.
-	vout.PosH = mul(float4(posL, 1.0f), gWorldViewProj);
+	vout.PosH = mul(p, gWorldViewProj);
 	
 	// Output vertex attributes for interpolation across triangle.
 	vout.Tex = mul(float4(vin.Tex, 0.0f, 1.0f), gTexTransform).xy;

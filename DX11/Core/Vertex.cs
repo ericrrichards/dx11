@@ -100,29 +100,20 @@ namespace Core {
 
             public static readonly int Stride = Marshal.SizeOf(typeof (Terrain));
         }
-        public struct PosNormalTexTanSkinned {
+        public struct PosNormalTexSkinned {
             public Vector3 Pos;
             public Vector3 Normal;
             public Vector2 Tex;
-            public Vector4 TangentU;
-            public Vector3 Weights;
+            public float Weight;
             public BonePalette BoneIndices;
 
-            public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexTanSkinned));
+            public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexSkinned));
 
-            public PosNormalTexTanSkinned(Vector3 pos, Vector3 norm, Vector2 uv, Vector4 tanU, float[] weights, uint[] boneIndices) {
+            public PosNormalTexSkinned(Vector3 pos, Vector3 norm, Vector2 uv, float weight, byte[] boneIndices) {
                 Pos = pos;
                 Normal = norm;
                 Tex = uv;
-                TangentU = tanU;
-                var ws = weights.Take(3).ToArray();
-                if (ws.Length == 1) {
-                    Weights = new Vector3(ws[0], 0, 0);
-                } else if (ws.Length == 2) {
-                    Weights = new Vector3(ws[0], ws[1], 0);
-                } else {
-                    Weights = new Vector3(ws[0], ws[1], ws[2]);
-                }
+                Weight = weight;
                 BoneIndices = new BonePalette();
                 for (int index = 0; index < boneIndices.Length; index++) {
                     switch (index) {
@@ -144,7 +135,7 @@ namespace Core {
             }
         }
         public struct BonePalette {
-            public uint B0, B1, B2, B3;
+            public byte B0, B1, B2, B3;
         }
     }
 
@@ -197,9 +188,8 @@ namespace Core {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
             new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
-            new InputElement("TANGENT", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ) ,
-            new InputElement("WEIGHTS", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
-            new InputElement("BONEINDICES", 0, Format.R32G32B32A32_UInt, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
+            new InputElement("BLENDWEIGHT", 0, Format.R32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+            new InputElement("BLENDINDICES", 0, Format.R8G8B8A8_UInt, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
         };
 
     }
