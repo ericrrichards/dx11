@@ -15,6 +15,8 @@ using SlimDX.DXGI;
 using SlimDX.Direct3D11;
 
 namespace AssimpModel {
+    using SkinnedModelInstance = Core.Model.SkinnedModelInstance;
+
     class AssimpModelDemo : D3DApp {
 
         private TextureManager _texMgr;
@@ -31,6 +33,8 @@ namespace AssimpModel {
         private FpsCamera _camera;
         private Point _lastMousePos;
         private bool _disposed;
+        private SkinnedModel _soldier;
+        private SkinnedModelInstance _soldierInstance;
 
         protected AssimpModelDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Assimp Model Demo";
@@ -98,14 +102,22 @@ namespace AssimpModel {
                 Model = _stoneModel,
                 World = Matrix.Scaling(0.1f, 0.1f, 0.1f)*Matrix.Translation(2, 0, 2)
             };
-            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures");
-            _droneInstance = new SkinnedModelInstance(_drone) {
+            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true);
+            _droneInstance = new SkinnedModelInstance(){
                 ClipName = "Run",
                 World =Matrix.Identity,
-                TimePos = 0.0f
+                TimePos = 0.0f,
+                Model = _drone
 
             };
-            
+
+            _soldier = new SkinnedModel(Device, _texMgr, "Models/soldier.x", "Textures", true);
+            _soldierInstance = new SkinnedModelInstance() {
+                ClipName = "Run",
+                Model = _soldier,
+                World = Matrix.Translation(10, 0, 0),
+                TimePos = 0.0f
+            };
 
             return true;
         }
@@ -133,7 +145,8 @@ namespace AssimpModel {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            
+            _droneInstance.Update(dt);
+            _soldierInstance.Update(dt);
         }
         public override void DrawScene() {
             base.DrawScene();
@@ -199,7 +212,7 @@ namespace AssimpModel {
                 Effects.BasicFX.SetWorldInvTranspose(wit);
                 Effects.BasicFX.SetWorldViewProj(wvp);
                 Effects.BasicFX.SetTexTransform(Matrix.Identity);
-                _droneInstance.Update(0.0001f);
+                
                 Effects.BasicFX.SetBoneTransforms(_droneInstance.FinalTransforms);
                 
                 //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
@@ -210,6 +223,26 @@ namespace AssimpModel {
 
                     Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _droneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                }
+                world = _soldierInstance.World;
+                wit = MathF.InverseTranspose(world);
+                wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetTexTransform(Matrix.Identity);
+
+                Effects.BasicFX.SetBoneTransforms(_soldierInstance.FinalTransforms);
+
+                //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
+                for (int i = 0; i < _soldierInstance.Model.SubsetCount; i++) {
+                    Effects.BasicFX.SetMaterial(_soldierInstance.Model.Materials[i]);
+                    Effects.BasicFX.SetDiffuseMap(_soldierInstance.Model.DiffuseMapSRV[i]);
+                    //Effects.NormalMapFX.SetNormalMap(null);
+
+                    Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _soldierInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
             }
             //_droneInstance.DrawSkeleton(ImmediateContext, _camera);
