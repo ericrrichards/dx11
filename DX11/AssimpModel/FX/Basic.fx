@@ -52,10 +52,11 @@ struct VertexIn
 struct SkinnedVertexIn
 {
 	float3 PosL    : POSITION;
-    float3 PormalL : NORMAL, 
-    float2 Tex    : TEXCOORD,
-    float Weight0  : BLENDWEIGHT, 
-    int4 boneIndex : BLENDINDICES
+    float3 NormalL : NORMAL; 
+    float2 Tex    : TEXCOORD;
+	float4 Tan		: TANGENT;
+    float Weight0  : BLENDWEIGHT; 
+    int4 BoneIndex : BLENDINDICES;
 };
 
 struct VertexOut

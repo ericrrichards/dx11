@@ -65,11 +65,11 @@ namespace Core.Model {
             }
             ExtractAnimations(scene);
             _transforms = new List<Matrix>(Enumerable.Repeat(Matrix.Identity, Bones.Count));
-            const float timestep = 1.0f / 30.0f;
+            const float timestep = 1.0f / 60.0f;
             for (int i = 0; i < Animations.Count; i++) {
                 SetAnimationIndex(i);
                 var dt = 0.0f;
-                for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond / 30.0f) {
+                for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond / 60.0f) {
                     dt += timestep;
                     Calculate(dt);
                     var trans = new List<Matrix>();

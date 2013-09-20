@@ -100,19 +100,21 @@ namespace Core {
 
             public static readonly int Stride = Marshal.SizeOf(typeof (Terrain));
         }
-        public struct PosNormalTexSkinned {
+        public struct PosNormalTexTanSkinned {
             public Vector3 Pos;
             public Vector3 Normal;
             public Vector2 Tex;
+            public Vector4 Tan;
             public float Weight;
             public BonePalette BoneIndices;
 
-            public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexSkinned));
+            public static readonly int Stride = Marshal.SizeOf(typeof(PosNormalTexTanSkinned));
 
-            public PosNormalTexSkinned(Vector3 pos, Vector3 norm, Vector2 uv, float weight, byte[] boneIndices) {
+            public PosNormalTexTanSkinned(Vector3 pos, Vector3 norm, Vector2 uv, Vector3 tan, float weight, byte[] boneIndices) {
                 Pos = pos;
                 Normal = norm;
                 Tex = uv;
+                Tan = new Vector4(tan, 0);
                 Weight = weight;
                 BoneIndices = new BonePalette();
                 for (int index = 0; index < boneIndices.Length; index++) {
@@ -188,6 +190,7 @@ namespace Core {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
             new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+            new InputElement("TANGENT", 0, Format.R32G32B32A32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ),
             new InputElement("BLENDWEIGHT", 0, Format.R32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
             new InputElement("BLENDINDICES", 0, Format.R8G8B8A8_UInt, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
         };
@@ -283,8 +286,4 @@ namespace Core {
         public static InputLayout PosColor;
         public static InputLayout PosNormalTexTanSkinned;
     }
-}
-
-namespace Core.Vertex {
-    
 }

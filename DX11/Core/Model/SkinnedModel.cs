@@ -14,7 +14,7 @@ namespace Core.Model {
     public class SkinnedModel : DisposableClass {
         private MeshGeometry _modelMesh;
         private readonly List<MeshGeometry.Subset> _subsets;
-        private readonly List<PosNormalTexSkinned> _vertices;
+        private readonly List<PosNormalTexTanSkinned> _vertices;
         private readonly List<short> _indices;
         private bool _disposed;
 
@@ -28,7 +28,7 @@ namespace Core.Model {
 
         public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipTexY = false, bool flipWinding = false) {
             _subsets = new List<MeshGeometry.Subset>();
-            _vertices = new List<PosNormalTexSkinned>();
+            _vertices = new List<PosNormalTexTanSkinned>();
             _indices = new List<short>();
             DiffuseMapSRV = new List<ShaderResourceView>();
             NormalMapSRV = new List<ShaderResourceView>();
@@ -48,7 +48,7 @@ namespace Core.Model {
 
             var vertToBoneWeight = new Dictionary<uint, List<VertexWeight>>();
 
-            var verts = new List<PosNormalTexSkinned>();
+            var verts = new List<PosNormalTexTanSkinned>();
 
             for (int s = 0; s < model.Meshes.Length; s++) {
 
@@ -80,6 +80,7 @@ namespace Core.Model {
                     if (flipWinding) {
                         norm = -norm;
                     }
+                    var tan = mesh.HasTangentBasis ? mesh.Tangents[i] : new Vector3D();
                     var texC = new Vector3D();
                     if (mesh.HasTextureCoords(0)) {
                         var coord = mesh.GetTextureCoords(0)[i];
@@ -93,7 +94,7 @@ namespace Core.Model {
                     var weights = vertToBoneWeight[(uint)i].Select(w => w.Weight).ToArray();
                     var boneIndices = vertToBoneWeight[(uint)i].Select(w => (byte)w.VertexID).ToArray();
 
-                    var v = new PosNormalTexSkinned(pos.ToVector3(), norm.ToVector3(), texC.ToVector2(), weights.First(), boneIndices);
+                    var v = new PosNormalTexTanSkinned(pos.ToVector3(), norm.ToVector3(), texC.ToVector2(), tan.ToVector3(), weights.First(), boneIndices);
                     verts.Add(v);
                 }
                 _vertices.AddRange(verts);
@@ -158,11 +159,8 @@ namespace Core.Model {
             TimePos += dt;
             
             Model.Animator.SetAnimation(ClipName);
-            var oldTransforms = new List<Matrix>(FinalTransforms);
             FinalTransforms = Model.Animator.GetTransforms(TimePos);
-            if (oldTransforms.Any() && oldTransforms[0] == FinalTransforms[0]) {
-                Console.WriteLine("transform has not changed");
-            }
+            
         }
 
         public void NextFrame() {

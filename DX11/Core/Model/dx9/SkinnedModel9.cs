@@ -15,7 +15,7 @@
         private MeshGeometry _modelMesh;
         //private SkinnedData _skinnedData;
         private readonly List<MeshGeometry.Subset> _subsets;
-        private readonly List<PosNormalTexSkinned> _vertices;
+        private readonly List<PosNormalTexTanSkinned> _vertices;
         private readonly List<short> _indices;
         private bool _disposed;
 
@@ -34,7 +34,7 @@
 
         public SkinnedModel9(Device device, TextureManager texMgr, string filename, string texturePath) {
             _subsets = new List<MeshGeometry.Subset>();
-            _vertices = new List<PosNormalTexSkinned>();
+            _vertices = new List<PosNormalTexTanSkinned>();
             _indices = new List<short>();
             DiffuseMapSRV = new List<ShaderResourceView>();
             NormalMapSRV = new List<ShaderResourceView>();
@@ -70,7 +70,7 @@
                 var b3 = vbs.Read<byte>();
                 var normal = vbs.Read<Vector3>();
                 var tex = vbs.Read<Vector2>();
-                _vertices.Add(new PosNormalTexSkinned(pos, normal, tex,  weight, new []{b0,b1, b2, b3} ));
+                _vertices.Add(new PosNormalTexTanSkinned(pos, normal, tex, new Vector3(),  weight, new []{b0,b1, b2, b3} ));
             }
             
             mesh.UnlockVertexBuffer();

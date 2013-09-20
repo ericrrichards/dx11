@@ -35,10 +35,12 @@ namespace AssimpModel {
         private bool _disposed;
         private SkinnedModel _soldier;
         private SkinnedModelInstance _soldierInstance;
+        private SkinnedModelInstance _droneInstance2;
 
         protected AssimpModelDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Assimp Model Demo";
             _lastMousePos = new Point();
+            Enable4xMsaa = true;
 
             _camera = new FpsCamera {
                 Position = new Vector3(0, 2, -15)
@@ -110,6 +112,13 @@ namespace AssimpModel {
                 Model = _drone
 
             };
+            _droneInstance2 = new SkinnedModelInstance() {
+                ClipName = "Idle",
+                World = Matrix.Translation(4.0f,0,0),
+                TimePos = 0.0f,
+                Model = _drone
+
+            };
 
             _soldier = new SkinnedModel(Device, _texMgr, "Models/soldier.x", "Textures", true);
             _soldierInstance = new SkinnedModelInstance() {
@@ -145,8 +154,9 @@ namespace AssimpModel {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            _droneInstance.Update(dt);
-            _soldierInstance.Update(dt);
+            _droneInstance.Update(dt*30);
+            _droneInstance2.Update(dt * 30);
+            _soldierInstance.Update(dt*30);
         }
         public override void DrawScene() {
             base.DrawScene();
@@ -243,6 +253,26 @@ namespace AssimpModel {
 
                     Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _soldierInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                }
+                world = _droneInstance2.World;
+                wit = MathF.InverseTranspose(world);
+                wvp = world * viewProj;
+
+                Effects.BasicFX.SetWorld(world);
+                Effects.BasicFX.SetWorldInvTranspose(wit);
+                Effects.BasicFX.SetWorldViewProj(wvp);
+                Effects.BasicFX.SetTexTransform(Matrix.Identity);
+
+                Effects.BasicFX.SetBoneTransforms(_droneInstance2.FinalTransforms);
+
+                //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
+                for (int i = 0; i < _droneInstance2.Model.SubsetCount; i++) {
+                    Effects.BasicFX.SetMaterial(_droneInstance2.Model.Materials[i]);
+                    Effects.BasicFX.SetDiffuseMap(_droneInstance2.Model.DiffuseMapSRV[i]);
+                    //Effects.NormalMapFX.SetNormalMap(null);
+
+                    Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _droneInstance2.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
             }
             //_droneInstance.DrawSkeleton(ImmediateContext, _camera);

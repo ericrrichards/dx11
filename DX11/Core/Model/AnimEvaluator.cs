@@ -26,7 +26,7 @@
         }
         public AnimEvaluator(Animation anim, SceneAnimator scene) {
             LastTime = 0.0f;
-            TicksPerSecond = anim.TicksPerSecond != 0.0f ? (float)anim.TicksPerSecond : 1800.0f;
+            TicksPerSecond = anim.TicksPerSecond != 0.0f ? (float)anim.TicksPerSecond : 100.0f;
             Duration = (float)anim.DurationInTicks;
             Name = anim.Name;
             Channels = new List<AnimationChannel>();
