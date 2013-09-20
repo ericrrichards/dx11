@@ -35,7 +35,8 @@ namespace AssimpModel {
         private bool _disposed;
         private SkinnedModel _soldier;
         private SkinnedModelInstance _soldierInstance;
-        private SkinnedModelInstance _droneInstance2;
+        private SkinnedModelInstance _mageInstance;
+        private SkinnedModel _mage;
 
         protected AssimpModelDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Assimp Model Demo";
@@ -106,23 +107,25 @@ namespace AssimpModel {
             };
             _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true);
             _droneInstance = new SkinnedModelInstance(){
-                ClipName = "Run",
+                ClipName = "Attack",
                 World =Matrix.Identity,
                 TimePos = 0.0f,
                 Model = _drone
 
             };
-            _droneInstance2 = new SkinnedModelInstance() {
-                ClipName = "Idle",
+            _mage = new SkinnedModel(Device, _texMgr, "Models/magician.x", "textures", true);
+
+            _mageInstance = new SkinnedModelInstance() {
+                ClipName = "Attack",
                 World = Matrix.Translation(4.0f,0,0),
                 TimePos = 0.0f,
-                Model = _drone
+                Model = _mage
 
             };
 
             _soldier = new SkinnedModel(Device, _texMgr, "Models/soldier.x", "Textures", true);
             _soldierInstance = new SkinnedModelInstance() {
-                ClipName = "Run",
+                ClipName = "Attack",
                 Model = _soldier,
                 World = Matrix.Translation(10, 0, 0),
                 TimePos = 0.0f
@@ -155,7 +158,7 @@ namespace AssimpModel {
                 _camera.Zoom(+dt);
             }
             _droneInstance.Update(dt*30);
-            _droneInstance2.Update(dt * 30);
+            _mageInstance.Update(dt * 30);
             _soldierInstance.Update(dt*30);
         }
         public override void DrawScene() {
@@ -211,72 +214,78 @@ namespace AssimpModel {
                     //_stoneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
                 
+                
+                
             }
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTanSkinned;
             for (int p = 0; p < Effects.BasicFX.Light3TexSkinnedTech.Description.PassCount; p++) {
-                var world = _droneInstance.World;
+                
+                
+            }
+            for (int p = 0; p < Effects.NormalMapFX.Light3TexSkinnedTech.Description.PassCount; p++) {
+                var world = _mageInstance.World;
                 var wit = MathF.InverseTranspose(world);
-                var wvp = world * viewProj;
+                var wvp = world*viewProj;
 
-                Effects.BasicFX.SetWorld(world);
-                Effects.BasicFX.SetWorldInvTranspose(wit);
-                Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetTexTransform(Matrix.Identity);
-                
-                Effects.BasicFX.SetBoneTransforms(_droneInstance.FinalTransforms);
-                
+                Effects.NormalMapFX.SetWorld(world);
+                Effects.NormalMapFX.SetWorldInvTranspose(wit);
+                Effects.NormalMapFX.SetWorldViewProj(wvp);
+                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
+
+                Effects.NormalMapFX.SetBoneTransforms(_mageInstance.FinalTransforms);
+
                 //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
-                for (int i = 0; i < _droneInstance.Model.SubsetCount; i++) {
-                    Effects.BasicFX.SetMaterial(_droneInstance.Model.Materials[i]);
-                    Effects.BasicFX.SetDiffuseMap(_droneInstance.Model.DiffuseMapSRV[i]);
+                for (int i = 0; i < _mageInstance.Model.SubsetCount; i++) {
+                    Effects.NormalMapFX.SetMaterial(_mageInstance.Model.Materials[i]);
+                    Effects.NormalMapFX.SetDiffuseMap(_mageInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_mageInstance.Model.NormalMapSRV[i]);
                     //Effects.NormalMapFX.SetNormalMap(null);
 
-                    Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _mageInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                }
+                world = _droneInstance.World;
+                wit = MathF.InverseTranspose(world);
+                wvp = world * viewProj;
+
+                Effects.NormalMapFX.SetWorld(world);
+                Effects.NormalMapFX.SetWorldInvTranspose(wit);
+                Effects.NormalMapFX.SetWorldViewProj(wvp);
+                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
+
+                Effects.NormalMapFX.SetBoneTransforms(_droneInstance.FinalTransforms);
+
+                //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
+                for (int i = 0; i < _droneInstance.Model.SubsetCount; i++) {
+                    Effects.NormalMapFX.SetMaterial(_droneInstance.Model.Materials[i]);
+                    Effects.NormalMapFX.SetDiffuseMap(_droneInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_droneInstance.Model.NormalMapSRV[i]);
+
+                    Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _droneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
                 world = _soldierInstance.World;
                 wit = MathF.InverseTranspose(world);
                 wvp = world * viewProj;
 
-                Effects.BasicFX.SetWorld(world);
-                Effects.BasicFX.SetWorldInvTranspose(wit);
-                Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetTexTransform(Matrix.Identity);
+                Effects.NormalMapFX.SetWorld(world);
+                Effects.NormalMapFX.SetWorldInvTranspose(wit);
+                Effects.NormalMapFX.SetWorldViewProj(wvp);
+                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
 
-                Effects.BasicFX.SetBoneTransforms(_soldierInstance.FinalTransforms);
+                Effects.NormalMapFX.SetBoneTransforms(_soldierInstance.FinalTransforms);
 
                 //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
                 for (int i = 0; i < _soldierInstance.Model.SubsetCount; i++) {
-                    Effects.BasicFX.SetMaterial(_soldierInstance.Model.Materials[i]);
-                    Effects.BasicFX.SetDiffuseMap(_soldierInstance.Model.DiffuseMapSRV[i]);
-                    //Effects.NormalMapFX.SetNormalMap(null);
+                    Effects.NormalMapFX.SetMaterial(_soldierInstance.Model.Materials[i]);
+                    Effects.NormalMapFX.SetDiffuseMap(_soldierInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_soldierInstance.Model.NormalMapSRV[i]);
 
-                    Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _soldierInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
-                world = _droneInstance2.World;
-                wit = MathF.InverseTranspose(world);
-                wvp = world * viewProj;
-
-                Effects.BasicFX.SetWorld(world);
-                Effects.BasicFX.SetWorldInvTranspose(wit);
-                Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetTexTransform(Matrix.Identity);
-
-                Effects.BasicFX.SetBoneTransforms(_droneInstance2.FinalTransforms);
-
-                //ImmediateContext.Rasterizer.State = RenderStates.NoCullRS;
-                for (int i = 0; i < _droneInstance2.Model.SubsetCount; i++) {
-                    Effects.BasicFX.SetMaterial(_droneInstance2.Model.Materials[i]);
-                    Effects.BasicFX.SetDiffuseMap(_droneInstance2.Model.DiffuseMapSRV[i]);
-                    //Effects.NormalMapFX.SetNormalMap(null);
-
-                    Effects.BasicFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _droneInstance2.Model.ModelMesh.Draw(ImmediateContext, i);
-                }
             }
-            //_droneInstance.DrawSkeleton(ImmediateContext, _camera);
-            
+
             SwapChain.Present(0, PresentFlags.None);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
