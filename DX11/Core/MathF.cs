@@ -47,5 +47,18 @@ namespace Core {
         public static float Atan(float f) {
             return (float)Math.Atan(f);
         }
+
+
+        // heightmap functions
+        public static float Noise(int x) {
+            x = (x << 13) ^ x;
+            return (1.0f - ((x * (x * x * 15731) + 1376312589) & 0x7fffffff) / 1073741824.0f);
+        }
+
+        public static float CosInterpolate(float v1, float v2, float a) {
+            var angle = a * PI;
+            var prc = (1.0f - Cos(angle)) * 0.5f;
+            return v1 * (1.0f - prc) + v2 * prc;
+        }
     }
 }

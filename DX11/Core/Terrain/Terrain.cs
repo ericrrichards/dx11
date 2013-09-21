@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+
 using Core.FX;
 using SlimDX;
 using SlimDX.DXGI;
@@ -14,6 +11,20 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Device = SlimDX.Direct3D11.Device;
 
 namespace Core.Terrain {
+    public struct InitInfo {
+        public string HeightMapFilename;
+        public string LayerMapFilename0;
+        public string LayerMapFilename1;
+        public string LayerMapFilename2;
+        public string LayerMapFilename3;
+        public string LayerMapFilename4;
+        public string BlendMapFilename;
+        public float HeightScale;
+        public int HeightMapWidth;
+        public int HeightMapHeight;
+        public float CellSpacing;
+    }
+
     public class Terrain  :DisposableClass {
         private const int CellsPerPatch = 64;
         private Buffer _quadPatchVB;
@@ -35,7 +46,7 @@ namespace Core.Terrain {
         private readonly Material _material;
 
         private List<Vector2> _patchBoundsY;
-        private List<float> _heightMap;
+        private HeightMap _heightMap;
 
         private bool _disposed;
 
@@ -70,22 +81,22 @@ namespace Core.Terrain {
             var row = (int)Math.Floor(d);
             var col = (int) Math.Floor(c);
 
-            var A = _heightMap[row*_info.HeightMapWidth + col];
-            var B = _heightMap[row*_info.HeightMapWidth + col + 1];
-            var C = _heightMap[(row +1)* _info.HeightMapWidth + col];
-            var D = _heightMap[(row +1)* _info.HeightMapWidth + col + 1];
+            var h00 = _heightMap[row, col];
+            var h01 = _heightMap[row, col + 1];
+            var h10 = _heightMap[(row +1), col];
+            var h11 = _heightMap[(row +1),col + 1];
 
             var s = c - col;
             var t = d - row;
 
             if (s + t <= 1.0f) {
-                var uy = B - A;
-                var vy = B - D;
-                return A + (1.0f - s)*uy + (1.0f - t)*vy;
+                var uy = h01 - h00;
+                var vy = h01 - h11;
+                return h00 + (1.0f - s)*uy + (1.0f - t)*vy;
             } else {
-                var uy = C - D;
-                var vy = B - D;
-                return D + (1.0f - s)*uy + (1.0f-t)*vy;
+                var uy = h10 - h11;
+                var vy = h01 - h11;
+                return h11 + (1.0f - s)*uy + (1.0f-t)*vy;
             }
         }
         public void Init(Device device, DeviceContext dc, InitInfo info) {
@@ -94,14 +105,16 @@ namespace Core.Terrain {
             _numPatchVertCols = ((_info.HeightMapWidth - 1)/CellsPerPatch) + 1;
             _numPatchVertices = _numPatchVertRows*_numPatchVertCols;
             _numPatchQuadFaces = (_numPatchVertRows - 1)*(_numPatchVertCols - 1);
+            _heightMap = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, _info.HeightScale);
 
-            LoadHeightmap();
-            Smooth();
+            _heightMap.LoadHeightmap(_info.HeightMapFilename);
+            _heightMap.Smooth();
+
             CalcAllPatchBoundsY();
 
             BuildQuadPatchVB(device);
             BuildQuadPatchIB(device);
-            BuildHeightmapSRV(device);
+            _heightMapSRV = _heightMap.BuildHeightmapSRV(device);
 
             var layerFilenames = new List<string> {
                 _info.LayerMapFilename0,
@@ -118,9 +131,9 @@ namespace Core.Terrain {
             dc.InputAssembler.InputLayout = InputLayouts.Terrain;
 
             var stride = Vertex.Terrain.Stride;
-            var offset = 0;
+            const int Offset = 0;
 
-            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
             dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
 
             var viewProj = cam.ViewProj;
@@ -156,32 +169,7 @@ namespace Core.Terrain {
 
         }
 
-        private void BuildHeightmapSRV(Device device) {
-            var texDec = new Texture2DDescription {
-                ArraySize = 1,
-                BindFlags = BindFlags.ShaderResource,
-                CpuAccessFlags = CpuAccessFlags.None,
-                Format = Format.R16_Float,
-                SampleDescription = new SampleDescription(1, 0),
-                Height = _info.HeightMapHeight,
-                Width = _info.HeightMapWidth,
-                MipLevels = 1,
-                OptionFlags = ResourceOptionFlags.None,
-                Usage = ResourceUsage.Default
-            };
-            var hmap = Half.ConvertToHalf(_heightMap.ToArray());
-
-            var hmapTex = new Texture2D(device, texDec, new DataRectangle(_info.HeightMapWidth*Marshal.SizeOf(typeof(Half)), new DataStream(hmap.ToArray(), false, false)));
-
-            var srvDesc = new ShaderResourceViewDescription {
-                Format = texDec.Format,
-                Dimension = ShaderResourceViewDimension.Texture2D,
-                MostDetailedMip = 0,
-                MipLevels = -1
-            };
-            _heightMapSRV = new ShaderResourceView(device, hmapTex, srvDesc);
-            Util.ReleaseCom(ref hmapTex);
-        }
+        
 
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();
@@ -220,48 +208,14 @@ namespace Core.Terrain {
 
             for (var y = y0; y <= y1; y++) {
                 for (var x = x0; x <= x1; x++) {
-                    var k = y*_info.HeightMapWidth + x;
-                    minY = Math.Min(minY, _heightMap[k]);
-                    maxY = Math.Max(maxY, _heightMap[k]);
+                    minY = Math.Min(minY, _heightMap[y,x]);
+                    maxY = Math.Max(maxY, _heightMap[y,x]);
                 }
             }
             var patchID = i*(_numPatchVertCols - 1) + j;
             _patchBoundsY[patchID] = new Vector2(minY, maxY);
         }
 
-        private void Smooth() {
-            var dest = new List<float>();
-            for (var i = 0; i < _info.HeightMapHeight; i++) {
-                for (var j = 0; j < _info.HeightMapWidth; j++) {
-                    dest.Add(Average(i,j));
-                }
-            }
-            _heightMap = dest;
-        }
-
-        private float Average(int i, int j) {
-            var avg = 0.0f;
-            var num = 0.0f;
-            for (var m = i-1; m <= i+1; m++) {
-                for (var n = j-1; n <= j+1; n++) {
-                    if (!InBounds(m, n)) continue;
-
-                    avg += _heightMap[m*_info.HeightMapWidth + n];
-                    num++;
-                }
-            }
-            return avg/num;
-        }
-
-        private bool InBounds(int i, int j) {
-            return i >= 0 && i < _info.HeightMapHeight && j >= 0 && j < _info.HeightMapWidth;
-        }
-
-        private void LoadHeightmap() {
-            var input = File.ReadAllBytes(_info.HeightMapFilename);
-
-            _heightMap = input.Select(i => (i/255.0f*_info.HeightScale)).ToList();
-        }
         private void BuildQuadPatchVB(Device device) {
             var patchVerts = new Vertex.Terrain[_numPatchVertRows*_numPatchVertCols];
             var halfWidth = 0.5f*Width;
@@ -294,17 +248,5 @@ namespace Core.Terrain {
         }
     }
 
-    public struct InitInfo {
-        public string HeightMapFilename;
-        public string LayerMapFilename0;
-        public string LayerMapFilename1;
-        public string LayerMapFilename2;
-        public string LayerMapFilename3;
-        public string LayerMapFilename4;
-        public string BlendMapFilename;
-        public float HeightScale;
-        public int HeightMapWidth;
-        public int HeightMapHeight;
-        public float CellSpacing;
-    }
+    
 }

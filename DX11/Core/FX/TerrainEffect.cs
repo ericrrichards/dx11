@@ -7,12 +7,12 @@ using Debug = System.Diagnostics.Debug;
 
 namespace Core.FX {
     public class TerrainEffect : Effect {
-        public EffectTechnique Light1Tech;
-        public EffectTechnique Light2Tech;
-        public EffectTechnique Light3Tech;
-        public EffectTechnique Light1FogTech;
-        public EffectTechnique Light2FogTech;
-        public EffectTechnique Light3FogTech;
+        public EffectTechnique Light1Tech { get; private set; }
+        public EffectTechnique Light2Tech { get; private set; }
+        public EffectTechnique Light3Tech { get; private set; }
+        public EffectTechnique Light1FogTech { get; private set; }
+        public EffectTechnique Light2FogTech { get; private set; }
+        public EffectTechnique Light3FogTech { get; private set; }
 
         private readonly EffectMatrixVariable _viewProj;
         private readonly EffectVectorVariable _eyePosW;
