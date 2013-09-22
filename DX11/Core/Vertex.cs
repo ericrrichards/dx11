@@ -87,18 +87,18 @@ namespace Core {
             }
         }
 
-        public struct Terrain {
+        public struct TerrainCP {
             public Vector3 Pos;
             public Vector2 Tex;
             public Vector2 BoundsY;
 
-            public Terrain(Vector3 pos, Vector2 tex, Vector2 boundsY) {
+            public TerrainCP(Vector3 pos, Vector2 tex, Vector2 boundsY) {
                 Pos = pos;
                 Tex = tex;
                 BoundsY = boundsY;
             }
 
-            public static readonly int Stride = Marshal.SizeOf(typeof (Terrain));
+            public static readonly int Stride = Marshal.SizeOf(typeof(TerrainCP));
         }
         public struct PosNormalTexTanSkinned {
             public Vector3 Pos;
@@ -180,11 +180,11 @@ namespace Core {
             new InputElement("TANGENT", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ) 
         };
 
-        public static readonly InputElement[] Terrain = {
-            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
-            new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
-            new InputElement("TEXCOORD", 1, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
-        };
+    public static readonly InputElement[] TerrainCP = {
+        new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+        new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+        new InputElement("TEXCOORD", 1, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+    };
 
         public static readonly InputElement[] PosNormalTexTanSkinned = {
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
@@ -243,10 +243,10 @@ namespace Core {
             }
             try {
                 var passDesc = Effects.TerrainFX.Light1Tech.GetPassByIndex(0).Description;
-                Terrain = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Terrain);
+                TerrainCP = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TerrainCP);
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
-                Terrain = null;
+                TerrainCP = null;
             }
             try {
                 var passDesc = Effects.ColorFX.ColorTech.GetPassByIndex(0).Description;
@@ -271,7 +271,7 @@ namespace Core {
             Util.ReleaseCom(ref TreePointSprite);
             Util.ReleaseCom(ref InstancedBasic32);
             Util.ReleaseCom(ref PosNormalTexTan);
-            Util.ReleaseCom(ref Terrain);
+            Util.ReleaseCom(ref TerrainCP);
             Util.ReleaseCom(ref PosColor);
             Util.ReleaseCom(ref PosNormalTexTanSkinned);
         }
@@ -282,7 +282,7 @@ namespace Core {
         public static InputLayout InstancedBasic32;
         public static InputLayout Pos;
         public static InputLayout PosNormalTexTan;
-        public static InputLayout Terrain;
+        public static InputLayout TerrainCP;
         public static InputLayout PosColor;
         public static InputLayout PosNormalTexTanSkinned;
     }

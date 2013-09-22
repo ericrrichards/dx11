@@ -1,0 +1,777 @@
+﻿<p>A common task for strategy and other games with an outdoor setting is the rendering of the terrain for the level.&nbsp; Probably the most convenient way to model a terrain is to create a triangular grid, and then perturb the y-coordinates of the vertices to match the desired elevations.&nbsp; This elevation data can be determined by using a mathematical function, as we have done in our <a href="http://richardssoftware.blogspot.com/2013/07/hills-demo-with-slimdx-and-c.html" target="_blank">previous</a> <a href="http://richardssoftware.blogspot.com/2013/07/lit-terrain-demo.html" target="_blank">examples</a>, or by sampling an array or texture known as a <strong>heightmap</strong>.&nbsp; Using a heightmap to describe the terrain elevations allows us more fine-grain control over the details of our terrain, and also allows us to define the terrain easily, either using a procedural method to create random heightmaps, or by creating an image in a paint program.</p>
+<p>Because a terrain can be very large, we will want to optimize the rendering of it as much as possible.&nbsp; One easy way to save rendering cycles is to only draw the vertices of the terrain that can be seen by the player, using frustum culling techniques similar to those we have <a href="http://richardssoftware.blogspot.com/2013/08/hardware-instancing-and-frustum-culling.html" target="_blank">already covered</a>.&nbsp; Another way is to render the mesh using a variable level of detail, by using the Hull and Domain shaders to render the terrain mesh with more polygons near the camera, and fewer in the distance, in a manner similar to that we used for our <a href="http://richardssoftware.blogspot.com/2013/09/bump-and-displacement-mapping-with.html" target="_blank">Displacement mapping effect</a>.&nbsp; Combining the two techniques allows us to render a very large terrain, with a very high level of detail, at a high frame rate, although it does limit us to running on DirectX 11 compliant graphics cards.</p>
+<p>We will also use a technique called <a href="http://en.wikipedia.org/wiki/Texture_splatting" target="_blank">texture splatting</a> to render our terrain with multiple textures in a single rendering call.&nbsp; This technique involves using a separate texture, called a blend map, in addition to the diffuse textures that are applied to the mesh, in order to define which texture is applied to which portion of the mesh.&nbsp; </p>
+<p>The code for this example was adapted from Chapter 19 of <a href="http://www.d3dcoder.net/d3d11.htm" target="_blank">Frank Luna’s Introduction to 3D Game Programming with Direct3D 11.0</a>, with some additional inspirations from Chapter 4 of <a href="http://www.cjgraphic.com/?page=rts-book" target="_blank">Carl Granberg’s Programming an RTS Game with Direct3D</a>.&nbsp; The full source for this example can be downloaded from my GitHub repository, at <a title="https://github.com/ericrrichards/dx11.git" href="https://github.com/ericrrichards/dx11.git">https://github.com/ericrrichards/dx11.git</a>, under the TerrainDemo project.</p>
+<p><a href="$image[5].png">
+    <img title="image" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="image" src="$image_thumb[3].png" width="617" height="484"></a></p>
+<!--more-->
+<h3>Heightmaps</h3>
+<p>A heightmap is a 2D matrix that describes the height (y-coordinate) of each vertex in our terrain mesh.&nbsp; We can either generate this matrix procedurally, or we can load the heightmap from an image file.&nbsp; One common way to store a heightmap, which we will use here, is to use a grayscale raw image, where each byte of the image represents one entry in the heightmap.&nbsp; Using one byte per entry gives us a resolution of 256 distinct height values; for greater resolution we could instead use a 16-bit format.&nbsp; Working with raw images makes loading the heightmap very simple for our code, and saves us a great deal of space; however, working with raw image data in an image editing program can be somewhat difficult.&nbsp; If you intend to use artist-created heightmaps, it may be more convenient to support loading a more common image format, such as jpeg or png, and using a single color channel for the heightmap data, or by pre-processing the artist-generated images into raw files as part of your art pipeline.&nbsp; We will follow the convention that black pixels in the heightmap image represent the lowest height values, while white represents the highest; grey values will be linearly interpolated between these min and max heights.&nbsp; The heightmap that we will use in this example is shown below:</p>
+<p><a href="$image[9].png">
+    <img title="image" style="border-left-width: 0px; border-right-width: 0px; background-image: none; border-bottom-width: 0px; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-top-width: 0px" border="0" alt="image" src="$image_thumb[5].png" width="484" height="484"></a></p>
+<p>Mr. Luna’s example loads the heightmap image data directly into an array in our Terrain class, however, I am going to encapsulate this heightmap data into its own class.&nbsp; This makes our Terrain class more simple, by offloading all of the heightmap processing code into the Heightmap class, as well as making it more easy for us to use some of the procedural heightmap creation techniques from Mr. Granberg’s book in our next example.&nbsp; Our heightmap class looks like this:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> HeightMap  {
+    <span class="kwrd">private</span> List&lt;<span class="kwrd">float</span>&gt; _heightMap;
+    <span class="kwrd">public</span> <span class="kwrd">int</span> HeightMapWidth { get; set; }
+    <span class="kwrd">public</span> <span class="kwrd">int</span> HeightMapHeight { get; set; }
+    <span class="kwrd">public</span> <span class="kwrd">float</span> MaxHeight { get; set; }
+
+    <span class="kwrd">public</span> HeightMap(<span class="kwrd">int</span> width, <span class="kwrd">int</span> height, <span class="kwrd">float</span> maxHeight) {
+        HeightMapWidth = width;
+        HeightMapHeight = height;
+        MaxHeight = maxHeight;
+        _heightMap = <span class="kwrd">new</span> List&lt;<span class="kwrd">float</span>&gt;(<span class="kwrd">new</span> <span class="kwrd">float</span>[HeightMapWidth*HeightMapHeight]);
+    }</pre>
+<p>Here we have the heightmap data, contained in our _heightmap member, as well as the dimensions of the heightmap, stored in HeightMapWidth and HeightMapHeight.&nbsp; MaxHeight is a factor which we will multiply the raw heightmap data by in order to generate the final heightmap heights.&nbsp; To provide easy access to the heightmap data contained in the HeightMap class, we will implement an indexer, which allows us to easily grab the height value at each x,y coordinate.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">float</span> <span class="kwrd">this</span>[<span class="kwrd">int</span> row, <span class="kwrd">int</span> col] {
+    get {
+        <span class="kwrd">if</span> (InBounds(row, col)) {
+            <span class="kwrd">return</span> _heightMap[row * HeightMapHeight + col];
+        }
+        <span class="kwrd">return</span> 0.0f;
+    }
+    <span class="kwrd">private</span> set {
+        <span class="kwrd">if</span> (InBounds(row, col)) {
+            _heightMap[row * HeightMapHeight + col] = <span class="kwrd">value</span>;
+        }
+    }
+}</pre>
+<p>The InBounds function is a simple check to make sure that we are not trying to access an element out of the range of the heightmap dimensions:</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">bool</span> InBounds(<span class="kwrd">int</span> row, <span class="kwrd">int</span> col) {
+    <span class="kwrd">return</span> row &gt;= 0 &amp;&amp; row &lt; HeightMapHeight &amp;&amp; col &gt;= 0 &amp;&amp; col &lt; HeightMapWidth;
+}</pre>
+<p>To load the heightmap image data and convert it from the raw bytes to the float heightmap data we want, we will create the LoadHeightmap() function, which takes as a parameter the path to the heightmap image file to load.&nbsp; We can leverage the .NET File.ReadAllBytes() method to easily read the raw image data as a byte array, which is exactly what we want when using an 8-bit raw image file.&nbsp; Remember that the heightmap image format we are using stores values in the [0,255] range, so to convert that data to the range we desire for our terrain, we need to normalize the raw data, then multiply each value by the MaxHeight factor.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> LoadHeightmap(<span class="kwrd">string</span> heightMapFilename) {
+    var input = File.ReadAllBytes(heightMapFilename);
+
+    _heightMap = input.Select(i =&gt; (i / 255.0f * MaxHeight)).ToList();
+}</pre>
+<p>As a post-processing step, we will often want to smooth the loaded heightmap, to reduce any abrupt elevation transitions due to the limited resolution of our heightmap image format, or to clean up a procedurally-generated heightmap.&nbsp; We smooth the heightmap by taking the average of each value and the eight surrounding values, being careful to ensure that we stay within the bounds of the heightmap:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> Smooth() {
+    var dest = <span class="kwrd">new</span> List&lt;<span class="kwrd">float</span>&gt;();
+    <span class="kwrd">for</span> (var i = 0; i &lt; HeightMapHeight; i++) {
+        <span class="kwrd">for</span> (var j = 0; j &lt; HeightMapWidth; j++) {
+            dest.Add(Average(i, j));
+        }
+    }
+    _heightMap = dest;
+}
+
+<span class="kwrd">private</span> <span class="kwrd">float</span> Average(<span class="kwrd">int</span> row, <span class="kwrd">int</span> col) {
+    var avg = 0.0f;
+    var num = 0.0f;
+    <span class="kwrd">for</span> (var m = row - 1; m &lt;= row + 1; m++) {
+        <span class="kwrd">for</span> (var n = col - 1; n &lt;= col + 1; n++) {
+            <span class="kwrd">if</span> (!InBounds(m, n)) <span class="kwrd">continue</span>;
+
+            avg += _heightMap[m * HeightMapHeight + n];
+            num++;
+        }
+    }
+    <span class="kwrd">return</span> avg / num;
+}</pre>
+<p>The last functionality we will require of our heightmap class is that it provide a ShaderResourceView representing its heightmap values.&nbsp; Because we are going to use the Hull and Domain shaders to dynamically tessellate the terrain mesh, we will need to sample this heightmap shader texture to determine the y-coordinates of our generated vertices.&nbsp; The first step in this process is to create a DirectX texture from our _heightmap data.&nbsp; Note that we convert the 32-bit float values used by the HeightMap class into 16-bit halfs when creating the texture, in order to save VRAM.&nbsp; Also, note that we specify that the texture only has a single mipmap level; for best results, we will want to always sample the full-resolution heightmap texture in our shader, and not storing mipmaps also saves us some memory.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> ShaderResourceView BuildHeightmapSRV(Device device) {
+    var texDec = <span class="kwrd">new</span> Texture2DDescription {
+        ArraySize = 1,
+        BindFlags = BindFlags.ShaderResource,
+        CpuAccessFlags = CpuAccessFlags.None,
+        Format = Format.R16_Float,
+        SampleDescription = <span class="kwrd">new</span> SampleDescription(1, 0),
+        Height = HeightMapHeight,
+        Width = HeightMapWidth,
+        MipLevels = 1,
+        OptionFlags = ResourceOptionFlags.None,
+        Usage = ResourceUsage.Default
+    };
+    var hmap = Half.ConvertToHalf(_heightMap.ToArray());
+
+    var hmapTex = <span class="kwrd">new</span> Texture2D(
+        device, 
+        texDec, 
+        <span class="kwrd">new</span> DataRectangle(
+            HeightMapWidth * Marshal.SizeOf(<span class="kwrd">typeof</span>(Half)), 
+            <span class="kwrd">new</span> DataStream(hmap.ToArray(), <span class="kwrd">false</span>, <span class="kwrd">false</span>)
+        )
+    );
+
+    var srvDesc = <span class="kwrd">new</span> ShaderResourceViewDescription {
+        Format = texDec.Format,
+        Dimension = ShaderResourceViewDimension.Texture2D,
+        MostDetailedMip = 0,
+        MipLevels = -1
+    };
+            
+    var srv = <span class="kwrd">new</span> ShaderResourceView(device, hmapTex, srvDesc);
+            
+           
+    Util.ReleaseCom(<span class="kwrd">ref</span> hmapTex);
+    <span class="kwrd">return</span> srv;
+}</pre>
+<h3>Terrain Class</h3>
+<p>Since a terrain can be very large, rendering it in its entirety, at full detail, every frame can be very expensive.&nbsp; Consequently, we will want to limit the number of triangles we render as much as possible when we draw our terrain.&nbsp; The simplest method is to use camera frustum culling to reject portions of the mesh that are not visible from being rendered at all.&nbsp; Typically, this requires that the terrain mesh be carved up into rectangular <strong>patches</strong>, with each patch possessing a bounding box that we can test against the camera frustum for intersection.&nbsp; </p>
+<p>Even after frustum culling, rendering the visible portions of the heightmap at their full vertex resolution requires drawing a very large number of triangles.&nbsp; Ideally, we would like to render our terrain at a vertex resolution that enables us to capture every dip and rise in the landscape.&nbsp; However, let’s say that we are rendering a terrain that is one square kilometer, and we want to space our vertices such that there are ten per meter.&nbsp; Rendering the entire terrain would thus require rendering 200,000,000 triangles!&nbsp; Even after reducing that number by using frustum culling, we are left with too many triangles to render each frame and have any processing time left over for rendering anything else, or performing any of the other logic necessary for a game.&nbsp; </p>
+<p>Realistically, we do not need to render all of these triangles.&nbsp; We will get relatively more bang for our GPU buck by rendering the closest triangles at full resolution, and combining a number of far-away triangles into a single, larger triangle.&nbsp; This technique of dynamically tessellating the terrain mesh gives us a good tradeoff between rendering a high-detail mesh, and rendering the mesh quickly.</p>
+<p>Our Terrain class will use both frustum culling and dynamic tessellation.&nbsp; For best performance, we are going to implement these techniques using the Hull and Domain shaders on the GPU.&nbsp; This does limit us to rendering using DX11 compliant graphics cards; to support older DX9 and 10 cards, we would need to perform these operations on the CPU, which I may cover in the future, but we’ll ignore for right now (See Chapter 5 of Granberg’s book for a DX9 implementation of frustum culling on the CPU).&nbsp; </p>
+<p>Our terrain class will not manage the actual vertices of the mesh itself; we’ll be creating these vertices using the GPU’s tessellation stages.&nbsp; Instead, we will maintain a vertex buffer of control points that define the rectangular patches of the terrain mesh.&nbsp; Four control points will define a quad patch, which we will subdivide using the tessellation stages into triangles, according to a level-of-detail calculation.&nbsp; Since the maximum subdivision factor supported by Direct3D 11 is 64, we will create one patch for each 64x64 chunk of our heightmap.</p>
+<p>Since we are doing our frustum culling with the Hull shader as well, we will store the min/max y-coordinates of the patch in the upper left control point of each patch.&nbsp; Using these min/max y-coordinates, and the positions of the four control points, we can generate a bounding box for the patch which we can then test for intersection with the planes of the camera frustum.</p>
+<h4>Terrain Control Point Vertex Format</h4>
+<p>The vertex format for our terrain control point vertex buffer is as follows:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">struct</span> TerrainCP {
+    <span class="kwrd">public</span> Vector3 Pos;
+    <span class="kwrd">public</span> Vector2 Tex;
+    <span class="kwrd">public</span> Vector2 BoundsY;
+
+    <span class="kwrd">public</span> TerrainCP(Vector3 pos, Vector2 tex, Vector2 boundsY) {
+        Pos = pos;
+        Tex = tex;
+        BoundsY = boundsY;
+    }
+
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> <span class="kwrd">int</span> Stride = Marshal.SizeOf(<span class="kwrd">typeof</span>(TerrainCP));
+}
+<span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">class</span> InputLayoutDescriptions {
+    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> InputElement[] TerrainCP = {
+        <span class="kwrd">new</span> InputElement(<span class="str">"POSITION"</span>, 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+        <span class="kwrd">new</span> InputElement(<span class="str">"TEXCOORD"</span>, 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+        <span class="kwrd">new</span> InputElement(<span class="str">"TEXCOORD"</span>, 1, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+    };
+}</pre>
+<p>Our Terrain class is below, showing its member variables.&nbsp; Because the terrain class manages its own vertex and index buffer, as well as the ShaderResourceViews for its heightmap, diffuse map and blend map textures, we will subclass our <a href="http://richardssoftware.blogspot.com/2013/07/directx-11-initialization-with-slimdx.html" target="_blank">DisposableClass base class</a>, so that we can explicitly destruct the unmanaged SlimDX resources.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">class</span> Terrain  :DisposableClass {
+    <span class="kwrd">private</span> <span class="kwrd">const</span> <span class="kwrd">int</span> CellsPerPatch = 64;
+    <span class="kwrd">private</span> Buffer _quadPatchVB;
+    <span class="kwrd">private</span> Buffer _quadPatchIB;
+
+    <span class="kwrd">private</span> ShaderResourceView _layerMapArraySRV;
+    <span class="kwrd">private</span> ShaderResourceView _blendMapSRV;
+    <span class="kwrd">private</span> ShaderResourceView _heightMapSRV;
+
+    <span class="kwrd">private</span> InitInfo _info;
+    <span class="kwrd">private</span> <span class="kwrd">int</span> _numPatchVertices;
+    <span class="kwrd">private</span> <span class="kwrd">int</span> _numPatchQuadFaces;
+
+    <span class="rem">// number of rows of patch control point vertices</span>
+    <span class="kwrd">private</span> <span class="kwrd">int</span> _numPatchVertRows;
+    <span class="rem">// number of columns of patch control point vertices</span>
+    <span class="kwrd">private</span> <span class="kwrd">int</span> _numPatchVertCols;
+
+    <span class="kwrd">public</span> Matrix World { get; set; }
+
+    <span class="kwrd">private</span> Material _material;
+
+    <span class="rem">// computed Y bounds for each patch</span>
+    <span class="kwrd">private</span> List&lt;Vector2&gt; _patchBoundsY;
+    <span class="kwrd">private</span> HeightMap _heightMap;
+
+    <span class="kwrd">private</span> <span class="kwrd">bool</span> _disposed;
+<span class="rem">// functions omitted</span>
+}</pre>
+<p>Our constructor and Dispose methods for the Terrain class are relatively simple.&nbsp; Our constructor sets the Terrain’s world matrix to the identity matrix, and initializes a default material that we will use to render the terrain, if the user does not specify one.&nbsp; Our dispose method releases all of the Terrain class’s unmanaged DirectX resources.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> Terrain() {
+    World = Matrix.Identity;
+    _material = <span class="kwrd">new</span> Material {
+        Ambient = Color.White,
+        Diffuse = Color.White,
+        Specular = <span class="kwrd">new</span> Color4(64.0f, 0, 0, 0),
+        Reflect = Color.Black
+    };
+}
+<span class="kwrd">protected</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Dispose(<span class="kwrd">bool</span> disposing) {
+    <span class="kwrd">if</span> (!_disposed) {
+        <span class="kwrd">if</span> (disposing) {
+            Util.ReleaseCom(<span class="kwrd">ref</span> _quadPatchVB);
+            Util.ReleaseCom(<span class="kwrd">ref</span> _quadPatchIB);
+
+            Util.ReleaseCom(<span class="kwrd">ref</span> _layerMapArraySRV);
+            Util.ReleaseCom(<span class="kwrd">ref</span> _blendMapSRV);
+            Util.ReleaseCom(<span class="kwrd">ref</span> _heightMapSRV);
+        }
+        _disposed = <span class="kwrd">true</span>;
+    }
+    <span class="kwrd">base</span>.Dispose(disposing);
+}</pre>
+<h4>Initializing the Terrain</h4>
+<p>To actually initialize the Terrain class, we will create the Init() function.&nbsp; This function takes as a parameter an InitInfo structure, which instructs the Terrain class how to build the terrain.&nbsp; This method creates the terrain HeightMap, calculates the y-bounds of each patch, creates our vertex and index buffers, and loads the terrain textures.&nbsp; For now, this method only supports creating a terrain from predefined heightmap and blendmap images; next time we will look at how to create procedural textures to use instead.&nbsp; Note that we store the diffuse maps as a texture array, as this simplifies our shader code later.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> Init(Device device, DeviceContext dc, InitInfo info) {
+    _info = info;
+    _numPatchVertRows = ((_info.HeightMapHeight - 1)/CellsPerPatch) + 1;
+    _numPatchVertCols = ((_info.HeightMapWidth - 1)/CellsPerPatch) + 1;
+    _numPatchVertices = _numPatchVertRows*_numPatchVertCols;
+    _numPatchQuadFaces = (_numPatchVertRows - 1)*(_numPatchVertCols - 1);
+            
+    <span class="kwrd">if</span> (_info.Material.HasValue) {
+        _material = _info.Material.Value;
+    }
+            
+    _heightMap = <span class="kwrd">new</span> HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, _info.HeightScale);
+    <span class="kwrd">if</span> (!<span class="kwrd">string</span>.IsNullOrEmpty(_info.HeightMapFilename)) {
+        _heightMap.LoadHeightmap(_info.HeightMapFilename);
+        _heightMap.Smooth();
+    } <span class="kwrd">else</span> {
+        <span class="kwrd">throw</span> <span class="kwrd">new</span> NotImplementedException(<span class="str">"Procedural heightmaps not yet supported"</span>);
+    }
+
+    CalcAllPatchBoundsY();
+
+    BuildQuadPatchVB(device);
+    BuildQuadPatchIB(device);
+    _heightMapSRV = _heightMap.BuildHeightmapSRV(device);
+
+    var layerFilenames = <span class="kwrd">new</span> List&lt;<span class="kwrd">string</span>&gt; {
+        _info.LayerMapFilename0 ?? <span class="str">"textures/null.bmp"</span>,
+        _info.LayerMapFilename1 ?? <span class="str">"textures/null.bmp"</span>,
+        _info.LayerMapFilename2 ?? <span class="str">"textures/null.bmp"</span>,
+        _info.LayerMapFilename3 ?? <span class="str">"textures/null.bmp"</span>,
+        _info.LayerMapFilename4 ?? <span class="str">"textures/null.bmp"</span>
+    };
+    _layerMapArraySRV = Util.CreateTexture2DArraySRV(device, dc, layerFilenames.ToArray(), Format.R8G8B8A8_UNorm);
+    <span class="kwrd">if</span> (!<span class="kwrd">string</span>.IsNullOrEmpty(_info.BlendMapFilename)) {
+        _blendMapSRV = ShaderResourceView.FromFile(device, _info.BlendMapFilename);
+    } <span class="kwrd">else</span> {
+        <span class="kwrd">throw</span> <span class="kwrd">new</span> NotImplementedException(<span class="str">"Procedural blendmaps not yet supported"</span>);
+    }
+}</pre>
+<h4>InitInfo Structure</h4>
+<p>The InitInfo structure allows us to specify the textures used to create the terrain, as well as parameters needed to initialize the heightmap.&nbsp; We can override the default terrain material if we desire by populating the Material field.&nbsp; Lastly, the CellSpacing field determines the distance between fully-tessellated vertices in the terrain mesh.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">struct</span> InitInfo {
+    <span class="rem">// RAW heightmap image file</span>
+    <span class="kwrd">public</span> <span class="kwrd">string</span> HeightMapFilename;
+    <span class="rem">// Heightmap maximum height</span>
+    <span class="kwrd">public</span> <span class="kwrd">float</span> HeightScale;
+    <span class="rem">// Heightmap dimensions</span>
+    <span class="kwrd">public</span> <span class="kwrd">int</span> HeightMapWidth;
+    <span class="kwrd">public</span> <span class="kwrd">int</span> HeightMapHeight;
+    <span class="rem">// terrain diffuse textures</span>
+    <span class="kwrd">public</span> <span class="kwrd">string</span> LayerMapFilename0;
+    <span class="kwrd">public</span> <span class="kwrd">string</span> LayerMapFilename1;
+    <span class="kwrd">public</span> <span class="kwrd">string</span> LayerMapFilename2;
+    <span class="kwrd">public</span> <span class="kwrd">string</span> LayerMapFilename3;
+    <span class="kwrd">public</span> <span class="kwrd">string</span> LayerMapFilename4;
+    <span class="rem">// Blend map which indicates which diffuse map is</span>
+    <span class="rem">// applied which portions of the terrain</span>
+    <span class="kwrd">public</span> <span class="kwrd">string</span> BlendMapFilename;
+    <span class="rem">// The distance between vertices in the generated mesh</span>
+    <span class="kwrd">public</span> <span class="kwrd">float</span> CellSpacing;
+    <span class="kwrd">public</span> Material? Material;
+}</pre>
+<h4>Calculating the Y-Extents for Each Patch</h4>
+<p>To implement camera frustum culling, we need to calculate a bounding box for each patch in the Hull shader.&nbsp; We know the X and Z extents of the bounding box from the patch control points, but will still need the Y extents.&nbsp; We could sample the heightmap texture to determine the min/max y-coordinates for the patch in the Hull shader, but this would be inefficient, as we would be calculating this every frame, for every patch, when, assuming our terrain is static, these bounding Y-extents never change.&nbsp; Instead, we will calculate the Y-extents for each patch once, and cache them.&nbsp; Later, when we construct the patch vertex buffer, we will store these extents for each patch in the upper-left control point.&nbsp; The CalcAllPatchBoundsY() function simply loops through all of the patches in the terrain mesh, and then, for each patch, finds the minimum and maximum heightmap values.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> CalcAllPatchBoundsY() {
+    _patchBoundsY = <span class="kwrd">new</span> List&lt;Vector2&gt;(<span class="kwrd">new</span> Vector2[_numPatchQuadFaces]);
+
+    <span class="kwrd">for</span> (var i = 0; i &lt; _numPatchVertRows-1; i++) {
+        <span class="kwrd">for</span> (var j = 0; j &lt; _numPatchVertCols-1; j++) {
+            CalcPatchBoundsY(i, j);
+        }
+    }
+}
+
+<span class="kwrd">private</span> <span class="kwrd">void</span> CalcPatchBoundsY(<span class="kwrd">int</span> i, <span class="kwrd">int</span> j) {
+    var x0 = j*CellsPerPatch;
+    var x1 = (j + 1)*CellsPerPatch;
+
+    var y0 = i*CellsPerPatch;
+    var y1 = (i + 1)*CellsPerPatch;
+
+    var minY = <span class="kwrd">float</span>.MaxValue;
+    var maxY = <span class="kwrd">float</span>.MinValue;
+
+    <span class="kwrd">for</span> (var y = y0; y &lt;= y1; y++) {
+        <span class="kwrd">for</span> (var x = x0; x &lt;= x1; x++) {
+            minY = Math.Min(minY, _heightMap[y,x]);
+            maxY = Math.Max(maxY, _heightMap[y,x]);
+        }
+    }
+    var patchID = i*(_numPatchVertCols - 1) + j;
+    _patchBoundsY[patchID] = <span class="kwrd">new</span> Vector2(minY, maxY);
+}</pre>
+<h4>Building the Patch Vertex Buffer</h4>
+<p>Once we have calculated the patch y-extents, we have all of the information necessary to create the patch vertex buffer.&nbsp; Most of this code is very similar to the code we used to create a <a href="http://richardssoftware.blogspot.com/2013/07/hills-demo-with-slimdx-and-c.html" target="_blank">grid vertex buffer</a> in our GeometryGenerator class.&nbsp; One added step here is that we need to add the Y-extents to the upper-left corner control point of each patch after we create the patch vertices, which will help us construct a bounding box for the patch in the Hull shader.&nbsp; If we visualize the patch vertex buffer as a 2D array, the last row and column should have the default ((0,0)) values for their BoundsY members. After adding the Y-extents, we then create the vertex buffer as per our normal procedure.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> BuildQuadPatchVB(Device device) {
+    var patchVerts = <span class="kwrd">new</span> Vertex.TerrainCP[_numPatchVertices];
+    var halfWidth = 0.5f*Width;
+    var halfDepth = 0.5f*Depth;
+
+    var patchWidth = Width/(_numPatchVertCols - 1);
+    var patchDepth = Depth/(_numPatchVertRows - 1);
+    var du = 1.0f/(_numPatchVertCols - 1);
+    var dv = 1.0f/(_numPatchVertRows - 1);
+
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; _numPatchVertRows; i++) {
+        var z = halfDepth - i*patchDepth;
+        <span class="kwrd">for</span> (<span class="kwrd">int</span> j = 0; j &lt; _numPatchVertCols; j++) {
+            var x = -halfWidth + j*patchWidth;
+            var vertId = i * _numPatchVertCols + j;
+            patchVerts[vertId]= <span class="kwrd">new</span> Vertex.TerrainCP(
+                <span class="kwrd">new</span> Vector3(x, 0, z), 
+                <span class="kwrd">new</span> Vector2(j*du, i*dv), 
+                <span class="kwrd">new</span> Vector2()
+            );
+        }
+    }
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; _numPatchVertRows-1; i++) {
+        <span class="kwrd">for</span> (<span class="kwrd">int</span> j = 0; j &lt; _numPatchVertCols-1; j++) {
+            var patchID = i * (_numPatchVertCols - 1) + j;
+            var vertID = i * _numPatchVertCols + j;
+            patchVerts[vertID].BoundsY = _patchBoundsY[patchID];
+        }
+    }
+
+    var vbd = <span class="kwrd">new</span> BufferDescription(
+        Vertex.TerrainCP.Stride*patchVerts.Length, 
+        ResourceUsage.Immutable, 
+        BindFlags.VertexBuffer, 
+        CpuAccessFlags.None, 
+        ResourceOptionFlags.None, 0
+    );
+    _quadPatchVB = <span class="kwrd">new</span> Buffer(
+        device, 
+        <span class="kwrd">new</span> DataStream(patchVerts, <span class="kwrd">false</span>, <span class="kwrd">false</span>), 
+        vbd
+    );
+}</pre>
+<p>In the above function, we also made use of two read-only properties, Width and Depth, which return the world-space dimensions of the terrain mesh:</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">float</span> Width { get { <span class="kwrd">return</span> (_info.HeightMapWidth - 1)*_info.CellSpacing; } }
+<span class="kwrd">public</span> <span class="kwrd">float</span> Depth { get { <span class="kwrd">return</span> (_info.HeightMapHeight - 1)*_info.CellSpacing; } }</pre>
+<h4>Constructing the Quad Patch Index Buffer</h4>
+<p>The process to create the index buffer for the Terrain is also very similar to our earlier grid creation code.&nbsp; However, here, we will construct a quad, using four indices, rather than two triangles, with six.</p>
+<pre class="csharpcode"><span class="kwrd">private</span> <span class="kwrd">void</span> BuildQuadPatchIB(Device device) {
+    var indices = <span class="kwrd">new</span> List&lt;<span class="kwrd">int</span>&gt;();
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> i = 0; i &lt; _numPatchVertRows-1; i++) {
+        <span class="kwrd">for</span> (<span class="kwrd">int</span> j = 0; j &lt; _numPatchVertCols; j++) {
+            indices.Add(i*_numPatchVertCols+j);
+            indices.Add(i * _numPatchVertCols + j + 1);
+            indices.Add((i+1) * _numPatchVertCols + j);
+            indices.Add((i+1) * _numPatchVertCols + j + 1);
+        }
+    }
+    var ibd = <span class="kwrd">new</span> BufferDescription(
+        <span class="kwrd">sizeof</span> (<span class="kwrd">short</span>)*indices.Count, 
+        ResourceUsage.Immutable, 
+        BindFlags.IndexBuffer, 
+        CpuAccessFlags.None, 
+        ResourceOptionFlags.None, 0
+    );
+    _quadPatchIB = <span class="kwrd">new</span> Buffer(
+        device, 
+        <span class="kwrd">new</span> DataStream(indices.Select(i=&gt;(<span class="kwrd">short</span>)i).ToArray(), <span class="kwrd">false</span>, <span class="kwrd">false</span>), 
+        ibd
+    );
+}</pre>
+<h4>Creating the Terrain Textures</h4>
+<p>We will use the previously implemented HeightMap.BuildHeightmapSRV() function to create the heightmap texture that we will bind to our shader.&nbsp; The blendmap will be created using the simple ShaderResource.FromFile() method, <a href="http://richardssoftware.blogspot.com/2013/07/texturing-101crate-demo.html" target="_blank">which we have used before</a>, while the diffuse maps will be loaded as a texture array, using our <a href="http://richardssoftware.blogspot.com/2013/08/geometry-shader-billboards-with-slimdx.html" target="_blank">Util.CreateTexture2DArraySRV() function</a>.</p>
+<h3>Drawing the Terrain</h3>
+<p>To draw the terrain, we will create a new effect shader, Terrain.fx.&nbsp; This effect will be specialized to draw our Terrain.&nbsp; We will start by examining the constant data for the shader effect.</p>
+<pre class="csharpcode">cbuffer cbPerFrame
+{
+    DirectionalLight gDirLights[3];
+    float3 gEyePosW;
+
+    <span class="kwrd">float</span>  gFogStart;
+    <span class="kwrd">float</span>  gFogRange;
+    float4 gFogColor;
+    
+    <span class="rem">// When distance is minimum, the tessellation is maximum.</span>
+    <span class="rem">// When distance is maximum, the tessellation is minimum.</span>
+    <span class="kwrd">float</span> gMinDist;
+    <span class="kwrd">float</span> gMaxDist;
+
+    <span class="rem">// Exponents for power of 2 tessellation.  The tessellation</span>
+    <span class="rem">// range is [2^(gMinTess), 2^(gMaxTess)].  Since the maximum</span>
+    <span class="rem">// tessellation is 64, this means gMaxTess can be at most 6</span>
+    <span class="rem">// since 2^6 = 64.</span>
+    <span class="kwrd">float</span> gMinTess;
+    <span class="kwrd">float</span> gMaxTess;
+    
+    <span class="kwrd">float</span> gTexelCellSpaceU;
+    <span class="kwrd">float</span> gTexelCellSpaceV;
+    <span class="kwrd">float</span> gWorldCellSpace;
+    float2 gTexScale = 66.0f;
+    
+    float4 gWorldFrustumPlanes[6];
+};
+
+cbuffer cbPerObject
+{
+    <span class="rem">// Terrain coordinate specified directly </span>
+    <span class="rem">// at center of world space.</span>
+    
+    float4x4 gViewProj;
+    Material gMaterial;
+};
+
+<span class="rem">// Nonnumeric values cannot be added to a cbuffer.</span>
+Texture2DArray gLayerMapArray;
+Texture2D gBlendMap;
+Texture2D gHeightMap;</pre>
+<p>The first portion of our per-frame constant buffer should look familiar.&nbsp; We have the directional lights and camera position we have used repeatedly in our other effects.&nbsp; Next, we have variables to control the distance fog effect, <a href="http://richardssoftware.blogspot.com/2013/08/blend-demo.html" target="_blank">which we have covered earlier</a>.&nbsp; Following these variables, we have parameters to control the level-of-detail tessellation that we will use in the hull shader, similar to those we used for <a href="http://richardssoftware.blogspot.com/2013/09/bump-and-displacement-mapping-with.html" target="_blank">displacement mapping</a>.&nbsp; After that, we have two variables, gTexelCellSpaceU and gTexelCellSpaceV, which indicate the difference between heightmap values in normalized texture space [0,1], and another variable, gWorldCellSpace, which indicates the world-space distance between each vertex; we will use these parameters to help us construct normal vectors for each tessellated vertex in the pixel shader.&nbsp; The last element of our per-frame constant buffer is an array of planes which define the camera frustum in world-space, gWorldFrustumPlanes, which we will need for frustum culling.&nbsp; The camera view-proj matrix, material, and texture variables should be self-explanatory.</p>
+<h4>Terrain Vertex Shader</h4>
+<p>The vertex shader for our Terrain effect is not quite a simple pass-through shader, although it is very close.&nbsp; The only modification we will make to the input quad patch control point is to replace the 0 y-coordinate of the position with the elevation sampled from the heightmap texture.&nbsp; Be sure to only sample the red channel of the heightmap texture; remember that we specified the heightmap texture to be R16_Float format.&nbsp; Note that we are making the assumption that the terrain is defined in world space, so there is no world matrix to offset the input position.</p>
+<pre class="csharpcode">SamplerState samHeightmap
+{
+    Filter = MIN_MAG_LINEAR_MIP_POINT;
+
+    AddressU = CLAMP;
+    AddressV = CLAMP;
+};
+
+<span class="kwrd">struct</span> VertexIn
+{
+    float3 PosL     : POSITION;
+    float2 Tex      : TEXCOORD0;
+    float2 BoundsY  : TEXCOORD1;
+};
+
+<span class="kwrd">struct</span> VertexOut
+{
+    float3 PosW     : POSITION;
+    float2 Tex      : TEXCOORD0;
+    float2 BoundsY  : TEXCOORD1;
+};
+
+VertexOut VS(VertexIn vin)
+{
+    VertexOut vout;
+    
+    <span class="rem">// Terrain specified directly in world space.</span>
+    vout.PosW = vin.PosL;
+
+    <span class="rem">// Displace the patch corners to world space.  This is to make </span>
+    <span class="rem">// the eye to patch distance calculation more accurate.</span>
+    vout.PosW.y = gHeightMap.SampleLevel( samHeightmap, vin.Tex, 0 ).r;
+
+    <span class="rem">// Output vertex attributes to next stage.</span>
+    vout.Tex      = vin.Tex;
+    vout.BoundsY  = vin.BoundsY;
+    
+    <span class="kwrd">return</span> vout;
+}</pre>
+<h4>Terrain Hull Shader and Tessellation</h4>
+<p>Our hull shader proper is just a simple pass-through shader; we will not make any changes to the position or texture coordinates of the patch control points.&nbsp; We do not pass through the y-coordinate bounds of the control point, as these will only be used by the hull shader constant function.&nbsp; We instruct the tessellation stage that we will be using the quad tessellation algorithm, and that we will use the fractional_even tessellation scheme.&nbsp; You may want to read <a href="http://richardssoftware.blogspot.com/2013/09/diving-into-tessellation-stages-of.html" target="_blank">this previous post</a>, if you are unfamiliar with what that entails. </p>
+<pre class="csharpcode"><span class="kwrd">struct</span> HullOut
+{
+    float3 PosW     : POSITION;
+    float2 Tex      : TEXCOORD0;
+};
+
+[domain(<span class="str">"quad"</span>)]
+[partitioning(<span class="str">"fractional_even"</span>)]
+[outputtopology(<span class="str">"triangle_cw"</span>)]
+[outputcontrolpoints(4)]
+[patchconstantfunc(<span class="str">"ConstantHS"</span>)]
+[maxtessfactor(64.0f)]
+HullOut HS(InputPatch&lt;VertexOut, 4&gt; p, 
+           <span class="kwrd">uint</span> i : SV_OutputControlPointID,
+           <span class="kwrd">uint</span> patchId : SV_PrimitiveID)
+{
+    HullOut hout;
+    
+    <span class="rem">// Pass through shader.</span>
+    hout.PosW     = p[i].PosW;
+    hout.Tex      = p[i].Tex;
+    
+    <span class="kwrd">return</span> hout;
+}</pre>
+<h4>Hull Patch Constant Function</h4>
+<p>Remember, that the Hull patch constant function is evaluated once for each patch.&nbsp; It is here that we will perform our frustum culling tests, as well as determine the dynamic tessellation factors for the patch, based on the distance of the patch control points from the camera position.&nbsp; For the frustum test, we construct an aligned bounding box for the patch, using the center and extents representation, from the patch control point positions in the X and Z axes, and from the Y-extents previously calculated in the Terrain class and stored in the first patch control point.</p>
+<pre class="csharpcode"><span class="kwrd">struct</span> PatchTess
+{
+    <span class="kwrd">float</span> EdgeTess[4]   : SV_TessFactor;
+    <span class="kwrd">float</span> InsideTess[2] : SV_InsideTessFactor;
+};
+
+PatchTess ConstantHS(InputPatch&lt;VertexOut, 4&gt; patch, <span class="kwrd">uint</span> patchID : SV_PrimitiveID)
+{
+    PatchTess pt;
+    
+    <span class="rem">//</span>
+    <span class="rem">// Frustum cull</span>
+    <span class="rem">//</span>
+    
+    <span class="rem">// We store the patch BoundsY in the first control point.</span>
+    <span class="kwrd">float</span> minY = patch[0].BoundsY.x;
+    <span class="kwrd">float</span> maxY = patch[0].BoundsY.y;
+    
+    <span class="rem">// Build axis-aligned bounding box.  patch[2] is lower-left corner</span>
+    <span class="rem">// and patch[1] is upper-right corner.</span>
+    float3 vMin = float3(patch[2].PosW.x, minY, patch[2].PosW.z);
+    float3 vMax = float3(patch[1].PosW.x, maxY, patch[1].PosW.z);
+    
+    float3 boxCenter  = 0.5f*(vMin + vMax);
+    float3 boxExtents = 0.5f*(vMax - vMin);
+    <span class="kwrd">if</span>( AabbOutsideFrustumTest(boxCenter, boxExtents, gWorldFrustumPlanes) )
+    {
+        pt.EdgeTess[0] = 0.0f;
+        pt.EdgeTess[1] = 0.0f;
+        pt.EdgeTess[2] = 0.0f;
+        pt.EdgeTess[3] = 0.0f;
+        
+        pt.InsideTess[0] = 0.0f;
+        pt.InsideTess[1] = 0.0f;
+        
+        <span class="kwrd">return</span> pt;
+    }
+    <span class="rem">//</span>
+    <span class="rem">// Do normal tessellation based on distance.</span>
+    <span class="rem">//</span>
+    <span class="kwrd">else</span> 
+    {
+        <span class="rem">// It is important to do the tess factor calculation based on the</span>
+        <span class="rem">// edge properties so that edges shared by more than one patch will</span>
+        <span class="rem">// have the same tessellation factor.  Otherwise, gaps can appear.</span>
+        
+        <span class="rem">// Compute midpoint on edges, and patch center</span>
+        float3 e0 = 0.5f*(patch[0].PosW + patch[2].PosW);
+        float3 e1 = 0.5f*(patch[0].PosW + patch[1].PosW);
+        float3 e2 = 0.5f*(patch[1].PosW + patch[3].PosW);
+        float3 e3 = 0.5f*(patch[2].PosW + patch[3].PosW);
+        float3  c = 0.25f*(patch[0].PosW + patch[1].PosW + patch[2].PosW + patch[3].PosW);
+        
+        pt.EdgeTess[0] = CalcTessFactor(e0);
+        pt.EdgeTess[1] = CalcTessFactor(e1);
+        pt.EdgeTess[2] = CalcTessFactor(e2);
+        pt.EdgeTess[3] = CalcTessFactor(e3);
+        
+        pt.InsideTess[0] = CalcTessFactor(c);
+        pt.InsideTess[1] = pt.InsideTess[0];
+    
+        <span class="kwrd">return</span> pt;
+    }
+}</pre>
+<p>If the patch bounding box is behind any of the frustum planes, we cull the patch by setting the tessellation factors to 0; this will cause the tessellation stage to create no vertices for the patch.</p>
+<pre class="csharpcode"><span class="rem">// Returns true if the box is completely behind (in negative half space) of plane.</span>
+<span class="kwrd">bool</span> AabbBehindPlaneTest(float3 center, float3 extents, float4 plane)
+{
+    float3 n = abs(plane.xyz);
+    
+    <span class="rem">// This is always positive.</span>
+    <span class="kwrd">float</span> r = dot(extents, n);
+    
+    <span class="rem">// signed distance from center point to plane.</span>
+    <span class="kwrd">float</span> s = dot( float4(center, 1.0f), plane );
+    
+    <span class="rem">// If the center point of the box is a distance of e or more behind the</span>
+    <span class="rem">// plane (in which case s is negative since it is behind the plane),</span>
+    <span class="rem">// then the box is completely in the negative half space of the plane.</span>
+    <span class="kwrd">return</span> (s + r) &lt; 0.0f;
+}
+
+<span class="rem">// Returns true if the box is completely outside the frustum.</span>
+<span class="kwrd">bool</span> AabbOutsideFrustumTest(float3 center, float3 extents, float4 frustumPlanes[6])
+{
+    <span class="kwrd">for</span>(<span class="kwrd">int</span> i = 0; i &lt; 6; ++i)
+    {
+        <span class="rem">// If the box is completely behind any of the frustum planes</span>
+        <span class="rem">// then it is outside the frustum.</span>
+        <span class="kwrd">if</span>( AabbBehindPlaneTest(center, extents, frustumPlanes[i]) )
+        {
+            <span class="kwrd">return</span> <span class="kwrd">true</span>;
+        }
+    }
+    
+    <span class="kwrd">return</span> <span class="kwrd">false</span>;
+}</pre>
+<p>We calculate the tessellation factors for non-culled patches according to the distance from the camera to the midpoint of the patch edge, for the edge tessellation factors, and the center of the patch, for the interior tessellation factors.  We then normalize the distance to the min/max tessellation range specified by our gMinDist and gMaxDist constants, clamping the factor to the [0,1] range using the saturate HLSL function.&nbsp; We determine the final tessellation factor by interpolating between the maximum and minimum tessellation factors using the normalized distance and using this value as the exponent for a power of two calculation.&nbsp; This exponential calculation limits us to min and max tessellation factors between [0,6] (2^6 = 64, the maximum tessellation factor in DirectX 11, 2^0 = 1), but gives us a nice transition between levels of detail, since according to this formula, each level of detail doubles the number of subdivisions the tessellation stage will produce.</p>
+<pre class="csharpcode"><span class="kwrd">float</span> CalcTessFactor(float3 p)
+{
+    <span class="kwrd">float</span> d = distance(p, gEyePosW);
+
+    <span class="rem">// max norm in xz plane (useful to see detail levels from a bird's eye).</span>
+    <span class="rem">//float d = max( abs(p.x-gEyePosW.x), abs(p.z-gEyePosW.z) );</span>
+    
+    <span class="kwrd">float</span> s = saturate( (d - gMinDist) / (gMaxDist - gMinDist) );
+    
+    <span class="kwrd">return</span> pow(2, (lerp(gMaxTess, gMinTess, s)) );
+}</pre>
+<h4>Terrain Domain Shader</h4>
+<p>After the tessellation stage, each generated vertex is submitted to the domain shader.&nbsp; Our domain shader uses bilinear interpolation to calculate the generated vertex’s position and texture coordinates from the four control points of the patch.&nbsp; We then sample the heightmap texture to determine the y-coordinate (height) of the vertex, then project the resulting world position into homogeneous clip space using the camera’s view/projection matrix.&nbsp; We also calculate a tiled texture coordinate, which will be used to sample the diffuse maps in the pixel shader.&nbsp; We need to retain the original texture coordinates, in order to sample the blend map, but adding this additional set of scaled texture coordinates, and using a texture sampler with WRAP address modes allows us to repeat the diffuse map texture many times across the terrain mesh, which helps us retain high texture detail, without using prohibitively large textures.</p>
+<table cellspacing="0" cellpadding="2" width="607" border="0">
+    <tbody>
+        <tr>
+            <td valign="top" width="605"><a href="$image[13].png">
+                <img title="image" style="border-top: 0px; border-right: 0px; background-image: none; border-bottom: 0px; padding-top: 0px; padding-left: 0px; border-left: 0px; display: inline; padding-right: 0px" border="0" alt="image" src="$image_thumb[7].png" width="617" height="484"></a></td>
+        </tr>
+        <tr>
+            <td valign="top" width="605">If we use the original texture coordinates for the diffuse textures, the texture becomes very blurry due to magnification.</td>
+        </tr>
+    </tbody>
+</table>
+<h4>Terrain Pixel Shader</h4>
+<p>Finally, we’ve reached the pixel shader.&nbsp; The pixel shader for our terrain effect shares many similarities with the pixel shader we used previously for our other (Basic, NormalMap, DisplacementMap) effects, since it uses the same Phong lighting model and fog techniques.&nbsp; We will need to calculate the texture color differently, since we are using multi-texturing, rather than a single texture.&nbsp; We will also need to calculate the normals in the pixel shader, since we did not calculate them for each vertex in the domain shader.&nbsp; Luna makes a note that, because of the dynamic tessellation, he was unable to achieve acceptable results by calculating the normal in the domain shader, as the tessellated positions of the vertices were not stable, and so produced artifacts as the normals changed from frame to frame.</p>
+<p>To calculate the pixel normal, we will use the <a href="http://en.wikipedia.org/wiki/Finite_difference" target="_blank">central differences</a> method, which we can use to create an estimated tangent basis.&nbsp; To do this, we need to sample the heightmap values above, below, left and right of the pixel.&nbsp; This is where the gTexelCellSpaceU and V shader constants come in, as they hold the U and V axis scales of a single pixel in the heightmap.&nbsp; Once we have estimated the tangent and bitangent using central differences, we compute the normal as the cross-product of these two vectors.</p>
+<p>To texture the pixel, we need to sample each of the diffuse maps in our diffuse map array, using the tiled texture coordinate created by the domain shader.&nbsp; Next, we sample the blend map, and linearly interpolate between the diffuse colors according to the color channels of the blend map sample.&nbsp; Using a four-channel blend map allows us to use five diffuse textures, using the method shown; we assume that the base texture will be applied in the absence of any influence from the four textures associated with the channels of the blend map.&nbsp; If more diffuse textures were required, we could use multiple blend maps, or segment the range of the channels in the blend map.</p>
+<pre class="csharpcode">SamplerState samLinear
+{
+    Filter = MIN_MAG_MIP_LINEAR;
+
+    AddressU = WRAP;
+    AddressV = WRAP;
+};
+
+float4 PS(DomainOut pin, 
+          uniform <span class="kwrd">int</span> gLightCount, 
+          uniform <span class="kwrd">bool</span> gFogEnabled) : SV_Target
+{
+    <span class="rem">//</span>
+    <span class="rem">// Estimate normal and tangent using central differences.</span>
+    <span class="rem">//</span>
+    float2 leftTex   = pin.Tex + float2(-gTexelCellSpaceU, 0.0f);
+    float2 rightTex  = pin.Tex + float2(gTexelCellSpaceU, 0.0f);
+    float2 bottomTex = pin.Tex + float2(0.0f, gTexelCellSpaceV);
+    float2 topTex    = pin.Tex + float2(0.0f, -gTexelCellSpaceV);
+    
+    <span class="kwrd">float</span> leftY   = gHeightMap.SampleLevel( samHeightmap, leftTex, 0 ).r;
+    <span class="kwrd">float</span> rightY  = gHeightMap.SampleLevel( samHeightmap, rightTex, 0 ).r;
+    <span class="kwrd">float</span> bottomY = gHeightMap.SampleLevel( samHeightmap, bottomTex, 0 ).r;
+    <span class="kwrd">float</span> topY    = gHeightMap.SampleLevel( samHeightmap, topTex, 0 ).r;
+    
+    float3 tangent = normalize(float3(2.0f*gWorldCellSpace, rightY - leftY, 0.0f));
+    float3 bitan   = normalize(float3(0.0f, bottomY - topY, -2.0f*gWorldCellSpace)); 
+    float3 normalW = cross(tangent, bitan);
+
+
+    <span class="rem">// The toEye vector is used in lighting.</span>
+    float3 toEye = gEyePosW - pin.PosW;
+
+    <span class="rem">// Cache the distance to the eye from this surface point.</span>
+    <span class="kwrd">float</span> distToEye = length(toEye);
+
+    <span class="rem">// Normalize.</span>
+    toEye /= distToEye;
+    
+    <span class="rem">//</span>
+    <span class="rem">// Texturing</span>
+    <span class="rem">//</span>
+    
+    <span class="rem">// Sample layers in texture array.</span>
+    float4 c0 = gLayerMapArray.Sample( samLinear, float3(pin.TiledTex, 0.0f) );
+    float4 c1 = gLayerMapArray.Sample( samLinear, float3(pin.TiledTex, 1.0f) );
+    float4 c2 = gLayerMapArray.Sample( samLinear, float3(pin.TiledTex, 2.0f) );
+    float4 c3 = gLayerMapArray.Sample( samLinear, float3(pin.TiledTex, 3.0f) );
+    float4 c4 = gLayerMapArray.Sample( samLinear, float3(pin.TiledTex, 4.0f) ); 
+    
+    <span class="rem">// Sample the blend map.</span>
+    float4 t  = gBlendMap.Sample( samLinear, pin.Tex ); 
+    
+    <span class="rem">// Blend the layers on top of each other.</span>
+    float4 texColor = c0;
+    texColor = lerp(texColor, c1, t.r);
+    texColor = lerp(texColor, c2, t.g);
+    texColor = lerp(texColor, c3, t.b);
+    texColor = lerp(texColor, c4, t.a);
+ 
+    <span class="rem">//</span>
+    <span class="rem">// Lighting.</span>
+    <span class="rem">//</span>
+
+    float4 litColor = texColor;
+    <span class="kwrd">if</span>( gLightCount &gt; 0  )
+    {  
+        <span class="rem">// Start with a sum of zero. </span>
+        float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+        <span class="rem">// Sum the light contribution from each light source.  </span>
+        [unroll]
+        <span class="kwrd">for</span>(<span class="kwrd">int</span> i = 0; i &lt; gLightCount; ++i)
+        {
+            float4 A, D, S;
+            ComputeDirectionalLight(gMaterial, gDirLights[i], normalW, toEye, 
+                A, D, S);
+
+            ambient += A;
+            diffuse += D;
+            spec    += S;
+        }
+
+        litColor = texColor*(ambient + diffuse) + spec;
+    }
+ 
+    <span class="rem">//</span>
+    <span class="rem">// Fogging</span>
+    <span class="rem">//</span>
+
+    <span class="kwrd">if</span>( gFogEnabled )
+    {
+        <span class="kwrd">float</span> fogLerp = saturate( (distToEye - gFogStart) / gFogRange ); 
+
+        <span class="rem">// Blend the fog color and the lit color.</span>
+        litColor = lerp(litColor, gFogColor, fogLerp);
+    }
+
+    <span class="kwrd">return</span> litColor;
+}</pre>
+<p>We will implement six techniques for our Terrain effect: techniques using 1-3 lights, with or without fog.&nbsp; We will also need to generate a C# wrapper class for this effect; since this is not much different than the effect wrappers we have previously defined, I will omit the listing for it here, and refer you to the <a href="https://github.com/ericrrichards/dx11/blob/master/DX11/Core/FX/TerrainEffect.cs" target="_blank">source on GitHub</a> instead.</p>
+<h3>Terrain.Draw()</h3>
+<p>With our shader effect and C# wrapper complete, we can finally implement the drawing code for our Terrain class.&nbsp; Because the Terrain shader is specialized for the Terrain class, we will assume that it handles its own drawing state, in much the same way we did with our <a href="http://richardssoftware.blogspot.com/2013/09/skyboxes-and-environmental-reflections.html" target="_blank">Sky class</a>, for rendering skyboxes.&nbsp; The bulk of the work of the Draw function is devoted to ensuring that the device context is in the correct state, and that all of the Terrain effect’s shader constants are set, prior to submitting the quad patch vertex buffer to the GPU for drawing.&nbsp; Note that we need to change the DeviceContext’s PrimitiveTopology to PatchListWith4ControlPoints in order to submit our quad patches correctly, and that we need to set the InputLayout to our TerrainCP layout.</p>
+<pre class="csharpcode"><span class="kwrd">public</span> <span class="kwrd">void</span> Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
+    dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+    dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+
+    var stride = Vertex.TerrainCP.Stride;
+    <span class="kwrd">const</span> <span class="kwrd">int</span> Offset = 0;
+
+    dc.InputAssembler.SetVertexBuffers(0, <span class="kwrd">new</span> VertexBufferBinding(_quadPatchVB, stride, Offset));
+    dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+
+    var viewProj = cam.ViewProj;
+    var planes = cam.FrustumPlanes;
+
+    Effects.TerrainFX.SetViewProj(viewProj);
+    Effects.TerrainFX.SetEyePosW(cam.Position);
+    Effects.TerrainFX.SetDirLights(lights);
+    Effects.TerrainFX.SetFogColor(Color.Silver);
+    Effects.TerrainFX.SetFogStart(15.0f);
+    Effects.TerrainFX.SetFogRange(175.0f);
+    Effects.TerrainFX.SetMinDist(20.0f);
+    Effects.TerrainFX.SetMaxDist(500.0f);
+    Effects.TerrainFX.SetMinTess(0.0f);
+    Effects.TerrainFX.SetMaxTess(6.0f);
+    Effects.TerrainFX.SetTexelCellSpaceU(1.0f/_info.HeightMapWidth);
+    Effects.TerrainFX.SetTexelCellSpaceV(1.0f/_info.HeightMapHeight);
+    Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
+    Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+    Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+    Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+    Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+    Effects.TerrainFX.SetMaterial(_material);
+
+    var tech = Effects.TerrainFX.Light1Tech;
+    <span class="kwrd">for</span> (<span class="kwrd">int</span> p = 0; p &lt; tech.Description.PassCount; p++) {
+        var pass = tech.GetPassByIndex(p);
+        pass.Apply(dc);
+        dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
+    }
+    dc.HullShader.Set(<span class="kwrd">null</span>);
+    dc.DomainShader.Set(<span class="kwrd">null</span>);
+
+}</pre>
+<h3>Final Results:</h3>
+<table cellspacing="0" cellpadding="2" width="615" border="0">
+    <tbody>
+        <tr>
+            <td valign="top" width="613"><a href="$image[20].png">
+                <img title="image" style="border-top: 0px; border-right: 0px; background-image: none; border-bottom: 0px; padding-top: 0px; padding-left: 0px; border-left: 0px; display: inline; padding-right: 0px" border="0" alt="image" src="$image_thumb[10].png" width="617" height="484"></a></td>
+        </tr>
+        <tr>
+            <td valign="top" width="613">The final textured terrain</td>
+        </tr>
+        <tr>
+            <td valign="top" width="613"><a href="$image[21].png">
+                <img title="image" style="border-top: 0px; border-right: 0px; background-image: none; border-bottom: 0px; padding-top: 0px; padding-left: 0px; border-left: 0px; display: inline; padding-right: 0px" border="0" alt="image" src="$image_thumb[11].png" width="617" height="484"></a></td>
+        </tr>
+        <tr>
+            <td valign="top" width="613">The terrain in wireframe mode.&nbsp; Note that the distant hillsides are constructed from fewer, larger triangles than the nearer hills.&nbsp; As we approach them, the hills become more detailed (below).</td>
+        </tr>
+        <tr>
+            <td valign="top" width="613"><a href="$image[25].png">
+                <img title="image" style="border-top: 0px; border-right: 0px; background-image: none; border-bottom: 0px; padding-top: 0px; padding-left: 0px; border-left: 0px; display: inline; padding-right: 0px" border="0" alt="image" src="$image_thumb[13].png" width="617" height="484"></a></td>
+        </tr>
+    </tbody>
+</table>
+
+
+<h3>Next Time…</h3>
+<p>We’ll continue working with terrain, this time exploring some procedural techniques to generate height and blend maps, which will allow us to create random terrains.&nbsp; We will lean heavily on Chapter 4 of <a href="http://www.cjgraphic.com/?page=rts-book" target="_blank">Carl Granberg’s Programming an RTS Game with Direct3D</a> and the Perlin Noise-based solution presented there, and possibly some other techniques, if I have time to research and implement them.</p>

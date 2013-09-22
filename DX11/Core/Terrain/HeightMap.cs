@@ -10,8 +10,9 @@
     using SlimDX.Direct3D11;
 
     using Device = SlimDX.Direct3D11.Device;
+    using Resource = SlimDX.Direct3D11.Resource;
 
-    internal class HeightMap  {
+    public class HeightMap  {
         private List<float> _heightMap;
         public int HeightMapWidth { get; set; }
         public int HeightMapHeight { get; set; }
@@ -38,6 +39,22 @@
             }
         }
 
+        public void LoadHeightmap(string heightMapFilename) {
+            var input = File.ReadAllBytes(heightMapFilename);
+
+            _heightMap = input.Select(i => (i / 255.0f * MaxHeight)).ToList();
+        }
+
+        public void Smooth() {
+            var dest = new List<float>();
+            for (var i = 0; i < HeightMapHeight; i++) {
+                for (var j = 0; j < HeightMapWidth; j++) {
+                    dest.Add(Average(i, j));
+                }
+            }
+            _heightMap = dest;
+        }
+
         private float Average(int row, int col) {
             var avg = 0.0f;
             var num = 0.0f;
@@ -52,21 +69,6 @@
             return avg / num;
         }
 
-        public void LoadHeightmap(string heightMapFilename) {
-            var input = File.ReadAllBytes(heightMapFilename);
-
-            _heightMap = input.Select(i => (i / 255.0f * MaxHeight)).ToList();
-        }
-        
-        public void Smooth() {
-            var dest = new List<float>();
-            for (var i = 0; i < HeightMapHeight; i++) {
-                for (var j = 0; j < HeightMapWidth; j++) {
-                    dest.Add(Average(i, j));
-                }
-            }
-            _heightMap = dest;
-        }
         private bool InBounds(int row, int col) {
             return row >= 0 && row < HeightMapHeight && col >= 0 && col < HeightMapWidth;
         }
@@ -86,7 +88,14 @@
             };
             var hmap = Half.ConvertToHalf(_heightMap.ToArray());
 
-            var hmapTex = new Texture2D(device, texDec, new DataRectangle(HeightMapWidth * Marshal.SizeOf(typeof(Half)), new DataStream(hmap.ToArray(), false, false)));
+            var hmapTex = new Texture2D(
+                device, 
+                texDec, 
+                new DataRectangle(
+                    HeightMapWidth * Marshal.SizeOf(typeof(Half)), 
+                    new DataStream(hmap.ToArray(), false, false)
+                )
+            );
 
             var srvDesc = new ShaderResourceViewDescription {
                 Format = texDec.Format,
@@ -96,6 +105,8 @@
             };
             
             var srv = new ShaderResourceView(device, hmapTex, srvDesc);
+            
+           
             Util.ReleaseCom(ref hmapTex);
             return srv;
         }

@@ -57,8 +57,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TerrainDemo", "TerrainDemo\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoronoiMap", "VoronoiMap\VoronoiMap.csproj", "{93B55A1E-AA33-472D-AA63-B07A5CD74A35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "voronaiTests", "voronaiTests\voronaiTests.csproj", "{966D6441-F640-4823-86F1-949547F7E980}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -161,10 +159,6 @@ Global
 		{93B55A1E-AA33-472D-AA63-B07A5CD74A35}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93B55A1E-AA33-472D-AA63-B07A5CD74A35}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93B55A1E-AA33-472D-AA63-B07A5CD74A35}.Release|Any CPU.Build.0 = Release|Any CPU
-		{966D6441-F640-4823-86F1-949547F7E980}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{966D6441-F640-4823-86F1-949547F7E980}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{966D6441-F640-4823-86F1-949547F7E980}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{966D6441-F640-4823-86F1-949547F7E980}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
