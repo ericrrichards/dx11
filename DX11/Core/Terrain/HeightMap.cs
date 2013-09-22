@@ -69,7 +69,7 @@
             return avg / num;
         }
 
-        private bool InBounds(int row, int col) {
+        internal bool InBounds(int row, int col) {
             return row >= 0 && row < HeightMapHeight && col >= 0 && col < HeightMapWidth;
         }
 

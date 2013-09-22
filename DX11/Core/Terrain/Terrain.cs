@@ -11,6 +11,8 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Device = SlimDX.Direct3D11.Device;
 
 namespace Core.Terrain {
+    using System.Runtime.InteropServices;
+
     public struct InitInfo {
         // RAW heightmap image file
         public string HeightMapFilename;
@@ -124,11 +126,16 @@ namespace Core.Terrain {
             _heightMap = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, _info.HeightScale);
             if (!string.IsNullOrEmpty(_info.HeightMapFilename)) {
                 _heightMap.LoadHeightmap(_info.HeightMapFilename);
-                _heightMap.Smooth();
+                
             } else {
-                throw new NotImplementedException("Procedural heightmaps not yet supported");
+                var hm2 = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, 2.0f);
+                _heightMap.CreateRandomHeightMap(MathF.Rand(), 1.0f, 0.7f, 9);
+                hm2.CreateRandomHeightMap(MathF.Rand(), 2.5f, 0.8f, 5);
+                hm2.Cap( hm2.MaxHeight * 0.4f);
+                _heightMap *= hm2;
+                
             }
-
+            _heightMap.Smooth();
             CalcAllPatchBoundsY();
 
             BuildQuadPatchVB(device);
@@ -146,51 +153,126 @@ namespace Core.Terrain {
             if (!string.IsNullOrEmpty(_info.BlendMapFilename)) {
                 _blendMapSRV = ShaderResourceView.FromFile(device, _info.BlendMapFilename);
             } else {
-                throw new NotImplementedException("Procedural blendmaps not yet supported");
+                _blendMapSRV = CreateBlendMap(_heightMap, device);
             }
         }
-public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
-    dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
-    dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
-    var stride = Vertex.TerrainCP.Stride;
-    const int Offset = 0;
+        private ShaderResourceView CreateBlendMap(HeightMap hm, Device device) {
+            var texDec = new Texture2DDescription {
+                ArraySize = 1,
+                BindFlags = BindFlags.ShaderResource,
+                CpuAccessFlags = CpuAccessFlags.None,
+                Format = Format.R32G32B32A32_Float,
+                SampleDescription = new SampleDescription(1, 0),
+                Height = _heightMap.HeightMapHeight,
+                Width = _heightMap.HeightMapWidth,
+                MipLevels = 1,
+                OptionFlags = ResourceOptionFlags.None,
+                Usage = ResourceUsage.Default
+            };
+            var colors = new List<Color4>();
+            for (int y = 0; y < _heightMap.HeightMapHeight; y++) {
+                for (int x = 0; x < _heightMap.HeightMapWidth; x++) {
+                    var elev = _heightMap[y, x];
+                    var color = new Color4(0);
+                    if (elev > hm.MaxHeight * (0.05f + MathF.Rand(-0.05f, 0.05f))) {
+                        color.Red = elev / (hm.MaxHeight) +MathF.Rand(-0.05f, 0.05f);
+                    }
+                    if (elev > hm.MaxHeight * (0.4f + MathF.Rand(-0.15f, 0.15f))) {
+                        color.Green = elev / hm.MaxHeight +MathF.Rand(-0.05f, 0.05f);
+                    }
+                    if (elev > hm.MaxHeight * (0.75f + MathF.Rand(-0.1f, 0.1f))) {
+                        color.Alpha = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
+                    }
+                    colors.Add(color);
 
-    dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
-    dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+                }
+            }
+            SmoothBlendMap(hm, colors);
+            SmoothBlendMap(hm, colors);
 
-    var viewProj = cam.ViewProj;
-    var planes = cam.FrustumPlanes;
+            var blendTex = new Texture2D(
+                device,
+                texDec,
+                new DataRectangle(
+                    _heightMap.HeightMapWidth * Marshal.SizeOf(typeof(Color4)),
+                    new DataStream(colors.ToArray(), false, false)
+                )
+            );
+            var srvDesc = new ShaderResourceViewDescription {
+                Format = texDec.Format,
+                Dimension = ShaderResourceViewDimension.Texture2D,
+                MostDetailedMip = 0,
+                MipLevels = -1
+            };
+            
+            var srv = new ShaderResourceView(device, blendTex, srvDesc);
+            
+           
+            Util.ReleaseCom(ref blendTex);
+            return srv;
+        }
 
-    Effects.TerrainFX.SetViewProj(viewProj);
-    Effects.TerrainFX.SetEyePosW(cam.Position);
-    Effects.TerrainFX.SetDirLights(lights);
-    Effects.TerrainFX.SetFogColor(Color.Silver);
-    Effects.TerrainFX.SetFogStart(15.0f);
-    Effects.TerrainFX.SetFogRange(175.0f);
-    Effects.TerrainFX.SetMinDist(20.0f);
-    Effects.TerrainFX.SetMaxDist(500.0f);
-    Effects.TerrainFX.SetMinTess(0.0f);
-    Effects.TerrainFX.SetMaxTess(6.0f);
-    Effects.TerrainFX.SetTexelCellSpaceU(1.0f/_info.HeightMapWidth);
-    Effects.TerrainFX.SetTexelCellSpaceV(1.0f/_info.HeightMapHeight);
-    Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
-    Effects.TerrainFX.SetWorldFrustumPlanes(planes);
-    Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
-    Effects.TerrainFX.SetBlendMap(_blendMapSRV);
-    Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-    Effects.TerrainFX.SetMaterial(_material);
+        private void SmoothBlendMap(HeightMap hm, List<Color4> colors) {
+            for (int y = 0; y < _heightMap.HeightMapHeight; y++) {
+                for (int x = 0; x < _heightMap.HeightMapWidth; x++) {
+                    var sum = colors[x + y * hm.HeightMapHeight];
+                    var num = 1;
+                    for (int y1 = y - 1; y1 < y + 2; y1++) {
+                        for (int x1 = x - 1; x1 < x + 1; x1++) {
+                            if (hm.InBounds(y1, x1)) {
+                                sum += colors[x1 + y1 * hm.HeightMapHeight];
+                                num++;
+                            }
+                        }
+                    }
+                    colors[x + y * hm.HeightMapHeight] = new Color4(sum.Alpha / num, sum.Red / num, sum.Green / num, sum.Blue / num);
+                }
+            }
+        }
 
-    var tech = Effects.TerrainFX.Light1Tech;
-    for (int p = 0; p < tech.Description.PassCount; p++) {
-        var pass = tech.GetPassByIndex(p);
-        pass.Apply(dc);
-        dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
-    }
-    dc.HullShader.Set(null);
-    dc.DomainShader.Set(null);
+        public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
-}
+            var stride = Vertex.TerrainCP.Stride;
+            const int Offset = 0;
+
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
+            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+
+            var viewProj = cam.ViewProj;
+            var planes = cam.FrustumPlanes;
+
+            Effects.TerrainFX.SetViewProj(viewProj);
+            Effects.TerrainFX.SetEyePosW(cam.Position);
+            Effects.TerrainFX.SetDirLights(lights);
+            Effects.TerrainFX.SetFogColor(Color.Silver);
+            Effects.TerrainFX.SetFogStart(15.0f);
+            Effects.TerrainFX.SetFogRange(175.0f);
+            Effects.TerrainFX.SetMinDist(20.0f);
+            Effects.TerrainFX.SetMaxDist(500.0f);
+            Effects.TerrainFX.SetMinTess(0.0f);
+            Effects.TerrainFX.SetMaxTess(6.0f);
+            Effects.TerrainFX.SetTexelCellSpaceU(1.0f/_info.HeightMapWidth);
+            Effects.TerrainFX.SetTexelCellSpaceV(1.0f/_info.HeightMapHeight);
+            Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
+            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+            Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+            Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+            Effects.TerrainFX.SetMaterial(_material);
+
+            var tech = Effects.TerrainFX.Light1Tech;
+            for (int p = 0; p < tech.Description.PassCount; p++) {
+                var pass = tech.GetPassByIndex(p);
+                pass.Apply(dc);
+                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
+            }
+            dc.HullShader.Set(null);
+            dc.DomainShader.Set(null);
+
+        }
         
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();

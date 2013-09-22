@@ -87,7 +87,7 @@ namespace TerrainDemo {
                 LayerMapFilename2 = "textures/stone.dds",
                 LayerMapFilename3 = "Textures/lightdirt.dds",
                 LayerMapFilename4 = "textures/snow.dds",
-                BlendMapFilename = "textures/blend.dds",
+                BlendMapFilename = null,//"textures/blend.dds",
                 HeightScale = 50.0f,
                 HeightMapWidth = 2049,
                 HeightMapHeight = 2049,

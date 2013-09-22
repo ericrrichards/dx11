@@ -60,5 +60,10 @@ namespace Core {
             var prc = (1.0f - Cos(angle)) * 0.5f;
             return v1 * (1.0f - prc) + v2 * prc;
         }
+
+        public static float Noise(float min, float max) {
+            var n = Noise(Rand());
+            return n * (max - min) + min;
+        }
     }
 }
