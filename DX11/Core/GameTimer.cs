@@ -1,6 +1,7 @@
 ﻿namespace Core {
     using System;
     using System.Diagnostics;
+    using System.Threading;
 
     public class GameTimer {
         private readonly double _secondsPerCount;
@@ -40,6 +41,7 @@
         public float DeltaTime {
             get { return (float)_deltaTime; }
         }
+        public float FrameTime { get; set; }
 
         public void Reset() {
             var curTime = Stopwatch.GetTimestamp();
@@ -72,10 +74,13 @@
                 _deltaTime = 0.0;
                 return;
             }
-            var curTime = Stopwatch.GetTimestamp();
-            _currTime = curTime;
-            _deltaTime = (_currTime - _prevTime) * _secondsPerCount;
+            //while (_deltaTime < FrameTime) {
+                var curTime = Stopwatch.GetTimestamp();
+                _currTime = curTime;
 
+                _deltaTime = (_currTime - _prevTime) * _secondsPerCount;
+                //Thread.Sleep(0);
+            //}
             _prevTime = _currTime;
             if (_deltaTime < 0.0) {
                 _deltaTime = 0.0;

@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="Camera\CameraBase.cs" />
     <Compile Include="Camera\FpsCamera.cs" />
+    <Compile Include="CosTable.cs" />
     <Compile Include="D3DApp.cs" />
     <Compile Include="D3DForm.cs">
       <SubType>Form</SubType>
@@ -63,6 +64,7 @@
     <Compile Include="FX\Effect.cs" />
     <Compile Include="FX\Effects.cs" />
     <Compile Include="FX\InstancedBasicEffect.cs" />
+    <Compile Include="FX\InstancedNormalMapEffect.cs" />
     <Compile Include="FX\NormalMapEffect.cs" />
     <Compile Include="FX\SkyEffect.cs" />
     <Compile Include="FX\TerrainEffect.cs" />

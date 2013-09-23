@@ -1,6 +1,7 @@
 ﻿namespace Core.FX {
     using System;
     using System.Text;
+
     using SlimDX.Direct3D11;
 
     public static class Effects {
@@ -45,6 +46,11 @@
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+            try {
+               InstancedNormalMapFX = new InstancedNormalMapEffect(device, "FX/InstancedNormalMap.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
         }
         public static void DestroyAll() {
             Util.ReleaseCom(ref BasicFX);
@@ -65,5 +71,6 @@
         public static DisplacementMapEffect DisplacementMapFX;
         public static TerrainEffect TerrainFX;
         public static ColorEffect ColorFX;
+        public static InstancedNormalMapEffect InstancedNormalMapFX;
     }
 }

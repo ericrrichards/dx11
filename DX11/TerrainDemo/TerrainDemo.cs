@@ -14,24 +14,38 @@ using SlimDX.DXGI;
 using SlimDX.Direct3D11;
 
 namespace TerrainDemo {
+    using System.Runtime.InteropServices;
+
+    using Core.Model;
+
+    using Buffer = SlimDX.Direct3D11.Buffer;
+    using MapFlags = SlimDX.Direct3D11.MapFlags;
+
     class TerrainDemo :D3DApp {
         private Sky _sky;
         private Terrain _terrain;
         private DirectionalLight[] _dirLights;
 
-        private FpsCamera _camera;
+        private LookAtCamera _camera;
 
         private bool _camWalkMode;
         private Point _lastMousePos;
         private bool _disposed;
 
+        private BasicModel _treeModel;
+        private TextureManager _txMgr;
+        private List<BasicModelInstance> _treeInstances;
+        private const int NumTrees = 10000;
+        private List<Matrix> _instancedTrees;
+        private int _visibleTrees;
+        private Buffer _instanceBuffer;
 
         protected TerrainDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Terrain Demo";
             Enable4xMsaa = true;
             _lastMousePos = new Point();
 
-            _camera = new FpsCamera {
+            _camera = new LookAtCamera {
                 Position = new Vector3(0, 20, 100)
             };
             _dirLights = new[] {
@@ -61,6 +75,7 @@ namespace TerrainDemo {
                     ImmediateContext.ClearState();
                     Util.ReleaseCom(ref _sky);
                     Util.ReleaseCom(ref _terrain);
+                    Util.ReleaseCom(ref _treeModel);
 
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();
@@ -81,7 +96,7 @@ namespace TerrainDemo {
             _sky = new Sky(Device, "Textures/grasscube1024.dds", 5000.0f);
 
             var tii = new InitInfo {
-                HeightMapFilename = "Textures/terrain.raw",
+                HeightMapFilename = null,//"Textures/terrain.raw",
                 LayerMapFilename0 = "textures/grass.dds",
                 LayerMapFilename1 = "textures/darkdirt.dds",
                 LayerMapFilename2 = "textures/stone.dds",
@@ -96,8 +111,43 @@ namespace TerrainDemo {
             _terrain = new Terrain();
             _terrain.Init(Device, ImmediateContext, tii);
 
+            _camera.Height = _terrain.Height;
+            _txMgr = new TextureManager();
+            _txMgr.Init(Device);
+            _treeModel = new BasicModel(Device, _txMgr, "Models/tree.x", "Textures");
+            _treeInstances = new List<BasicModelInstance>();
+            
+            
+            for (int i = 0; i < NumTrees; i++) {
+                var good = false;
+                var x = MathF.Rand(0, _terrain.Width);
+                var z = MathF.Rand(0, _terrain.Depth);
+                while (!good) {
+
+                    
+                    if (_terrain.Height(x, z) < 12.0f) {
+                        good = true;
+                    }
+                    x = MathF.Rand(-_terrain.Width/2, _terrain.Width/2);
+                    z = MathF.Rand(-_terrain.Depth/2, _terrain.Depth/2);
+                }
+                var treeInstance = new BasicModelInstance() {
+                    Model = _treeModel,
+                    World = Matrix.RotationX(MathF.PI / 2) * Matrix.Translation(x, _terrain.Height(x, z), z)
+                };
+                _treeInstances.Add(treeInstance);
+            }
+            BuildInstancedBuffer();
+
             return true;
         }
+
+        private void BuildInstancedBuffer() {
+            _instancedTrees = _treeInstances.Select(s => s.World).ToList();
+            var bd = new BufferDescription(Marshal.SizeOf(typeof(Matrix)) * NumTrees, ResourceUsage.Dynamic, BindFlags.VertexBuffer, CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
+            _instanceBuffer = new Buffer(Device, new DataStream(_instancedTrees.ToArray(), false, true), bd);
+        }
+
         public override void OnResize() {
             base.OnResize();
             _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
@@ -117,10 +167,10 @@ namespace TerrainDemo {
                 _camera.Strafe(10.0f * dt);
             }
             if (Util.IsKeyDown(Keys.PageUp)) {
-                _camera.Zoom(-dt);
+                _camera.Zoom(-dt*10.0f);
             }
             if (Util.IsKeyDown(Keys.PageDown)) {
-                _camera.Zoom(+dt);
+                _camera.Zoom(+dt*10.0f);
             }
             if (Util.IsKeyDown(Keys.D2)) {
                 _camWalkMode = true;
@@ -129,24 +179,59 @@ namespace TerrainDemo {
                 _camWalkMode = false;
             }
             if (_camWalkMode) {
-                var camPos = _camera.Position;
+                var camPos = _camera.Target;
                 var y = _terrain.Height(camPos.X, camPos.Z);
-                _camera.Position = new Vector3(camPos.X, y + 2.0f, camPos.Z);
+                _camera.Target = new Vector3(camPos.X, y, camPos.Z);
+                
             }
             _camera.UpdateViewMatrix();
+
+            _visibleTrees = 0;
+            var db = ImmediateContext.MapSubresource(_instanceBuffer, MapMode.WriteDiscard, MapFlags.None);
+            foreach (var treeInstance in _treeInstances) {
+                if (_camera.Visible(treeInstance.BoundingBox)) {
+                    db.Data.Write(treeInstance.World);
+                    _visibleTrees++;
+                }
+            }
+
+            ImmediateContext.UnmapSubresource(_instanceBuffer, 0);
+
         }
 
         public override void DrawScene() {
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-
             if (Util.IsKeyDown(Keys.W)) {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
             _terrain.Draw(ImmediateContext, _camera, _dirLights);
+
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.InstancedPosNormalTexTan;
+            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+
+            var viewProj = _camera.ViewProj;
+
+            Effects.InstancedNormalMapFX.SetDirLights(_dirLights);
+            Effects.InstancedNormalMapFX.SetEyePosW(_camera.Position);
+
+            var activeTech = Effects.InstancedNormalMapFX.Light3TexTech;
+            for (int p = 0; p < activeTech.Description.PassCount; p++) {
+                
+                    Effects.InstancedNormalMapFX.SetViewProj(viewProj);
+                    Effects.InstancedNormalMapFX.SetTexTransform(Matrix.Identity);
+
+                    for (int i = 0; i < _treeModel.SubsetCount; i++) {
+                        Effects.InstancedNormalMapFX.SetMaterial(_treeModel.Materials[i]);
+                        Effects.InstancedNormalMapFX.SetDiffuseMap(_treeModel.DiffuseMapSRV[i]);
+                        Effects.InstancedNormalMapFX.SetNormalMap(_treeModel.NormalMapSRV[i]);
+
+                        activeTech.GetPassByIndex(p).Apply(ImmediateContext);
+                        _treeModel.ModelMesh.DrawInstanced(ImmediateContext, i, _instanceBuffer, _visibleTrees, Marshal.SizeOf(typeof(Matrix)));
+                    }
+                
+            }
 
             ImmediateContext.Rasterizer.State = null;
             _sky.Draw(ImmediateContext, _camera);

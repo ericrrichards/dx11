@@ -194,7 +194,16 @@ namespace Core {
             new InputElement("BLENDWEIGHT", 0, Format.R32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
             new InputElement("BLENDINDICES", 0, Format.R8G8B8A8_UInt, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
         };
-
+        public static InputElement[] InstancedPosNormalTexTan = {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0),
+            new InputElement("NORMAL", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0), 
+            new InputElement("TEXCOORD", 0, Format.R32G32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData, 0),
+            new InputElement("TANGENT", 0, Format.R32G32B32_Float, InputElement.AppendAligned, 0, InputClassification.PerVertexData,0 ),
+            new InputElement("WORLD", 0, Format.R32G32B32A32_Float, 0, 1, InputClassification.PerInstanceData, 1 ), 
+            new InputElement("WORLD", 1, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),
+            new InputElement("WORLD", 2, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),
+            new InputElement("WORLD", 3, Format.R32G32B32A32_Float, InputElement.AppendAligned, 1, InputClassification.PerInstanceData, 1 ),
+        };  
     }
     public static class InputLayouts {
         public static void InitAll(Device device) {
@@ -260,7 +269,14 @@ namespace Core {
                 PosNormalTexTanSkinned = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTanSkinned);
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message + ex.StackTrace);
-                PosNormalTexTan = null;
+                PosNormalTexTanSkinned = null;
+            }
+            try {
+                var passDesc = Effects.InstancedNormalMapFX.Light1Tech.GetPassByIndex(0).Description;
+                InstancedPosNormalTexTan = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.InstancedPosNormalTexTan);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message + ex.StackTrace);
+                InstancedPosNormalTexTan = null;
             }
             
         }
@@ -274,6 +290,7 @@ namespace Core {
             Util.ReleaseCom(ref TerrainCP);
             Util.ReleaseCom(ref PosColor);
             Util.ReleaseCom(ref PosNormalTexTanSkinned);
+            Util.ReleaseCom(ref InstancedPosNormalTexTan);
         }
 
         public static InputLayout PosNormal;
@@ -285,5 +302,6 @@ namespace Core {
         public static InputLayout TerrainCP;
         public static InputLayout PosColor;
         public static InputLayout PosNormalTexTanSkinned;
+        public static InputLayout InstancedPosNormalTexTan;
     }
 }

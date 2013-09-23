@@ -194,7 +194,7 @@ namespace AssimpModel {
                     Effects.NormalMapFX.SetNormalMap(_modelInstance.Model.NormalMapSRV[i]);
 
                     activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    //_modelInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                    _modelInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
                 world = _stoneInstance.World;
                 wit = MathF.InverseTranspose(world);

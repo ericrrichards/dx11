@@ -300,13 +300,17 @@ namespace Core {
 
         public void Run() {
             Timer.Reset();
+            Timer.FrameTime = 1.0f / 60.0f;
             while (_running) {
                 Application.DoEvents();
                 Timer.Tick();
+                
                 if (!AppPaused) {
                     CalculateFrameRateStats();
                     UpdateScene(Timer.DeltaTime);
                     DrawScene();
+                    
+
                 } else {
                     Thread.Sleep(100);
                 }

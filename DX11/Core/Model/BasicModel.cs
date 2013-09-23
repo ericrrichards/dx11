@@ -22,6 +22,7 @@ namespace Core.Model {
         public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
         public MeshGeometry ModelMesh { get { return _modelMesh; } }
         public List<ShaderResourceView> NormalMapSRV { get; private set; }
+        public BoundingBox BoundingBox { get; private set; }
 
         public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath) {
             _subsets = new List<MeshGeometry.Subset>();
@@ -46,14 +47,21 @@ namespace Core.Model {
                     FaceCount = mesh.FaceCount
                 };
                 _subsets.Add(subset);
+                var min = new Vector3(float.MaxValue);
+                var max = new Vector3(float.MinValue);
+
                 for (int i = 0; i < mesh.VertexCount; i++) {
-                    var pos = mesh.HasVertices ? mesh.Vertices[i] : new Vector3D();
+                    var pos = mesh.HasVertices ? mesh.Vertices[i].ToVector3() : new Vector3();
+                    min = Vector3.Minimize(min, pos);
+                    max = Vector3.Maximize(max, pos);
+
                     var norm = mesh.HasNormals ? mesh.Normals[i] : new Vector3D();
                     var texC = mesh.HasTextureCoords(0) ? mesh.GetTextureCoords(0)[i] : new Vector3D();
                     var tan = mesh.HasTangentBasis ? mesh.Tangents[i] : new Vector3D();
-                    var v = new PosNormalTexTan(pos.ToVector3(), norm.ToVector3(), texC.ToVector2(), tan.ToVector3());
+                    var v = new PosNormalTexTan(pos, norm.ToVector3(), texC.ToVector2(), tan.ToVector3());
                     verts.Add(v);
                 }
+                BoundingBox = new BoundingBox(min, max);
                 _vertices.AddRange(verts);
                 var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
                 _indices.AddRange(indices);
@@ -64,6 +72,9 @@ namespace Core.Model {
                 Materials.Add(material);
 
                 var diffusePath = mat.GetTexture(TextureType.Diffuse, 0).FilePath;
+                if (Path.GetExtension(diffusePath) == ".tga") {
+                    diffusePath = diffusePath.Replace(".tga", ".png");
+                }
                 if (!string.IsNullOrEmpty(diffusePath)) {
                     DiffuseMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, diffusePath)));
                 }
@@ -73,9 +84,9 @@ namespace Core.Model {
                 } else {
                     var normalExt = Path.GetExtension(diffusePath);
                     normalPath = Path.GetFileNameWithoutExtension(diffusePath) + "_nmap" + normalExt;
-                    if (File.Exists(Path.Combine(texturePath, normalPath))) {
+                    
                         NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
-                    }
+                    
                 }
 
             }
@@ -96,5 +107,8 @@ namespace Core.Model {
     public struct BasicModelInstance {
         public BasicModel Model;
         public Matrix World;
+        public BoundingBox BoundingBox {
+            get { return new BoundingBox(Vector3.TransformCoordinate(Model.BoundingBox.Minimum, World), Vector3.TransformCoordinate(Model.BoundingBox.Maximum, World)); }
+        }
     }
 }

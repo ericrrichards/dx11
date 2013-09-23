@@ -2,7 +2,9 @@
 using SlimDX;
 
 namespace Core.Camera {
+    public delegate float HeightFunc(float x, float y);
     public class FpsCamera : CameraBase {
+        
         public override void LookAt(Vector3 pos, Vector3 target, Vector3 up) {
             Position = pos;
             Look = Vector3.Normalize(target - pos);

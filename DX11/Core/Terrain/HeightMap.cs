@@ -4,6 +4,7 @@
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
 
     using SlimDX;
     using SlimDX.DXGI;
@@ -12,7 +13,7 @@
     using Device = SlimDX.Direct3D11.Device;
     using Resource = SlimDX.Direct3D11.Resource;
 
-    public class HeightMap  {
+    public class HeightMap {
         private List<float> _heightMap;
         public int HeightMapWidth { get; set; }
         public int HeightMapHeight { get; set; }
@@ -22,7 +23,7 @@
             HeightMapWidth = width;
             HeightMapHeight = height;
             MaxHeight = maxHeight;
-            _heightMap = new List<float>(new float[HeightMapWidth*HeightMapHeight]);
+            _heightMap = new List<float>(new float[HeightMapWidth * HeightMapHeight]);
         }
 
         public float this[int row, int col] {
@@ -89,13 +90,13 @@
             var hmap = Half.ConvertToHalf(_heightMap.ToArray());
 
             var hmapTex = new Texture2D(
-                device, 
-                texDec, 
+                device,
+                texDec,
                 new DataRectangle(
-                    HeightMapWidth * Marshal.SizeOf(typeof(Half)), 
+                    HeightMapWidth * Marshal.SizeOf(typeof(Half)),
                     new DataStream(hmap.ToArray(), false, false)
-                )
-            );
+                    )
+                );
 
             var srvDesc = new ShaderResourceViewDescription {
                 Format = texDec.Format,
@@ -103,10 +104,10 @@
                 MostDetailedMip = 0,
                 MipLevels = -1
             };
-            
+
             var srv = new ShaderResourceView(device, hmapTex, srvDesc);
-            
-           
+
+
             Util.ReleaseCom(ref hmapTex);
             return srv;
         }
@@ -126,6 +127,7 @@
             }
             return hm;
         }
+
         public void Cap(float capHeight) {
             MaxHeight = 0.0f;
             for (var y = 0; y < HeightMapHeight; y++) {
@@ -141,11 +143,15 @@
                 }
             }
         }
+
         public void CreateRandomHeightMap(int seed, float noiseSize, float persistence, int octaves) {
+            
             for (var y = 0; y < HeightMapHeight; y++) {
                 for (var x = 0; x < HeightMapWidth; x++) {
+
+
                     var xf = (x / (float)HeightMapWidth) * noiseSize;
-                    var yf = (y /(float)HeightMapHeight) * noiseSize;
+                    var yf = (y / (float)HeightMapHeight) * noiseSize;
 
                     var total = 0.0f;
                     for (var i = 0; i < octaves; i++) {
@@ -176,6 +182,46 @@
             }
         }
 
+        public void CreateRandomHeightMapParallel(int seed, float noiseSize, float persistence, int octaves) {
+            var tasks = new List<Action>();
+            for (var y = 0; y < HeightMapHeight; y++) {
+                int y1 = y;
+                tasks.Add(() => {
+                    
+                    for (var x = 0; x < HeightMapWidth; x++) {
+                        int x1 = x;
+                        var xf = (x1 / (float)HeightMapWidth) * noiseSize;
+                        var yf = (y1 / (float)HeightMapHeight) * noiseSize;
 
+                        var total = 0.0f;
+                        for (var i = 0; i < octaves; i++) {
+                            var freq = (float)Math.Pow(2.0f, i);
+                            var amp = (float)Math.Pow(persistence, i);
+                            var tx = xf * freq;
+                            var ty = yf * freq;
+                            var txi = (int)tx;
+                            var tyi = (int)ty;
+                            var fracX = tx - txi;
+                            var fracY = ty - tyi;
+
+                            var v1 = MathF.Noise(txi + tyi * 57 + seed);
+                            var v2 = MathF.Noise(txi + 1 + tyi * 57 + seed);
+                            var v3 = MathF.Noise(txi + (tyi + 1) * 57 + seed);
+                            var v4 = MathF.Noise(txi + 1 + (tyi + 1) * 57 + seed);
+
+                            var i1 = MathF.CosInterpolate(v1, v2, fracX);
+                            var i2 = MathF.CosInterpolate(v3, v4, fracX);
+                            total += MathF.CosInterpolate(i1, i2, fracY) * amp;
+                        }
+                        var b = (int)(128 + total * 128.0f);
+                        if (b < 0) b = 0;
+                        if (b > 255) b = 255;
+
+                        _heightMap[x1 + y1 * HeightMapHeight] = (b / 255.0f) * MaxHeight;
+                    }
+                });
+            }
+            Parallel.Invoke(tasks.ToArray());
+        }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Core.Camera {
     public abstract class CameraBase {
+        public HeightFunc Height { get; set; }
         protected Frustum _frustum;
         public Vector3 Position { get; set; }
         public Vector3 Right { get; protected set; }

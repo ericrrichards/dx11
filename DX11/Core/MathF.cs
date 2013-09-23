@@ -7,19 +7,22 @@ using System.Threading.Tasks;
 namespace Core {
     using SlimDX;
 
-    public static class MathF {
+    public static partial class MathF {
         private static Random _rand = new Random();
-        public const float PI = (float) Math.PI;
+        public const float PI = (float)Math.PI;
 
         public static float Sin(float a) {
-            return (float) Math.Sin(a);
+            return (float)Math.Sin(a);
         }
+
         public static float Cos(float a) {
-            return (float) Math.Cos(a);
+            return (float)Math.Cos(a);
         }
+
         public static float ToRadians(float degrees) {
             return PI * degrees / 180.0f;
         }
+
         public static float ToDegrees(float radians) {
             return radians * (180.0f / PI);
         }
@@ -57,7 +60,7 @@ namespace Core {
 
         public static float CosInterpolate(float v1, float v2, float a) {
             var angle = a * PI;
-            var prc = (1.0f - Cos(angle)) * 0.5f;
+            var prc = (1.0f - LookupCos(angle)) * 0.5f;
             return v1 * (1.0f - prc) + v2 * prc;
         }
 
@@ -65,5 +68,6 @@ namespace Core {
             var n = Noise(Rand());
             return n * (max - min) + min;
         }
+        
     }
 }

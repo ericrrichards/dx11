@@ -11,6 +11,7 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Device = SlimDX.Direct3D11.Device;
 
 namespace Core.Terrain {
+    using System.Diagnostics;
     using System.Runtime.InteropServices;
 
     public struct InitInfo {
@@ -128,12 +129,7 @@ namespace Core.Terrain {
                 _heightMap.LoadHeightmap(_info.HeightMapFilename);
                 
             } else {
-                var hm2 = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, 2.0f);
-                _heightMap.CreateRandomHeightMap(MathF.Rand(), 1.0f, 0.7f, 9);
-                hm2.CreateRandomHeightMap(MathF.Rand(), 2.5f, 0.8f, 5);
-                hm2.Cap( hm2.MaxHeight * 0.4f);
-                _heightMap *= hm2;
-                
+                GenerateRandomTerrain();
             }
             _heightMap.Smooth();
             CalcAllPatchBoundsY();
@@ -155,6 +151,14 @@ namespace Core.Terrain {
             } else {
                 _blendMapSRV = CreateBlendMap(_heightMap, device);
             }
+        }
+
+        private void GenerateRandomTerrain() {
+            var hm2 = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, 2.0f);
+            _heightMap.CreateRandomHeightMapParallel(MathF.Rand(), 1.0f, 0.7f, 7);
+            hm2.CreateRandomHeightMapParallel(MathF.Rand(), 2.5f, 0.8f, 3);
+            hm2.Cap(hm2.MaxHeight * 0.4f);
+            _heightMap *= hm2;
         }
 
         private ShaderResourceView CreateBlendMap(HeightMap hm, Device device) {

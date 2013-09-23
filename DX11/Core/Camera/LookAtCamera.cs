@@ -2,20 +2,21 @@
 
 namespace Core.Camera {
     public class LookAtCamera  : CameraBase {
-        private Vector3 _target;
         private float _radius;
         private float _alpha;
         private float _beta;
 
-        public LookAtCamera() {
+        public LookAtCamera() : base(){
             _alpha = _beta = 0.5f;
             _radius = 10.0f;
-            _target = new Vector3();
+            Target = new Vector3();
 
         }
 
+        public Vector3 Target { get; set; }
+
         public override void LookAt(Vector3 pos, Vector3 target, Vector3 up) {
-            _target = target;
+            Target = target;
             Position = pos;
             Position = pos;
             Look = Vector3.Normalize(target - pos);
@@ -26,11 +27,11 @@ namespace Core.Camera {
 
         public override void Strafe(float d) {
             var dt = Vector3.Normalize(new Vector3(Right.X, 0, Right.Z)) * d;
-            _target += dt;
+            Target += dt;
         }
 
         public override void Walk(float d) {
-            _target += Vector3.Normalize(new Vector3(Look.X, 0, Look.Z)) *d;
+            Target += Vector3.Normalize(new Vector3(Look.X, 0, Look.Z)) *d;
         }
 
         public override void Pitch(float angle) {
@@ -43,7 +44,7 @@ namespace Core.Camera {
         }
         public override void Zoom(float dr) {
             _radius += dr;
-            _radius = MathF.Clamp(_radius, 2.0f, 70.0f);
+            _radius = MathF.Clamp(_radius, 2.0f, 150.0f);
         }
 
         public override void UpdateViewMatrix() {
@@ -51,18 +52,22 @@ namespace Core.Camera {
             var height = _radius*MathF.Sin(_beta);
 
             Position = new Vector3(
-                _target.X + sideRadius * MathF.Cos(_alpha), 
-                _target.Y + height, 
-                _target.Z + sideRadius * MathF.Sin(_alpha) 
+                Target.X + sideRadius * MathF.Cos(_alpha), 
+                Target.Y + height, 
+                Target.Z + sideRadius * MathF.Sin(_alpha) 
             );
+            if (Height != null && Position.Y <= Height(Position.X, Position.Z) + 2.0f) {
+                Position = new Vector3(Position.X,  Height(Position.X, Position.Z) + 2.0f, Position.Z);
+            }
 
-            View = Matrix.LookAtLH(Position, _target, Vector3.UnitY);
+            View = Matrix.LookAtLH(Position, Target, Vector3.UnitY);
 
             Right = new Vector3(View.M11, View.M21, View.M31);
             Right.Normalize();
 
             Look = new Vector3(View.M13, View.M23, View.M33);
             Look.Normalize();
+            _frustum = Frustum.FromViewProj(ViewProj);
         }
     }
 }

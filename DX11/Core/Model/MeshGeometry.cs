@@ -61,5 +61,11 @@ namespace Core.Model {
             dc.InputAssembler.SetIndexBuffer(_ib, Format.R16_UInt, 0);
             dc.DrawIndexed(_subsetTable[subsetId].FaceCount*3, _subsetTable[subsetId].FaceStart*3, 0);
         }
+        public void DrawInstanced(DeviceContext dc, int subsetId, Buffer instanceBuffer, int numInstances, int stride) {
+            const int offset = 0;
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, _vertexStride, offset), new VertexBufferBinding(instanceBuffer, stride, 0));
+            dc.InputAssembler.SetIndexBuffer(_ib, Format.R16_UInt, 0);
+            dc.DrawIndexedInstanced(_subsetTable[subsetId].FaceCount * 3, numInstances, _subsetTable[subsetId].FaceStart * 3,  0, 0);
+        }
     }
 }

@@ -59,8 +59,38 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="FX\InstancedNormalMap.fx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\birchbark.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\birchbark_nmap.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\birchtwig.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\tree.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Textures\tree_nmap.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="app.config" />
+    <Content Include="Models\tree.x">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\birchA.mdl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="packages.config" />
+    <Content Include="Assimp64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FX\NormalMap.fx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="terrain1.html" />
     <Content Include="Textures\blend.dds">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -119,15 +149,20 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd FX
 
 fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Basic.fxo Basic.fx
 
+
 fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Sky.fxo Sky.fx
 
-fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Terrain.fxo Terrain.fx</PostBuildEvent>
+
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Terrain.fxo Terrain.fx
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo NormalMap.fxo NormalMap.fx
+fxc /O0 /Fc /Zi /T  fx_5_0 /Fo InstancedNormalMap.fxo InstancedNormalMap.fx</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
