@@ -150,7 +150,7 @@ namespace TerrainDemo {
 
         public override void OnResize() {
             base.OnResize();
-            _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
+            _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 250.0f);
         }
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
@@ -215,7 +215,7 @@ namespace TerrainDemo {
 
             Effects.InstancedNormalMapFX.SetDirLights(_dirLights);
             Effects.InstancedNormalMapFX.SetEyePosW(_camera.Position);
-
+            /*
             var activeTech = Effects.InstancedNormalMapFX.Light3TexTech;
             for (int p = 0; p < activeTech.Description.PassCount; p++) {
                 
@@ -232,7 +232,7 @@ namespace TerrainDemo {
                     }
                 
             }
-
+            */
             ImmediateContext.Rasterizer.State = null;
             _sky.Draw(ImmediateContext, _camera);
 

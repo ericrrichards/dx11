@@ -14,6 +14,13 @@ namespace Core.FX {
         public EffectTechnique Light2FogTech { get; private set; }
         public EffectTechnique Light3FogTech { get; private set; }
 
+        public EffectTechnique Light1TechNT { get; private set; }
+        public EffectTechnique Light2TechNT { get; private set; }
+        public EffectTechnique Light3TechNT { get; private set; }
+        public EffectTechnique Light1FogTechNT { get; private set; }
+        public EffectTechnique Light2FogTechNT { get; private set; }
+        public EffectTechnique Light3FogTechNT { get; private set; }
+
         private readonly EffectMatrixVariable _viewProj;
         private readonly EffectVectorVariable _eyePosW;
         private readonly EffectVectorVariable _fogColor;
@@ -33,6 +40,7 @@ namespace Core.FX {
         private readonly EffectResourceVariable _layerMapArray;
         private readonly EffectResourceVariable _blendMap;
         private readonly EffectResourceVariable _heightMap;
+        
 
 
         public TerrainEffect(Device device, string filename) : base(device, filename) {
@@ -42,6 +50,13 @@ namespace Core.FX {
             Light1FogTech = FX.GetTechniqueByName("Light1Fog");
             Light2FogTech = FX.GetTechniqueByName("Light2Fog");
             Light3FogTech = FX.GetTechniqueByName("Light3Fog");
+
+            Light1TechNT = FX.GetTechniqueByName("Light1NT");
+            Light2TechNT = FX.GetTechniqueByName("Light2NT");
+            Light3TechNT = FX.GetTechniqueByName("Light3NT");
+            Light1FogTechNT = FX.GetTechniqueByName("Light1FogNT");
+            Light2FogTechNT = FX.GetTechniqueByName("Light2FogNT");
+            Light3FogTechNT = FX.GetTechniqueByName("Light3FogNT");
 
             _viewProj = FX.GetVariableByName("gViewProj").AsMatrix();
             _eyePosW = FX.GetVariableByName("gEyePosW").AsVector();

@@ -90,6 +90,7 @@
     <Compile Include="RenderStates.cs" />
     <Compile Include="Sky.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
+    <Compile Include="Terrain\Patch.cs" />
     <Compile Include="Terrain\Terrain.cs" />
     <Compile Include="TextureAtlas.cs" />
     <Compile Include="Util.cs" />
@@ -98,10 +99,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Model\cAnimationController.cpp" />
-    <Content Include="Model\cAnimationController.h" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

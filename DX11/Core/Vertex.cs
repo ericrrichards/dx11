@@ -207,73 +207,99 @@ namespace Core {
     }
     public static class InputLayouts {
         public static void InitAll(Device device) {
-            
-            try {
-                var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
-                PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
-            } catch (Exception dex) {
-                Console.WriteLine(dex.Message + dex.StackTrace);
-                PosNormal = null;
+            var bl1 = Effects.BasicFX;
+            if (bl1 != null) {
+                try {
+                    var passDesc = bl1.Light1Tech.GetPassByIndex(0).Description;
+                    PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
+                } catch (Exception dex) {
+                    Console.WriteLine(dex.Message + dex.StackTrace);
+                    PosNormal = null;
+                }
+                try {
+                    var passDesc = bl1.Light1Tech.GetPassByIndex(0).Description;
+                    Basic32 = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
+                } catch (Exception dex) {
+                    Console.WriteLine(dex.Message + dex.StackTrace);
+                    Basic32 = null;
+                }
             }
             try {
-                var passDesc = Effects.BasicFX.Light1Tech.GetPassByIndex(0).Description;
-                Basic32 = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
-            } catch (Exception dex) {
-                Console.WriteLine(dex.Message + dex.StackTrace);
-                Basic32 = null;
-            }
-            try {
-                var shaderSignature = Effects.InstancedBasicFX.Light1Tech.GetPassByIndex(0).Description.Signature;
-                InstancedBasic32 = new InputLayout(device, shaderSignature, InputLayoutDescriptions.InstancedBasic32);
+                var ibl1 = Effects.InstancedBasicFX;
+                if (ibl1 != null) {
+                    var shaderSignature = ibl1.Light1Tech.GetPassByIndex(0).Description.Signature;
+                    InstancedBasic32 = new InputLayout(device, shaderSignature, InputLayoutDescriptions.InstancedBasic32);
+                }
             } catch (Exception dex) {
                 Console.WriteLine(dex.Message + dex.StackTrace);
                 InstancedBasic32 = null;
             }
             try {
-                var passDesc = Effects.TreeSpriteFX.Light3Tech.GetPassByIndex(0).Description;
-                TreePointSprite = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TreePointSprite);
+                var tsl3 = Effects.TreeSpriteFX;
+                if (tsl3 != null) {
+                    var passDesc = tsl3.Light3Tech.GetPassByIndex(0).Description;
+                    TreePointSprite = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TreePointSprite);
+                }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 TreePointSprite = null;
             }
             try {
-                var passDesc = Effects.SkyFX.SkyTech.GetPassByIndex(0).Description;
-                Pos = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Pos);
+                var skyTech = Effects.SkyFX;
+                if (skyTech != null) {
+                    var passDesc = skyTech.SkyTech.GetPassByIndex(0).Description;
+                    Pos = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Pos);
+                }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 Pos = null;
             }
             try {
-                var passDesc = Effects.NormalMapFX.Light1Tech.GetPassByIndex(0).Description;
-                PosNormalTexTan = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTan);
+                var tech = Effects.NormalMapFX;
+                if (tech != null) {
+                    var passDesc = tech.Light1Tech.GetPassByIndex(0).Description;
+                    PosNormalTexTan = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTan);
+                }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 PosNormalTexTan = null;
             }
             try {
-                var passDesc = Effects.TerrainFX.Light1Tech.GetPassByIndex(0).Description;
-                TerrainCP = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TerrainCP);
+                var tech = Effects.TerrainFX;
+                if (tech != null) {
+                    var passDesc = tech.Light1Tech.GetPassByIndex(0).Description;
+                    TerrainCP = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.TerrainCP);
+                }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
                 TerrainCP = null;
             }
             try {
-                var passDesc = Effects.ColorFX.ColorTech.GetPassByIndex(0).Description;
-                PosColor = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosColor);
+                var tech = Effects.ColorFX;
+                if (tech != null) {
+                    var passDesc = tech.ColorTech.GetPassByIndex(0).Description;
+                    PosColor = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosColor);
+                }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
                 PosColor = null;
             }
             try {
-                var passDesc = Effects.BasicFX.Light1SkinnedTech.GetPassByIndex(0).Description;
-                PosNormalTexTanSkinned = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTanSkinned);
+                var tech = Effects.BasicFX;
+                if (tech != null) {
+                    var passDesc = tech.Light1SkinnedTech.GetPassByIndex(0).Description;
+                    PosNormalTexTanSkinned = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTanSkinned);
+                }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 PosNormalTexTanSkinned = null;
             }
             try {
-                var passDesc = Effects.InstancedNormalMapFX.Light1Tech.GetPassByIndex(0).Description;
-                InstancedPosNormalTexTan = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.InstancedPosNormalTexTan);
+                var tech = Effects.InstancedNormalMapFX;
+                if (tech != null) {
+                    var passDesc = tech.Light1Tech.GetPassByIndex(0).Description;
+                    InstancedPosNormalTexTan = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.InstancedPosNormalTexTan);
+                }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 InstancedPosNormalTexTan = null;

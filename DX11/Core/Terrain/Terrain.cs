@@ -11,7 +11,6 @@ using Buffer = SlimDX.Direct3D11.Buffer;
 using Device = SlimDX.Direct3D11.Device;
 
 namespace Core.Terrain {
-    using System.Diagnostics;
     using System.Runtime.InteropServices;
 
     public struct InitInfo {
@@ -37,22 +36,24 @@ namespace Core.Terrain {
     }
 
     public class Terrain  :DisposableClass {
-        private const int CellsPerPatch = 64;
+        internal const int CellsPerPatch = 64;
         private Buffer _quadPatchVB;
         private Buffer _quadPatchIB;
+
+        private List<Patch> _patches; 
 
         private ShaderResourceView _layerMapArraySRV;
         private ShaderResourceView _blendMapSRV;
         private ShaderResourceView _heightMapSRV;
 
-        private InitInfo _info;
+        internal InitInfo _info;
         private int _numPatchVertices;
         private int _numPatchQuadFaces;
 
         // number of rows of patch control point vertices
-        private int _numPatchVertRows;
+        internal int _numPatchVertRows;
         // number of columns of patch control point vertices
-        private int _numPatchVertCols;
+        internal int _numPatchVertCols;
 
         public Matrix World { get; set; }
 
@@ -63,6 +64,7 @@ namespace Core.Terrain {
         private HeightMap _heightMap;
 
         private bool _disposed;
+        private bool _useTessellation;
 
         public Terrain() {
             World = Matrix.Identity;
@@ -72,6 +74,7 @@ namespace Core.Terrain {
                 Specular = new Color4(64.0f, 0, 0, 0),
                 Reflect = Color.Black
             };
+            _patches = new List<Patch>();
         }
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
@@ -114,6 +117,9 @@ namespace Core.Terrain {
             }
         }
         public void Init(Device device, DeviceContext dc, InitInfo info) {
+            if (device.FeatureLevel == FeatureLevel.Level_11_0) {
+                _useTessellation = true;
+            }
             _info = info;
             _numPatchVertRows = ((_info.HeightMapHeight - 1)/CellsPerPatch) + 1;
             _numPatchVertCols = ((_info.HeightMapWidth - 1)/CellsPerPatch) + 1;
@@ -132,10 +138,14 @@ namespace Core.Terrain {
                 GenerateRandomTerrain();
             }
             _heightMap.Smooth();
-            CalcAllPatchBoundsY();
-
-            BuildQuadPatchVB(device);
-            BuildQuadPatchIB(device);
+            
+            if (_useTessellation) {
+                CalcAllPatchBoundsY();
+                BuildQuadPatchVB(device);
+                BuildQuadPatchIB(device);
+            } else {
+                BuildPatches(device);
+            }
             _heightMapSRV = _heightMap.BuildHeightmapSRV(device);
 
             var layerFilenames = new List<string> {
@@ -152,6 +162,8 @@ namespace Core.Terrain {
                 _blendMapSRV = CreateBlendMap(_heightMap, device);
             }
         }
+
+        
 
         private void GenerateRandomTerrain() {
             var hm2 = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, 2.0f);
@@ -236,45 +248,79 @@ namespace Core.Terrain {
         }
 
         public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
-            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
-            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+            if (_useTessellation) {
 
-            var stride = Vertex.TerrainCP.Stride;
-            const int Offset = 0;
+                dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+                dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
-            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
-            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+                var stride = Vertex.TerrainCP.Stride;
+                const int Offset = 0;
 
-            var viewProj = cam.ViewProj;
-            var planes = cam.FrustumPlanes;
+                dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
+                dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
 
-            Effects.TerrainFX.SetViewProj(viewProj);
-            Effects.TerrainFX.SetEyePosW(cam.Position);
-            Effects.TerrainFX.SetDirLights(lights);
-            Effects.TerrainFX.SetFogColor(Color.Silver);
-            Effects.TerrainFX.SetFogStart(15.0f);
-            Effects.TerrainFX.SetFogRange(175.0f);
-            Effects.TerrainFX.SetMinDist(20.0f);
-            Effects.TerrainFX.SetMaxDist(500.0f);
-            Effects.TerrainFX.SetMinTess(0.0f);
-            Effects.TerrainFX.SetMaxTess(6.0f);
-            Effects.TerrainFX.SetTexelCellSpaceU(1.0f/_info.HeightMapWidth);
-            Effects.TerrainFX.SetTexelCellSpaceV(1.0f/_info.HeightMapHeight);
-            Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
-            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
-            Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
-            Effects.TerrainFX.SetBlendMap(_blendMapSRV);
-            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-            Effects.TerrainFX.SetMaterial(_material);
+                var viewProj = cam.ViewProj;
+                var planes = cam.FrustumPlanes;
 
-            var tech = Effects.TerrainFX.Light1Tech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
-                var pass = tech.GetPassByIndex(p);
-                pass.Apply(dc);
-                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
+                Effects.TerrainFX.SetViewProj(viewProj);
+                Effects.TerrainFX.SetEyePosW(cam.Position);
+                Effects.TerrainFX.SetDirLights(lights);
+                Effects.TerrainFX.SetFogColor(Color.Silver);
+                Effects.TerrainFX.SetFogStart(15.0f);
+                Effects.TerrainFX.SetFogRange(175.0f);
+                Effects.TerrainFX.SetMinDist(20.0f);
+                Effects.TerrainFX.SetMaxDist(500.0f);
+                Effects.TerrainFX.SetMinTess(0.0f);
+                Effects.TerrainFX.SetMaxTess(6.0f);
+                Effects.TerrainFX.SetTexelCellSpaceU(1.0f/_info.HeightMapWidth);
+                Effects.TerrainFX.SetTexelCellSpaceV(1.0f/_info.HeightMapHeight);
+                Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
+                Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+                Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+                Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+                Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+                Effects.TerrainFX.SetMaterial(_material);
+
+                var tech = Effects.TerrainFX.Light1Tech;
+                for (int p = 0; p < tech.Description.PassCount; p++) {
+                    var pass = tech.GetPassByIndex(p);
+                    pass.Apply(dc);
+                    dc.DrawIndexed(_numPatchQuadFaces*4, 0, 0);
+                }
+                dc.HullShader.Set(null);
+                dc.DomainShader.Set(null);
+            } else {
+                dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+
+                
+                var viewProj = cam.ViewProj;
+                Effects.TerrainFX.SetViewProj(viewProj);
+                Effects.TerrainFX.SetEyePosW(cam.Position);
+                Effects.TerrainFX.SetDirLights(lights);
+                Effects.TerrainFX.SetFogColor(Color.Silver);
+                Effects.TerrainFX.SetFogStart(15.0f);
+                Effects.TerrainFX.SetFogRange(175.0f);
+
+                Effects.TerrainFX.SetTexelCellSpaceU(1.0f / _info.HeightMapWidth);
+                Effects.TerrainFX.SetTexelCellSpaceV(1.0f / _info.HeightMapHeight);
+                Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
+
+                Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+                Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+                Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+                Effects.TerrainFX.SetMaterial(_material);
+                var tech = Effects.TerrainFX.Light1TechNT;
+                for (int p = 0; p < tech.Description.PassCount; p++) {
+                    var pass = tech.GetPassByIndex(p);
+                    pass.Apply(dc);
+                    foreach (var patch in _patches) {
+                        if (cam.Visible(patch.Bounds)) {
+                            patch.Draw(dc );
+                        }
+                    }
+                }
             }
-            dc.HullShader.Set(null);
-            dc.DomainShader.Set(null);
 
         }
         
@@ -301,6 +347,7 @@ namespace Core.Terrain {
                 ibd
             );
         }
+        
 
 
         private void CalcAllPatchBoundsY() {
@@ -376,7 +423,29 @@ namespace Core.Terrain {
                 vbd
             );
         }
-    }
+        private void BuildPatches(Device device) {
+            for (int index = 0; index < _patches.Count; index++) {
+                var patch = _patches[index];
+                Util.ReleaseCom(ref patch);
+            }
+            _patches.Clear();
 
-    
+            var halfWidth = 0.5f*Width;
+            var halfDepth = 0.5f*Depth;
+            var patchWidth = Width/(_numPatchVertCols - 1);
+            var patchDepth = Depth/(_numPatchVertRows - 1);
+            var du = 1.0f/(_numPatchVertCols - 1);
+            var dv = 1.0f/(_numPatchVertRows - 1);
+            for (int z = 0; z < (_numPatchVertRows - 1); z++) {
+                var z1 = z*CellsPerPatch;
+                for (int x = 0; x < (_numPatchVertCols - 1); x++) {
+                    var x1 = x*CellsPerPatch;
+                    var r = new Rectangle(x1, z1, CellsPerPatch, CellsPerPatch);
+                    var p = new Patch();
+                    p.CreateMesh(this, r, device);
+                    _patches.Add(p);
+                }
+            }
+        }
+    }
 }

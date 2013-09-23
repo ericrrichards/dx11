@@ -91,6 +91,7 @@ VertexOut VS(VertexIn vin)
 	
 	return vout;
 }
+
  
 float CalcTessFactor(float3 p)
 {
@@ -272,6 +273,26 @@ DomainOut DS(PatchTess patchTess,
 	return dout;
 }
 
+DomainOut VS_NT(VertexIn vin)
+{
+	DomainOut vout = (DomainOut)0;
+	
+	// Terrain specified directly in world space.
+	vout.PosW = vin.PosL;
+	// Output vertex attributes to next stage.
+	vout.Tex      = vin.Tex;
+	vout.TiledTex = vout.Tex * gTexScale;
+	vout.PosW.y = gHeightMap.SampleLevel( samHeightmap, vout.Tex, 0 ).r;
+	vout.PosH    = mul(float4(vout.PosW, 1.0f), gViewProj);
+	// Displace the patch corners to world space.  This is to make 
+	// the eye to patch distance calculation more accurate.
+	//vout.PosW.y = gHeightMap.SampleLevel( samHeightmap, vin.Tex, 0 ).r;
+
+	
+	
+	return vout;
+}
+
 float4 PS(DomainOut pin, 
           uniform int gLightCount, 
 		  uniform bool gFogEnabled) : SV_Target
@@ -436,5 +457,15 @@ technique11 Light3Fog
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
         SetPixelShader( CompileShader( ps_4_0, PS(3, true) ) );
+    }
+}
+
+technique11 Light1NT
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_NT() ) );
+		SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS(1, false) ) );
     }
 }
