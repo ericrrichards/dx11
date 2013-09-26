@@ -23,9 +23,9 @@ namespace TerrainDemo {
     class TerrainDemo :D3DApp {
         private Sky _sky;
         private Terrain _terrain;
-        private DirectionalLight[] _dirLights;
+        private readonly DirectionalLight[] _dirLights;
 
-        private LookAtCamera _camera;
+        private readonly LookAtCamera _camera;
 
         private bool _camWalkMode;
         private Point _lastMousePos;
@@ -39,9 +39,9 @@ namespace TerrainDemo {
         private int _visibleTrees;
         private Buffer _instanceBuffer;
 
-        protected TerrainDemo(IntPtr hInstance) : base(hInstance) {
+        private TerrainDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Terrain Demo";
-            Enable4xMsaa = true;
+            //Enable4xMsaa = true;
             _lastMousePos = new Point();
 
             _camera = new LookAtCamera {
@@ -75,10 +75,12 @@ namespace TerrainDemo {
                     Util.ReleaseCom(ref _sky);
                     Util.ReleaseCom(ref _terrain);
                     Util.ReleaseCom(ref _treeModel);
+                    Util.ReleaseCom(ref _instanceBuffer);
 
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();
                     RenderStates.DestroyAll();
+                    Util.ReleaseCom(ref _txMgr);
                 }
                 _disposed = true;
             }
@@ -95,13 +97,13 @@ namespace TerrainDemo {
             _sky = new Sky(Device, "Textures/grasscube1024.dds", 5000.0f);
 
             var tii = new InitInfo {
-                HeightMapFilename = null,//"Textures/terrain.raw",
+                HeightMapFilename = "Textures/terrain.raw",
                 LayerMapFilename0 = "textures/grass.dds",
                 LayerMapFilename1 = "textures/darkdirt.dds",
                 LayerMapFilename2 = "textures/stone.dds",
                 LayerMapFilename3 = "Textures/lightdirt.dds",
                 LayerMapFilename4 = "textures/snow.dds",
-                BlendMapFilename = null,//"textures/blend.dds",
+                BlendMapFilename = "textures/blend.dds",
                 HeightScale = 50.0f,
                 HeightMapWidth = 2049,
                 HeightMapHeight = 2049,
@@ -117,7 +119,7 @@ namespace TerrainDemo {
             _treeInstances = new List<BasicModelInstance>();
             
             
-            for (int i = 0; i < NumTrees; i++) {
+            for (var i = 0; i < NumTrees; i++) {
                 var good = false;
                 var x = MathF.Rand(0, _terrain.Width);
                 var z = MathF.Rand(0, _terrain.Depth);
@@ -130,7 +132,7 @@ namespace TerrainDemo {
                     x = MathF.Rand(-_terrain.Width/2, _terrain.Width/2);
                     z = MathF.Rand(-_terrain.Depth/2, _terrain.Depth/2);
                 }
-                var treeInstance = new BasicModelInstance() {
+                var treeInstance = new BasicModelInstance {
                     Model = _treeModel,
                     World = Matrix.RotationX(MathF.PI / 2) * Matrix.Translation(x, _terrain.Height(x, z), z)
                 };
@@ -210,7 +212,7 @@ namespace TerrainDemo {
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.InstancedPosNormalTexTan;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-            var viewProj = _camera.ViewProj;
+            //var viewProj = _camera.ViewProj;
 
             Effects.InstancedNormalMapFX.SetDirLights(_dirLights);
             Effects.InstancedNormalMapFX.SetEyePosW(_camera.Position);
@@ -261,7 +263,7 @@ namespace TerrainDemo {
             _lastMousePos = e.Location;
         }
 
-        static void Main(string[] args) {
+        static void Main() {
             Configuration.EnableObjectTracking = true;
             var app = new TerrainDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {

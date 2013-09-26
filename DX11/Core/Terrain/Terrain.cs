@@ -130,7 +130,7 @@ namespace Core.Terrain {
         public void Init(Device device, DeviceContext dc, InitInfo info) {
             Patch.InitPatchData(CellsPerPatch, device);
             if (device.FeatureLevel == FeatureLevel.Level_11_0) {
-                //_useTessellation = true;
+                _useTessellation = true;
             }
             Info = info;
             NumPatchVertRows = ((Info.HeightMapHeight - 1)/CellsPerPatch) + 1;
@@ -264,9 +264,9 @@ namespace Core.Terrain {
                 dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
                 var stride = Vertex.TerrainCP.Stride;
-                const int Offset = 0;
+                const int offset = 0;
 
-                dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
+                dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
                 dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
 
                 var viewProj = cam.ViewProj;
