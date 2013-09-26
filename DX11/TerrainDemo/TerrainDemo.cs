@@ -20,6 +20,7 @@ namespace TerrainDemo {
     using Buffer = SlimDX.Direct3D11.Buffer;
     using MapFlags = SlimDX.Direct3D11.MapFlags;
 
+    
     class TerrainDemo :D3DApp {
         private Sky _sky;
         private Terrain _terrain;

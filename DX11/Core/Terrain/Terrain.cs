@@ -257,93 +257,93 @@ namespace Core.Terrain {
             }
         }
 
-        public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
-            if (_useTessellation) {
+public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
+    if (_useTessellation) {
 
-                dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
-                dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+        dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+        dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
-                var stride = Vertex.TerrainCP.Stride;
-                const int offset = 0;
+        var stride = Vertex.TerrainCP.Stride;
+        const int offset = 0;
 
-                dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
-                dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+        dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
+        dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
 
-                var viewProj = cam.ViewProj;
-                var planes = cam.FrustumPlanes;
+        var viewProj = cam.ViewProj;
+        var planes = cam.FrustumPlanes;
 
-                Effects.TerrainFX.SetViewProj(viewProj);
-                Effects.TerrainFX.SetEyePosW(cam.Position);
-                Effects.TerrainFX.SetDirLights(lights);
-                Effects.TerrainFX.SetFogColor(Color.Silver);
-                Effects.TerrainFX.SetFogStart(15.0f);
-                Effects.TerrainFX.SetFogRange(175.0f);
-                Effects.TerrainFX.SetMinDist(MinDist);
-                Effects.TerrainFX.SetMaxDist(MaxDist);
-                Effects.TerrainFX.SetMinTess(MinTess);
-                Effects.TerrainFX.SetMaxTess(MaxTess);
-                Effects.TerrainFX.SetTexelCellSpaceU(1.0f/Info.HeightMapWidth);
-                Effects.TerrainFX.SetTexelCellSpaceV(1.0f/Info.HeightMapHeight);
-                Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
-                Effects.TerrainFX.SetWorldFrustumPlanes(planes);
-                Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
-                Effects.TerrainFX.SetBlendMap(_blendMapSRV);
-                Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-                Effects.TerrainFX.SetMaterial(_material);
+        Effects.TerrainFX.SetViewProj(viewProj);
+        Effects.TerrainFX.SetEyePosW(cam.Position);
+        Effects.TerrainFX.SetDirLights(lights);
+        Effects.TerrainFX.SetFogColor(Color.Silver);
+        Effects.TerrainFX.SetFogStart(15.0f);
+        Effects.TerrainFX.SetFogRange(175.0f);
+        Effects.TerrainFX.SetMinDist(MinDist);
+        Effects.TerrainFX.SetMaxDist(MaxDist);
+        Effects.TerrainFX.SetMinTess(MinTess);
+        Effects.TerrainFX.SetMaxTess(MaxTess);
+        Effects.TerrainFX.SetTexelCellSpaceU(1.0f/Info.HeightMapWidth);
+        Effects.TerrainFX.SetTexelCellSpaceV(1.0f/Info.HeightMapHeight);
+        Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
+        Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+        Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+        Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+        Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+        Effects.TerrainFX.SetMaterial(_material);
 
-                var tech = Effects.TerrainFX.Light1Tech;
-                for (int p = 0; p < tech.Description.PassCount; p++) {
-                    var pass = tech.GetPassByIndex(p);
-                    pass.Apply(dc);
-                    dc.DrawIndexed(_numPatchQuadFaces*4, 0, 0);
-                }
-                dc.HullShader.Set(null);
-                dc.DomainShader.Set(null);
-            } else {
-                dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+        var tech = Effects.TerrainFX.Light1Tech;
+        for (int p = 0; p < tech.Description.PassCount; p++) {
+            var pass = tech.GetPassByIndex(p);
+            pass.Apply(dc);
+            dc.DrawIndexed(_numPatchQuadFaces*4, 0, 0);
+        }
+        dc.HullShader.Set(null);
+        dc.DomainShader.Set(null);
+    } else {
+        dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+        dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
                 
-                var viewProj = cam.ViewProj;
-                Effects.TerrainFX.SetViewProj(viewProj);
-                Effects.TerrainFX.SetEyePosW(cam.Position);
-                Effects.TerrainFX.SetDirLights(lights);
-                Effects.TerrainFX.SetFogColor(Color.Silver);
-                Effects.TerrainFX.SetFogStart(15.0f);
-                Effects.TerrainFX.SetFogRange(175.0f);
+        var viewProj = cam.ViewProj;
+        Effects.TerrainFX.SetViewProj(viewProj);
+        Effects.TerrainFX.SetEyePosW(cam.Position);
+        Effects.TerrainFX.SetDirLights(lights);
+        Effects.TerrainFX.SetFogColor(Color.Silver);
+        Effects.TerrainFX.SetFogStart(15.0f);
+        Effects.TerrainFX.SetFogRange(175.0f);
 
-                Effects.TerrainFX.SetTexelCellSpaceU(1.0f / Info.HeightMapWidth);
-                Effects.TerrainFX.SetTexelCellSpaceV(1.0f / Info.HeightMapHeight);
-                Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
+        Effects.TerrainFX.SetTexelCellSpaceU(1.0f / Info.HeightMapWidth);
+        Effects.TerrainFX.SetTexelCellSpaceV(1.0f / Info.HeightMapHeight);
+        Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
 
-                Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
-                Effects.TerrainFX.SetBlendMap(_blendMapSRV);
-                Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-                Effects.TerrainFX.SetMaterial(_material);
-                var tech = Effects.TerrainFX.Light1TechNT;
-                for (var p = 0; p < tech.Description.PassCount; p++) {
-                    var pass = tech.GetPassByIndex(p);
-                    pass.Apply(dc);
-                    for (var i = 0; i < _patches.Count; i++) {
-                        var patch = _patches[i];
-                        if (cam.Visible(patch.Bounds)) {
-                            var ns = new Dictionary<NeighborDir, Patch>();
-                            if (i < NumPatchVertCols) {
-                                ns[NeighborDir.Top] = null;
-                            } else {
-                                ns[NeighborDir.Top] = _patches[i - NumPatchVertCols+1];
-                            }
-                            if (i % (NumPatchVertCols-1) == 0) {
-                                ns[NeighborDir.Left] = null;
-                            } else {
-                                ns[NeighborDir.Left] = _patches[i - 1];
-                            }
-                            patch.Draw(dc, cam.Position, ns);
-                        }
+        Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+        Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+        Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+        Effects.TerrainFX.SetMaterial(_material);
+        var tech = Effects.TerrainFX.Light1TechNT;
+        for (var p = 0; p < tech.Description.PassCount; p++) {
+            var pass = tech.GetPassByIndex(p);
+            pass.Apply(dc);
+            for (var i = 0; i < _patches.Count; i++) {
+                var patch = _patches[i];
+                if (cam.Visible(patch.Bounds)) {
+                    var ns = new Dictionary<NeighborDir, Patch>();
+                    if (i < NumPatchVertCols) {
+                        ns[NeighborDir.Top] = null;
+                    } else {
+                        ns[NeighborDir.Top] = _patches[i - NumPatchVertCols+1];
                     }
+                    if (i % (NumPatchVertCols-1) == 0) {
+                        ns[NeighborDir.Left] = null;
+                    } else {
+                        ns[NeighborDir.Left] = _patches[i - 1];
+                    }
+                    patch.Draw(dc, cam.Position, ns);
                 }
             }
         }
+    }
+}
 
         
 

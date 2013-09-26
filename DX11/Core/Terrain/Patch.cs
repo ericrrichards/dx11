@@ -13,18 +13,25 @@ namespace Core.Terrain {
 
     using Buffer = SlimDX.Direct3D11.Buffer;
 
+    internal enum NeighborDir {
+        Top, Left
+    }
+
     class Patch : DisposableClass {
-        private Buffer _vb;
+        
         private static readonly Dictionary<int, Buffer> CenterIB = new Dictionary<int, Buffer>();
         private static readonly Dictionary<int, int> CenterIndexCount = new Dictionary<int, int>();
-        private static readonly Dictionary<NeighborDir, Dictionary<Tuple<int, int>, Buffer>> EdgeIbs = new Dictionary<NeighborDir, Dictionary<Tuple<int, int>, Buffer>>();
-        private static readonly Dictionary<NeighborDir, Dictionary<Tuple<int, int>, int>> EdgeIndiceCount = new Dictionary<NeighborDir, Dictionary<Tuple<int, int>, int>>();
+        private static readonly Dictionary<NeighborDir, Dictionary<Tuple<int, int>, Buffer>> EdgeIbs = 
+            new Dictionary<NeighborDir, Dictionary<Tuple<int, int>, Buffer>>();
+        private static readonly Dictionary<NeighborDir, Dictionary<Tuple<int, int>, int>> EdgeIndiceCount = 
+            new Dictionary<NeighborDir, Dictionary<Tuple<int, int>, int>>();
         private static int width;
 
         public BoundingBox Bounds { get; private set; }
         private bool _disposed;
         private Rectangle _patchBounds;
         private List<TerrainCP> _verts;
+        private Buffer _vb;
 
         protected override void Dispose(bool disposing) {
             if (_disposed) return;
@@ -52,7 +59,7 @@ namespace Core.Terrain {
             var d = Vector3.Distance(eye, c);
             var s = MathF.Clamp(-(d - Terrain.MaxDist) / (Terrain.MaxDist - Terrain.MinDist), 0, 1);
             s = 1.0f - s;
-            //lerp(gMaxTess, gMinTess, s)
+            
             return (int)Math.Pow(2, (int)(Terrain.MinTess + (Terrain.MaxTess-1 - Terrain.MinTess) * s));
         }
         public static void InitPatchData(int patchWidth, Device device) {
@@ -63,15 +70,12 @@ namespace Core.Terrain {
         }
 
         public void CreateMesh(Terrain terrain, Rectangle r, Device device) {
-            //r.Width++;
-            //r.Height++;
-
+            
             _patchBounds = r;
             if (_vb != null) {
                 Util.ReleaseCom(ref _vb);
                 _vb = null;
             }
-            
             
             var halfWidth = 0.5f * terrain.Width;
             var halfDepth = 0.5f * terrain.Depth;
@@ -99,7 +103,6 @@ namespace Core.Terrain {
                     var uv = new Vector2(r.Left * du + x0 * du, r.Top * dv + z0 * dv);
                     var v = new TerrainCP(pos, uv, new Vector2());
                     _verts.Add(v);
-
                 }
             }
 
@@ -114,8 +117,6 @@ namespace Core.Terrain {
                 0
             );
             _vb = new Buffer(device, new DataStream(_verts.ToArray(), false, false), vbd);
-
-            
         }
 
         private static void BuildCenterIndices(Device device) {
@@ -145,7 +146,11 @@ namespace Core.Terrain {
 
                 if (CenterIB != null) {
                     if (indices.Count > 0) {
-                        CenterIB[t] = new Buffer(device, new DataStream(indices.ToArray(), false, true), ibd);
+                        CenterIB[t] = new Buffer(
+                            device, 
+                            new DataStream(indices.ToArray(), false, true), 
+                            ibd
+                        );
                     } else {
                         CenterIB[t] = null;
                     }
@@ -154,41 +159,41 @@ namespace Core.Terrain {
             }
         }
 
-        private static void BuildLeftEdges(Device device) {
-            BufferDescription ibd;
-            EdgeIbs[NeighborDir.Left] = new Dictionary<Tuple<int, int>, Buffer>();
-            EdgeIndiceCount[NeighborDir.Left] = new Dictionary<Tuple<int, int>, int>();
+private static void BuildLeftEdges(Device device) {
+    BufferDescription ibd;
+    EdgeIbs[NeighborDir.Left] = new Dictionary<Tuple<int, int>, Buffer>();
+    EdgeIndiceCount[NeighborDir.Left] = new Dictionary<Tuple<int, int>, int>();
 
-            Tuple<int, int> key;
-            List<short> indices;
-            int x0;
-            int t;
-            for (int i = 0; i < 6; i++) {
-                t = (int)Math.Pow(2, i);
-                key = new Tuple<int, int>(t, t);
-                indices = new List<short>();
-                x0 = 0;
-                for (int z = 0, z0 = 0; z < width; z += t, z0 += t) {
-                    indices.Add((short)(z0 * (width + 1) + x0));
-                    indices.Add((short)(z0 * (width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (width + 1) + x0));
+    Tuple<int, int> key;
+    List<short> indices;
+    int x0;
+    int t;
+    for (int i = 0; i < 6; i++) {
+        t = (int)Math.Pow(2, i);
+        key = new Tuple<int, int>(t, t);
+        indices = new List<short>();
+        x0 = 0;
+        for (int z = 0, z0 = 0; z < width; z += t, z0 += t) {
+            indices.Add((short)(z0 * (width + 1) + x0));
+            indices.Add((short)(z0 * (width + 1) + x0 + t));
+            indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                    indices.Add((short)((z0 + t) * (width + 1) + x0));
-                    indices.Add((short)(z0 * (width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
-                }
+            indices.Add((short)((z0 + t) * (width + 1) + x0));
+            indices.Add((short)(z0 * (width + 1) + x0 + t));
+            indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+        }
 
-                ibd = new BufferDescription(
-                    sizeof(short) * indices.Count,
-                    ResourceUsage.Dynamic,
-                    BindFlags.IndexBuffer,
-                    CpuAccessFlags.Write,
-                    ResourceOptionFlags.None,
-                    0
-                    );
-                EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
-                EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
-            }
+        ibd = new BufferDescription(
+            sizeof(short) * indices.Count,
+            ResourceUsage.Dynamic,
+            BindFlags.IndexBuffer,
+            CpuAccessFlags.Write,
+            ResourceOptionFlags.None,
+            0
+            );
+        EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
+        EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
+    }
             for (var i = 0; i < 6; i++) {
                 t = (int)Math.Pow(2, i);
                 var t1 = (int)Math.Pow(2, i + 1);
@@ -231,47 +236,38 @@ namespace Core.Terrain {
                 EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
             }
             
-            for (var i = 1; i <= 6; i++) {
-                t = (int)Math.Pow(2, i);
-                var t1 = (int)Math.Pow(2, i - 1);
-                key = new Tuple<int, int>(t, t1);
-                indices = new List<short>();
-                x0 = 0;
+for (var i = 1; i <= 6; i++) {
+    t = (int)Math.Pow(2, i);
+    var t1 = (int)Math.Pow(2, i - 1);
+    key = new Tuple<int, int>(t, t1);
+    indices = new List<short>();
+    x0 = 0;
 
-                /*
-                indices.Add((short)(0));
-                indices.Add((short)(t));
-                indices.Add((short)((t) * (_width + 1)));
+    for (int z = 0 , z0 = 0; z < width - t1; z += t, z0 += t) {
+        indices.Add((short)(z0 * (width + 1) + x0));
+        indices.Add((short)((z0) * (width + 1) + x0 + t));
+        indices.Add((short)((z0 + t1) * (width + 1) + x0));
 
-                indices.Add((short)((t) * (_width + 1)));
-                indices.Add((short)(t));
-                indices.Add((short)((t) * (_width + 1) + t));
-                */
-                for (int z = 0 , z0 = 0; z < width - t1; z += t, z0 += t) {
-                    indices.Add((short)(z0 * (width + 1) + x0));
-                    indices.Add((short)((z0) * (width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
+        indices.Add((short)((z0 + t1) * (width + 1) + x0));
+        indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+        indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
-                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (width + 1) + x0));
+        indices.Add((short)((z0) * (width + 1) + x0 + t));
+        indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+        indices.Add((short)((z0 + t1) * (width + 1) + x0));
+    }
 
-                    indices.Add((short)((z0) * (width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
-                }
-
-                ibd = new BufferDescription(
-                    sizeof(short) * indices.Count,
-                    ResourceUsage.Dynamic,
-                    BindFlags.IndexBuffer,
-                    CpuAccessFlags.Write,
-                    ResourceOptionFlags.None,
-                    0
-                    );
-                EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
-                EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
-            }
+    ibd = new BufferDescription(
+        sizeof(short) * indices.Count,
+        ResourceUsage.Dynamic,
+        BindFlags.IndexBuffer,
+        CpuAccessFlags.Write,
+        ResourceOptionFlags.None,
+        0
+        );
+    EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
+    EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
+}
         }
 
         private static void BuildTopEdges(Device device) {
@@ -412,7 +408,5 @@ namespace Core.Terrain {
         }
     }
 
-    internal enum NeighborDir {
-        Top, Left
-    }
+
 }
