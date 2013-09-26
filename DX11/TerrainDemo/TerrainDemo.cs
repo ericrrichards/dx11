@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using Core;
 using Core.Camera;
@@ -150,7 +149,7 @@ namespace TerrainDemo {
 
         public override void OnResize() {
             base.OnResize();
-            _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 250.0f);
+            _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
         }
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
@@ -194,7 +193,7 @@ namespace TerrainDemo {
                     _visibleTrees++;
                 }
             }
-
+            //MainWindowCaption = MainWindowCaption + _camera.Look.ToString();
             ImmediateContext.UnmapSubresource(_instanceBuffer, 0);
 
         }
@@ -269,6 +268,8 @@ namespace TerrainDemo {
                 return;
             }
             app.Run();
+
+            
         }
     }
 }

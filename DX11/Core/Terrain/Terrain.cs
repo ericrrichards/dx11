@@ -40,20 +40,20 @@ namespace Core.Terrain {
         private Buffer _quadPatchVB;
         private Buffer _quadPatchIB;
 
-        private List<Patch> _patches; 
+        private readonly List<Patch> _patches; 
 
         private ShaderResourceView _layerMapArraySRV;
         private ShaderResourceView _blendMapSRV;
         private ShaderResourceView _heightMapSRV;
 
-        internal InitInfo _info;
+        internal InitInfo Info;
         private int _numPatchVertices;
         private int _numPatchQuadFaces;
 
         // number of rows of patch control point vertices
-        internal int _numPatchVertRows;
+        internal int NumPatchVertRows;
         // number of columns of patch control point vertices
-        internal int _numPatchVertCols;
+        internal int NumPatchVertCols;
 
         public Matrix World { get; set; }
 
@@ -65,6 +65,10 @@ namespace Core.Terrain {
 
         private bool _disposed;
         private bool _useTessellation;
+        internal const float MaxDist = 500.0f;
+        internal const float MinDist = 20.0f;
+        internal const float MaxTess = 6.0f;
+        internal const float MinTess = 0.0f;
 
         public Terrain() {
             World = Matrix.Identity;
@@ -74,6 +78,7 @@ namespace Core.Terrain {
                 Specular = new Color4(64.0f, 0, 0, 0),
                 Reflect = Color.Black
             };
+            
             _patches = new List<Patch>();
         }
         protected override void Dispose(bool disposing) {
@@ -85,16 +90,22 @@ namespace Core.Terrain {
                     Util.ReleaseCom(ref _layerMapArraySRV);
                     Util.ReleaseCom(ref _blendMapSRV);
                     Util.ReleaseCom(ref _heightMapSRV);
+
+                    foreach (var p in _patches) {
+                        var patch = p;
+                        Util.ReleaseCom(ref patch);
+                    }
+                    _patches.Clear();
                 }
                 _disposed = true;
             }
             base.Dispose(disposing);
         }
-        public float Width { get { return (_info.HeightMapWidth - 1)*_info.CellSpacing; } }
-        public float Depth { get { return (_info.HeightMapHeight - 1)*_info.CellSpacing; } }
+        public float Width { get { return (Info.HeightMapWidth - 1)*Info.CellSpacing; } }
+        public float Depth { get { return (Info.HeightMapHeight - 1)*Info.CellSpacing; } }
         public float Height(float x, float z) {
-            var c = (x + 0.5f*Width)/_info.CellSpacing;
-            var d = (z - 0.5f*Depth)/-_info.CellSpacing;
+            var c = (x + 0.5f*Width)/Info.CellSpacing;
+            var d = (z - 0.5f*Depth)/-Info.CellSpacing;
             var row = (int)Math.Floor(d);
             var col = (int) Math.Floor(c);
 
@@ -117,22 +128,23 @@ namespace Core.Terrain {
             }
         }
         public void Init(Device device, DeviceContext dc, InitInfo info) {
+            Patch.InitPatchData(CellsPerPatch, device);
             if (device.FeatureLevel == FeatureLevel.Level_11_0) {
-                _useTessellation = true;
+                //_useTessellation = true;
             }
-            _info = info;
-            _numPatchVertRows = ((_info.HeightMapHeight - 1)/CellsPerPatch) + 1;
-            _numPatchVertCols = ((_info.HeightMapWidth - 1)/CellsPerPatch) + 1;
-            _numPatchVertices = _numPatchVertRows*_numPatchVertCols;
-            _numPatchQuadFaces = (_numPatchVertRows - 1)*(_numPatchVertCols - 1);
+            Info = info;
+            NumPatchVertRows = ((Info.HeightMapHeight - 1)/CellsPerPatch) + 1;
+            NumPatchVertCols = ((Info.HeightMapWidth - 1)/CellsPerPatch) + 1;
+            _numPatchVertices = NumPatchVertRows*NumPatchVertCols;
+            _numPatchQuadFaces = (NumPatchVertRows - 1)*(NumPatchVertCols - 1);
             
-            if (_info.Material.HasValue) {
-                _material = _info.Material.Value;
+            if (Info.Material.HasValue) {
+                _material = Info.Material.Value;
             }
             
-            _heightMap = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, _info.HeightScale);
-            if (!string.IsNullOrEmpty(_info.HeightMapFilename)) {
-                _heightMap.LoadHeightmap(_info.HeightMapFilename);
+            _heightMap = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, Info.HeightScale);
+            if (!string.IsNullOrEmpty(Info.HeightMapFilename)) {
+                _heightMap.LoadHeightmap(Info.HeightMapFilename);
                 
             } else {
                 GenerateRandomTerrain();
@@ -149,24 +161,22 @@ namespace Core.Terrain {
             _heightMapSRV = _heightMap.BuildHeightmapSRV(device);
 
             var layerFilenames = new List<string> {
-                _info.LayerMapFilename0 ?? "textures/null.bmp",
-                _info.LayerMapFilename1 ?? "textures/null.bmp",
-                _info.LayerMapFilename2 ?? "textures/null.bmp",
-                _info.LayerMapFilename3 ?? "textures/null.bmp",
-                _info.LayerMapFilename4 ?? "textures/null.bmp"
+                Info.LayerMapFilename0 ?? "textures/null.bmp",
+                Info.LayerMapFilename1 ?? "textures/null.bmp",
+                Info.LayerMapFilename2 ?? "textures/null.bmp",
+                Info.LayerMapFilename3 ?? "textures/null.bmp",
+                Info.LayerMapFilename4 ?? "textures/null.bmp"
             };
             _layerMapArraySRV = Util.CreateTexture2DArraySRV(device, dc, layerFilenames.ToArray(), Format.R8G8B8A8_UNorm);
-            if (!string.IsNullOrEmpty(_info.BlendMapFilename)) {
-                _blendMapSRV = ShaderResourceView.FromFile(device, _info.BlendMapFilename);
-            } else {
-                _blendMapSRV = CreateBlendMap(_heightMap, device);
-            }
+            _blendMapSRV = !string.IsNullOrEmpty(Info.BlendMapFilename) ? 
+                ShaderResourceView.FromFile(device, Info.BlendMapFilename) : 
+                CreateBlendMap(_heightMap, device);
         }
 
         
 
         private void GenerateRandomTerrain() {
-            var hm2 = new HeightMap(_info.HeightMapWidth, _info.HeightMapHeight, 2.0f);
+            var hm2 = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, 2.0f);
             _heightMap.CreateRandomHeightMapParallel(MathF.Rand(), 1.0f, 0.7f, 7);
             hm2.CreateRandomHeightMapParallel(MathF.Rand(), 2.5f, 0.8f, 3);
             hm2.Cap(hm2.MaxHeight * 0.4f);
@@ -268,13 +278,13 @@ namespace Core.Terrain {
                 Effects.TerrainFX.SetFogColor(Color.Silver);
                 Effects.TerrainFX.SetFogStart(15.0f);
                 Effects.TerrainFX.SetFogRange(175.0f);
-                Effects.TerrainFX.SetMinDist(20.0f);
-                Effects.TerrainFX.SetMaxDist(500.0f);
-                Effects.TerrainFX.SetMinTess(0.0f);
-                Effects.TerrainFX.SetMaxTess(6.0f);
-                Effects.TerrainFX.SetTexelCellSpaceU(1.0f/_info.HeightMapWidth);
-                Effects.TerrainFX.SetTexelCellSpaceV(1.0f/_info.HeightMapHeight);
-                Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
+                Effects.TerrainFX.SetMinDist(MinDist);
+                Effects.TerrainFX.SetMaxDist(MaxDist);
+                Effects.TerrainFX.SetMinTess(MinTess);
+                Effects.TerrainFX.SetMaxTess(MaxTess);
+                Effects.TerrainFX.SetTexelCellSpaceU(1.0f/Info.HeightMapWidth);
+                Effects.TerrainFX.SetTexelCellSpaceV(1.0f/Info.HeightMapHeight);
+                Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
                 Effects.TerrainFX.SetWorldFrustumPlanes(planes);
                 Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
                 Effects.TerrainFX.SetBlendMap(_blendMapSRV);
@@ -302,36 +312,49 @@ namespace Core.Terrain {
                 Effects.TerrainFX.SetFogStart(15.0f);
                 Effects.TerrainFX.SetFogRange(175.0f);
 
-                Effects.TerrainFX.SetTexelCellSpaceU(1.0f / _info.HeightMapWidth);
-                Effects.TerrainFX.SetTexelCellSpaceV(1.0f / _info.HeightMapHeight);
-                Effects.TerrainFX.SetWorldCellSpace(_info.CellSpacing);
+                Effects.TerrainFX.SetTexelCellSpaceU(1.0f / Info.HeightMapWidth);
+                Effects.TerrainFX.SetTexelCellSpaceV(1.0f / Info.HeightMapHeight);
+                Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
 
                 Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
                 Effects.TerrainFX.SetBlendMap(_blendMapSRV);
                 Effects.TerrainFX.SetHeightMap(_heightMapSRV);
                 Effects.TerrainFX.SetMaterial(_material);
                 var tech = Effects.TerrainFX.Light1TechNT;
-                for (int p = 0; p < tech.Description.PassCount; p++) {
+                for (var p = 0; p < tech.Description.PassCount; p++) {
                     var pass = tech.GetPassByIndex(p);
                     pass.Apply(dc);
-                    foreach (var patch in _patches) {
+                    for (var i = 0; i < _patches.Count; i++) {
+                        var patch = _patches[i];
                         if (cam.Visible(patch.Bounds)) {
-                            patch.Draw(dc );
+                            var ns = new Dictionary<NeighborDir, Patch>();
+                            if (i < NumPatchVertCols) {
+                                ns[NeighborDir.Top] = null;
+                            } else {
+                                ns[NeighborDir.Top] = _patches[i - NumPatchVertCols+1];
+                            }
+                            if (i % (NumPatchVertCols-1) == 0) {
+                                ns[NeighborDir.Left] = null;
+                            } else {
+                                ns[NeighborDir.Left] = _patches[i - 1];
+                            }
+                            patch.Draw(dc, cam.Position, ns);
                         }
                     }
                 }
             }
-
         }
+
         
+
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();
-            for (int i = 0; i < _numPatchVertRows-1; i++) {
-                for (int j = 0; j < _numPatchVertCols; j++) {
-                    indices.Add(i*_numPatchVertCols+j);
-                    indices.Add(i * _numPatchVertCols + j + 1);
-                    indices.Add((i+1) * _numPatchVertCols + j);
-                    indices.Add((i+1) * _numPatchVertCols + j + 1);
+            for (var i = 0; i < NumPatchVertRows-1; i++) {
+                for (var j = 0; j < NumPatchVertCols; j++) {
+                    indices.Add(i*NumPatchVertCols+j);
+                    indices.Add(i * NumPatchVertCols + j + 1);
+                    indices.Add((i+1) * NumPatchVertCols + j);
+                    indices.Add((i+1) * NumPatchVertCols + j + 1);
                 }
             }
             var ibd = new BufferDescription(
@@ -353,8 +376,8 @@ namespace Core.Terrain {
         private void CalcAllPatchBoundsY() {
             _patchBoundsY = new List<Vector2>(new Vector2[_numPatchQuadFaces]);
 
-            for (var i = 0; i < _numPatchVertRows-1; i++) {
-                for (var j = 0; j < _numPatchVertCols-1; j++) {
+            for (var i = 0; i < NumPatchVertRows-1; i++) {
+                for (var j = 0; j < NumPatchVertCols-1; j++) {
                     CalcPatchBoundsY(i, j);
                 }
             }
@@ -376,7 +399,7 @@ namespace Core.Terrain {
                     maxY = Math.Max(maxY, _heightMap[y,x]);
                 }
             }
-            var patchID = i*(_numPatchVertCols - 1) + j;
+            var patchID = i*(NumPatchVertCols - 1) + j;
             _patchBoundsY[patchID] = new Vector2(minY, maxY);
         }
 
@@ -385,16 +408,16 @@ namespace Core.Terrain {
             var halfWidth = 0.5f*Width;
             var halfDepth = 0.5f*Depth;
 
-            var patchWidth = Width/(_numPatchVertCols - 1);
-            var patchDepth = Depth/(_numPatchVertRows - 1);
-            var du = 1.0f/(_numPatchVertCols - 1);
-            var dv = 1.0f/(_numPatchVertRows - 1);
+            var patchWidth = Width/(NumPatchVertCols - 1);
+            var patchDepth = Depth/(NumPatchVertRows - 1);
+            var du = 1.0f/(NumPatchVertCols - 1);
+            var dv = 1.0f/(NumPatchVertRows - 1);
 
-            for (int i = 0; i < _numPatchVertRows; i++) {
+            for (int i = 0; i < NumPatchVertRows; i++) {
                 var z = halfDepth - i*patchDepth;
-                for (int j = 0; j < _numPatchVertCols; j++) {
+                for (int j = 0; j < NumPatchVertCols; j++) {
                     var x = -halfWidth + j*patchWidth;
-                    var vertId = i * _numPatchVertCols + j;
+                    var vertId = i * NumPatchVertCols + j;
                     patchVerts[vertId]= new Vertex.TerrainCP(
                         new Vector3(x, 0, z), 
                         new Vector2(j*du, i*dv), 
@@ -402,10 +425,10 @@ namespace Core.Terrain {
                     );
                 }
             }
-            for (int i = 0; i < _numPatchVertRows-1; i++) {
-                for (int j = 0; j < _numPatchVertCols-1; j++) {
-                    var patchID = i * (_numPatchVertCols - 1) + j;
-                    var vertID = i * _numPatchVertCols + j;
+            for (int i = 0; i < NumPatchVertRows-1; i++) {
+                for (int j = 0; j < NumPatchVertCols-1; j++) {
+                    var patchID = i * (NumPatchVertCols - 1) + j;
+                    var vertID = i * NumPatchVertCols + j;
                     patchVerts[vertID].BoundsY = _patchBoundsY[patchID];
                 }
             }
@@ -424,21 +447,15 @@ namespace Core.Terrain {
             );
         }
         private void BuildPatches(Device device) {
-            for (int index = 0; index < _patches.Count; index++) {
-                var patch = _patches[index];
+            foreach (var p in _patches) {
+                var patch = p;
                 Util.ReleaseCom(ref patch);
             }
             _patches.Clear();
 
-            var halfWidth = 0.5f*Width;
-            var halfDepth = 0.5f*Depth;
-            var patchWidth = Width/(_numPatchVertCols - 1);
-            var patchDepth = Depth/(_numPatchVertRows - 1);
-            var du = 1.0f/(_numPatchVertCols - 1);
-            var dv = 1.0f/(_numPatchVertRows - 1);
-            for (int z = 0; z < (_numPatchVertRows - 1); z++) {
+            for (var z = 0; z < (NumPatchVertRows - 1); z++) {
                 var z1 = z*CellsPerPatch;
-                for (int x = 0; x < (_numPatchVertCols - 1); x++) {
+                for (var x = 0; x < (NumPatchVertCols - 1); x++) {
                     var x1 = x*CellsPerPatch;
                     var r = new Rectangle(x1, z1, CellsPerPatch, CellsPerPatch);
                     var p = new Patch();

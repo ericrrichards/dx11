@@ -20,6 +20,7 @@
             }
             // release unmanaged objects
             _disposed = true;
+            
         }
 
     }

@@ -469,3 +469,48 @@ technique11 Light1NT
         SetPixelShader( CompileShader( ps_4_0, PS(1, false) ) );
     }
 }
+technique11 Light2NT
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_NT() ) );
+		SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS(2, false) ) );
+    }
+}
+technique11 Light3NT
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_NT() ) );
+		SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS(3, false) ) );
+    }
+}
+technique11 Light1FogNT
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_NT() ) );
+		SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS(1, true) ) );
+    }
+}
+technique11 Light2FogNT
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_NT() ) );
+		SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS(2, true) ) );
+    }
+}
+technique11 Light3FogNT
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_NT() ) );
+		SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS(3, true) ) );
+    }
+}

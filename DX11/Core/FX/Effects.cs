@@ -61,6 +61,7 @@
             Util.ReleaseCom(ref DisplacementMapFX);
             Util.ReleaseCom(ref TerrainFX);
             Util.ReleaseCom(ref ColorFX);
+            Util.ReleaseCom(ref InstancedNormalMapFX);
         }
 
         public static BasicEffect BasicFX;

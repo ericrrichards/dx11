@@ -11,7 +11,6 @@
     using SlimDX.Direct3D11;
 
     using Device = SlimDX.Direct3D11.Device;
-    using Resource = SlimDX.Direct3D11.Resource;
 
     public class HeightMap {
         private List<float> _heightMap;

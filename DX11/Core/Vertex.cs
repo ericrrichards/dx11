@@ -211,16 +211,16 @@ namespace Core {
             if (bl1 != null) {
                 try {
                     var passDesc = bl1.Light1Tech.GetPassByIndex(0).Description;
-                    PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
+                    if (passDesc.Signature != null) PosNormal = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormal);
                 } catch (Exception dex) {
-                    Console.WriteLine(dex.Message + dex.StackTrace);
+                    Console.WriteLine(dex.Message );
                     PosNormal = null;
                 }
                 try {
                     var passDesc = bl1.Light1Tech.GetPassByIndex(0).Description;
                     Basic32 = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.Basic32);
                 } catch (Exception dex) {
-                    Console.WriteLine(dex.Message + dex.StackTrace);
+                    Console.WriteLine(dex.Message );
                     Basic32 = null;
                 }
             }
@@ -291,7 +291,7 @@ namespace Core {
                     PosNormalTexTanSkinned = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTanSkinned);
                 }
             } catch (Exception ex) {
-                Console.WriteLine(ex.Message + ex.StackTrace);
+                Console.WriteLine(ex.Message);
                 PosNormalTexTanSkinned = null;
             }
             try {
