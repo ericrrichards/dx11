@@ -284,12 +284,7 @@ DomainOut VS_NT(VertexIn vin)
 	vout.TiledTex = vout.Tex * gTexScale;
 	vout.PosW.y = gHeightMap.SampleLevel( samHeightmap, vout.Tex, 0 ).r;
 	vout.PosH    = mul(float4(vout.PosW, 1.0f), gViewProj);
-	// Displace the patch corners to world space.  This is to make 
-	// the eye to patch distance calculation more accurate.
-	//vout.PosW.y = gHeightMap.SampleLevel( samHeightmap, vin.Tex, 0 ).r;
-
-	
-	
+		
 	return vout;
 }
 

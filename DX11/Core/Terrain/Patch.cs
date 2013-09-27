@@ -18,7 +18,9 @@ namespace Core.Terrain {
     }
 
     class Patch : DisposableClass {
-        
+
+        private static readonly Dictionary<int, Buffer> IB = new Dictionary<int, Buffer>();
+        private static readonly Dictionary<int, int> IndexCount = new Dictionary<int, int>();
         private static readonly Dictionary<int, Buffer> CenterIB = new Dictionary<int, Buffer>();
         private static readonly Dictionary<int, int> CenterIndexCount = new Dictionary<int, int>();
         private static readonly Dictionary<NeighborDir, Dictionary<Tuple<int, int>, Buffer>> EdgeIbs = 
@@ -64,6 +66,7 @@ namespace Core.Terrain {
         }
         public static void InitPatchData(int patchWidth, Device device) {
             width = patchWidth;
+            BuildIndices(device);
             BuildCenterIndices(device);
             BuildTopEdges(device);
             BuildLeftEdges(device);
@@ -158,42 +161,81 @@ namespace Core.Terrain {
                 CenterIndexCount[t] = indices.Count;
             }
         }
+        private static void BuildIndices(Device device) {
+            for (var tessLevel = 0; tessLevel <= 6; tessLevel++) {
+                var t = (int)Math.Pow(2, tessLevel);
+                var indices = new List<short>();
+                for (int z = 0, z0 = t; z < width; z += t, z0 += t) {
+                    for (int x = 0, x0 = t; x < width; x += t, x0 += t) {
+                        indices.Add((short)(z0 * (width + 1) + x0));
+                        indices.Add((short)(z0 * (width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-private static void BuildLeftEdges(Device device) {
-    BufferDescription ibd;
-    EdgeIbs[NeighborDir.Left] = new Dictionary<Tuple<int, int>, Buffer>();
-    EdgeIndiceCount[NeighborDir.Left] = new Dictionary<Tuple<int, int>, int>();
+                        indices.Add((short)((z0 + t) * (width + 1) + x0));
+                        indices.Add((short)(z0 * (width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    }
+                }
 
-    Tuple<int, int> key;
-    List<short> indices;
-    int x0;
-    int t;
-    for (int i = 0; i < 6; i++) {
-        t = (int)Math.Pow(2, i);
-        key = new Tuple<int, int>(t, t);
-        indices = new List<short>();
-        x0 = 0;
-        for (int z = 0, z0 = 0; z < width; z += t, z0 += t) {
-            indices.Add((short)(z0 * (width + 1) + x0));
-            indices.Add((short)(z0 * (width + 1) + x0 + t));
-            indices.Add((short)((z0 + t) * (width + 1) + x0));
+                var ibd = new BufferDescription(
+                    sizeof(short) * indices.Count,
+                    ResourceUsage.Dynamic,
+                    BindFlags.IndexBuffer,
+                    CpuAccessFlags.Write,
+                    ResourceOptionFlags.None,
+                    0
+                    );
 
-            indices.Add((short)((z0 + t) * (width + 1) + x0));
-            indices.Add((short)(z0 * (width + 1) + x0 + t));
-            indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                if (IB != null) {
+                    if (indices.Count > 0) {
+                        IB[t] = new Buffer(
+                            device,
+                            new DataStream(indices.ToArray(), false, true),
+                            ibd
+                        );
+                    } else {
+                        IB[t] = null;
+                    }
+                }
+                IndexCount[t] = indices.Count;
+            }
         }
 
-        ibd = new BufferDescription(
-            sizeof(short) * indices.Count,
-            ResourceUsage.Dynamic,
-            BindFlags.IndexBuffer,
-            CpuAccessFlags.Write,
-            ResourceOptionFlags.None,
-            0
-            );
-        EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
-        EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
-    }
+        private static void BuildLeftEdges(Device device) {
+            BufferDescription ibd;
+            EdgeIbs[NeighborDir.Left] = new Dictionary<Tuple<int, int>, Buffer>();
+            EdgeIndiceCount[NeighborDir.Left] = new Dictionary<Tuple<int, int>, int>();
+
+            Tuple<int, int> key;
+            List<short> indices;
+            int x0;
+            int t;
+            for (int i = 0; i < 6; i++) {
+                t = (int)Math.Pow(2, i);
+                key = new Tuple<int, int>(t, t);
+                indices = new List<short>();
+                x0 = 0;
+                for (int z = 0, z0 = 0; z < width; z += t, z0 += t) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
+
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                }
+
+                ibd = new BufferDescription(
+                    sizeof(short) * indices.Count,
+                    ResourceUsage.Dynamic,
+                    BindFlags.IndexBuffer,
+                    CpuAccessFlags.Write,
+                    ResourceOptionFlags.None,
+                    0
+                    );
+                EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
+                EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
+            }
             for (var i = 0; i < 6; i++) {
                 t = (int)Math.Pow(2, i);
                 var t1 = (int)Math.Pow(2, i + 1);
@@ -232,42 +274,43 @@ private static void BuildLeftEdges(Device device) {
                     ResourceOptionFlags.None,
                     0
                     );
-                EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
+                EdgeIbs[NeighborDir.Left][key] = new Buffer(
+                    device, new DataStream(indices.ToArray(), false, false), ibd);
                 EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
             }
             
-for (var i = 1; i <= 6; i++) {
-    t = (int)Math.Pow(2, i);
-    var t1 = (int)Math.Pow(2, i - 1);
-    key = new Tuple<int, int>(t, t1);
-    indices = new List<short>();
-    x0 = 0;
+            for (var i = 1; i <= 6; i++) {
+                t = (int)Math.Pow(2, i);
+                var t1 = (int)Math.Pow(2, i - 1);
+                key = new Tuple<int, int>(t, t1);
+                indices = new List<short>();
+                x0 = 0;
 
-    for (int z = 0 , z0 = 0; z < width - t1; z += t, z0 += t) {
-        indices.Add((short)(z0 * (width + 1) + x0));
-        indices.Add((short)((z0) * (width + 1) + x0 + t));
-        indices.Add((short)((z0 + t1) * (width + 1) + x0));
+                for (int z = 0 , z0 = 0; z < width - t1; z += t, z0 += t) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
 
-        indices.Add((short)((z0 + t1) * (width + 1) + x0));
-        indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
-        indices.Add((short)((z0 + t) * (width + 1) + x0));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-        indices.Add((short)((z0) * (width + 1) + x0 + t));
-        indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
-        indices.Add((short)((z0 + t1) * (width + 1) + x0));
-    }
+                    indices.Add((short)((z0) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
+                }
 
-    ibd = new BufferDescription(
-        sizeof(short) * indices.Count,
-        ResourceUsage.Dynamic,
-        BindFlags.IndexBuffer,
-        CpuAccessFlags.Write,
-        ResourceOptionFlags.None,
-        0
-        );
-    EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
-    EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
-}
+                ibd = new BufferDescription(
+                    sizeof(short) * indices.Count,
+                    ResourceUsage.Dynamic,
+                    BindFlags.IndexBuffer,
+                    CpuAccessFlags.Write,
+                    ResourceOptionFlags.None,
+                    0
+                    );
+                EdgeIbs[NeighborDir.Left][key] = new Buffer(device, new DataStream(indices.ToArray(), false, false), ibd);
+                EdgeIndiceCount[NeighborDir.Left][key] = indices.Count;
+            }
         }
 
         private static void BuildTopEdges(Device device) {
@@ -405,6 +448,15 @@ for (var i = 1; i <= 6; i++) {
                 dc.DrawIndexed(EdgeIndiceCount[NeighborDir.Left][key], 0, 0);
             }
 
+        }
+        [Obsolete("Use Draw(DeviceContext, Vector3, Dictionary<NeighborDir, Patch> instead, unless you want T-junctions")]
+        public void Draw(DeviceContext dc, Vector3 camPos ) {
+            var tessLevel = TessFactor(camPos);
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, TerrainCP.Stride, 0));
+
+            dc.InputAssembler.SetIndexBuffer(IB[tessLevel], Format.R16_UInt, 0);
+
+            dc.DrawIndexed(IndexCount[tessLevel], 0, 0);
         }
     }
 
