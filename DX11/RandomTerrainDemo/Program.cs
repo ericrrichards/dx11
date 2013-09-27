@@ -11,7 +11,9 @@ using Core.FX;
 using Core.Terrain;
 using SlimDX;
 using SlimDX.DXGI;
+using SlimDX.Direct2D;
 using SlimDX.Direct3D11;
+using Bitmap = SlimDX.Direct2D.Bitmap;
 
 namespace RandomTerrainDemo {
     using Buffer = SlimDX.Direct3D11.Buffer;
@@ -27,8 +29,23 @@ namespace RandomTerrainDemo {
         private bool _disposed;
 
         #region UI Elements
-        private Panel _panel;
+        private FlowLayoutPanel _panel;
         private Button _generateButton;
+        private Label _lblSeed;
+        private NumericUpDown _txtSeed;
+        private Label _lblNoise1;
+        private NumericUpDown _txtNoise1;
+        private Label _lblPersistence1;
+        private NumericUpDown _txtPersistence1;
+        private Label _lblOctaves1;
+        private NumericUpDown _txtOctaves1;
+        private Label _lblNoise2;
+        private NumericUpDown _txtNoise2;
+        private Label _lblPersistence2;
+        private NumericUpDown _txtPersistence2;
+        private Label _lblOctaves2;
+        private NumericUpDown _txtOctaves2;
+
         #endregion
 
 
@@ -120,9 +137,10 @@ namespace RandomTerrainDemo {
         }
 
         private void AddUIElements() {
-            _panel = new Panel {
+            _panel = new FlowLayoutPanel {
                 Dock = DockStyle.Top,
-                AutoSize = true
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight
             };
 
             _generateButton = new Button {
@@ -146,18 +164,131 @@ namespace RandomTerrainDemo {
                     HeightMapHeight = 2049,
                     CellSpacing = 0.5f,
 
-                    Seed = 0,
-                    NoiseSize1 = 1.0f,
-                    Persistence1 = 0.7f,
-                    Octaves1 = 7,
-                    NoiseSize2 = 2.5f,
-                    Persistence2 = 0.8f,
-                    Octaves2 = 3
+                    Seed = (int)_txtSeed.Value,
+                    NoiseSize1 = (float) _txtNoise1.Value,
+                    Persistence1 =(float) _txtPersistence1.Value,
+                    Octaves1 = (int) _txtOctaves1.Value,
+                    NoiseSize2 = (float) _txtNoise2.Value,
+                    Persistence2 = (float) _txtPersistence2.Value,
+                    Octaves2 = (int) _txtOctaves2.Value
                 };
                 _terrain.Init(Device, ImmediateContext, tii);
                 _camera.Height = _terrain.Height;
                 Window.Cursor = Cursors.Default;
             };
+
+            var labelPadding = new Padding(0, 6, 0, 0);
+            _lblSeed = new Label {
+                Text = "Seed:",
+                AutoSize = true,
+                Padding = labelPadding
+
+            };
+            _txtSeed = new NumericUpDown() {
+                Value = 0, 
+                AutoSize = true
+            };
+
+            _lblNoise1 = new Label {
+                Text = "Noise:",
+                AutoSize = true,
+                Padding = labelPadding
+
+            };
+            _txtNoise1 = new NumericUpDown {
+                Value = 1.0m,
+                DecimalPlaces = 2,
+                Minimum = 0m,
+                Maximum = 10m,
+                Increment = 0.01m,
+                AutoSize = true
+            };
+            _lblPersistence1 = new Label {
+                Text = "Persistence:",
+                AutoSize = true,
+                Padding = labelPadding
+            };
+            _txtPersistence1 = new NumericUpDown {
+                Value = 0.7m,
+                DecimalPlaces = 2,
+                Minimum = 0m,
+                Maximum = 10m,
+                Increment = 0.1m,
+                AutoSize = true
+            };
+            _lblOctaves1 = new Label {
+                Text = "Octaves:",
+                AutoSize = true,
+                Padding = labelPadding
+
+            };
+            _txtOctaves1 = new NumericUpDown() {
+                Value =7,
+                AutoSize = true,
+                Minimum = 1,
+                Maximum = 20,
+                
+            };
+            
+            _lblNoise2 = new Label {
+                Text = "Noise:",
+                AutoSize = true,
+                Padding = labelPadding
+
+            };
+            _txtNoise2 = new NumericUpDown {
+                Value = 2.5m,
+                DecimalPlaces = 2,
+                Minimum = 0m,
+                Maximum = 10m,
+                Increment = 0.01m,
+                AutoSize = true
+            };
+            _lblPersistence2 = new Label {
+                Text = "Persistence:",
+                AutoSize = true,
+                Padding = labelPadding
+            };
+            _txtPersistence2 = new NumericUpDown {
+                Value = 0.8m,
+                DecimalPlaces = 2,
+                Minimum = 0m,
+                Maximum = 10m,
+                Increment = 0.1m,
+                AutoSize = true
+            };
+            _lblOctaves2 = new Label {
+                Text = "Octaves:",
+                AutoSize = true,
+                Padding = labelPadding
+
+            };
+            _txtOctaves2 = new NumericUpDown() {
+                Value = 3,
+                AutoSize = true,
+                Minimum = 1,
+                Maximum = 20
+            };
+            
+            
+            _panel.Controls.Add(_lblNoise1);
+            _panel.Controls.Add(_txtNoise1);
+            _panel.Controls.Add(_lblPersistence1);
+            _panel.Controls.Add(_txtPersistence1);
+            _panel.Controls.Add(_lblOctaves1);
+            _panel.Controls.Add(_txtOctaves1);
+            
+
+            _panel.Controls.Add(_lblNoise2);
+            _panel.Controls.Add(_txtNoise2);
+            _panel.Controls.Add(_lblPersistence2);
+            _panel.Controls.Add(_txtPersistence2);
+            _panel.Controls.Add(_lblOctaves2);
+            _panel.Controls.Add(_txtOctaves2);
+            _panel.SetFlowBreak(_txtOctaves2, true);
+
+            _panel.Controls.Add(_lblSeed);
+            _panel.Controls.Add(_txtSeed);
             
             _panel.Controls.Add(_generateButton);
             Window.Controls.Add(_panel);
@@ -220,6 +351,8 @@ namespace RandomTerrainDemo {
             ImmediateContext.OutputMerger.DepthStencilReference = 0;
 
             SwapChain.Present(0, PresentFlags.None);
+
+            
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
             _lastMousePos = mouseEventArgs.Location;
