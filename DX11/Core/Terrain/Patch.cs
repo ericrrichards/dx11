@@ -13,11 +13,11 @@ namespace Core.Terrain {
 
     using Buffer = Buffer;
 
-    internal enum NeighborDir {
+    public enum NeighborDir {
         Top, Left
     }
 
-    class Patch : DisposableClass {
+    public class Patch : DisposableClass {
 
         private static readonly Dictionary<int, Buffer> IB = new Dictionary<int, Buffer>();
         private static readonly Dictionary<int, int> IndexCount = new Dictionary<int, int>();
@@ -40,20 +40,7 @@ namespace Core.Terrain {
             if (disposing) {
                 // free IDisposable objects
                 Util.ReleaseCom(ref _vb);
-                foreach (var buffer in CenterIB) {
-                    var buf = buffer.Value;
-                    Util.ReleaseCom(ref buf);
-                }
-                foreach (var edgeIb in EdgeIbs) {
-                    foreach (var buffer in edgeIb.Value) {
-                        var buf = buffer.Value;
-                        Util.ReleaseCom(ref buf);
-                    }
-                }
-                foreach (var buffer in IB) {
-                    var buf = buffer.Value;
-                    Util.ReleaseCom(ref buf);
-                }
+                
             }
             // release unmanaged objects
             _disposed = true;
@@ -73,6 +60,22 @@ namespace Core.Terrain {
             BuildCenterIndices(device);
             BuildTopEdges(device);
             BuildLeftEdges(device);
+        }
+        public static void DestroyPatchIndexBuffers() {
+            foreach (var buffer in CenterIB) {
+                var buf = buffer.Value;
+                Util.ReleaseCom(ref buf);
+            }
+            foreach (var edgeIb in EdgeIbs) {
+                foreach (var buffer in edgeIb.Value) {
+                    var buf = buffer.Value;
+                    Util.ReleaseCom(ref buf);
+                }
+            }
+            foreach (var buffer in IB) {
+                var buf = buffer.Value;
+                Util.ReleaseCom(ref buf);
+            }
         }
 
         public void CreateMesh(Terrain terrain, Rectangle r, Device device) {

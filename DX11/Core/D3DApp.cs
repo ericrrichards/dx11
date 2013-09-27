@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SlimDX.Direct2D;
 using SlimDX.Direct3D11;
+using FeatureLevel = SlimDX.Direct3D11.FeatureLevel;
+
 namespace Core {
     using System.Drawing;
     using System.Threading;
@@ -22,6 +25,9 @@ namespace Core {
         public Form Window { get; protected set; }
         public IntPtr AppInst { get; protected set; }
         public float AspectRatio { get { return (float)ClientWidth / ClientHeight; } }
+
+        public ProgressUpdate ProgressUpdate { get { return _progressUpdate; } }
+
         protected bool AppPaused;
         protected bool Minimized;
         protected bool Maximized;
@@ -42,6 +48,11 @@ namespace Core {
         protected int ClientHeight;
         protected bool Enable4xMsaa;
         private bool _running;
+        private int frameCount;
+        private float timeElapsed;
+        protected SlimDX.Direct2D.Factory _dx2DFactory;
+        protected WindowRenderTarget _dxWRT;
+        private ProgressUpdate _progressUpdate;
 
         protected bool InitMainWindow() {
             try {
@@ -188,8 +199,8 @@ namespace Core {
             OnResize();
             return true;
         }
-        private int frameCount;
-        private float timeElapsed;
+        
+
         protected void CalculateFrameRateStats() {
             frameCount++;
             if ((Timer.TotalTime - timeElapsed) >= 1.0f) {
@@ -220,6 +231,11 @@ namespace Core {
                     Util.ReleaseCom(ref SwapChain);
                     Util.ReleaseCom(ref ImmediateContext);
                     Util.ReleaseCom(ref Device);
+
+                    Util.ReleaseCom(ref _progressUpdate);
+
+                    Util.ReleaseCom(ref _dxWRT);
+                    Util.ReleaseCom(ref _dx2DFactory);
                 }
                 _disposed = true;
             }
@@ -257,9 +273,30 @@ namespace Core {
             if (!InitDirect3D()) {
                 return false;
             }
+            if (!InitDirect2D()) {
+                return false;
+            }
             _running = true;
             return true;
         }
+
+        private bool InitDirect2D() {
+            try {
+                _dx2DFactory = new SlimDX.Direct2D.Factory(FactoryType.Multithreaded);
+                _dxWRT = new WindowRenderTarget(_dx2DFactory, new WindowRenderTargetProperties() {
+                    Handle = Window.Handle,
+                    PixelSize = Window.ClientSize,
+                    PresentOptions = PresentOptions.Immediately
+                });
+
+                _progressUpdate = new ProgressUpdate(_dxWRT);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+                return false;
+            }
+            return true;
+        }
+
         public virtual void OnResize() {
             Debug.Assert(ImmediateContext != null);
             Debug.Assert(Device != null);
@@ -319,6 +356,4 @@ namespace Core {
         }
 
     }
-
-    
 }

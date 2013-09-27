@@ -45,11 +45,14 @@
             _heightMap = input.Select(i => (i / 255.0f * MaxHeight)).ToList();
         }
 
-        public void Smooth() {
+        public void Smooth(bool drawProgress=false) {
             var dest = new List<float>();
             for (var i = 0; i < HeightMapHeight; i++) {
                 for (var j = 0; j < HeightMapWidth; j++) {
                     dest.Add(Average(i, j));
+                }
+                if (drawProgress) {
+                    D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f + 0.25f*((float) i/HeightMapHeight), "Smoothing terrain");
                 }
             }
             _heightMap = dest;
@@ -181,9 +184,10 @@
             }
         }
 
-        public void CreateRandomHeightMapParallel(int seed, float noiseSize, float persistence, int octaves) {
-            var tasks = new List<Action>();
+        public void CreateRandomHeightMapParallel(int seed, float noiseSize, float persistence, int octaves, bool drawProgress = false) {
+            
             for (var y = 0; y < HeightMapHeight; y++) {
+                var tasks = new List<Action>();
                 int y1 = y;
                 tasks.Add(() => {
                     
@@ -219,8 +223,12 @@
                         _heightMap[x1 + y1 * HeightMapHeight] = (b / 255.0f) * MaxHeight;
                     }
                 });
+                Parallel.Invoke(tasks.ToArray());
+                if (drawProgress) {
+                    D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f + 0.40f*((float) y/HeightMapHeight), "Generating random terrain");
+                }
             }
-            Parallel.Invoke(tasks.ToArray());
+            
         }
     }
 }

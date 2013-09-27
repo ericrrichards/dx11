@@ -33,10 +33,17 @@ namespace Core.Terrain {
         // The distance between vertices in the generated mesh
         public float CellSpacing;
         public Material? Material;
+        public float NoiseSize1;
+        public float NoiseSize2;
+        public float Persistence1;
+        public float Persistence2;
+        public int Octaves1;
+        public int Octaves2;
+        public int Seed;
     }
 
     public class Terrain : DisposableClass {
-        internal const int CellsPerPatch = 64;
+        public const int CellsPerPatch = 64;
         private Buffer _quadPatchVB;
         private Buffer _quadPatchIB;
 
@@ -128,7 +135,7 @@ namespace Core.Terrain {
             }
         }
         public void Init(Device device, DeviceContext dc, InitInfo info) {
-            Patch.InitPatchData(CellsPerPatch, device);
+            D3DApp.GD3DApp.ProgressUpdate.Draw(0, "Initializing terrain");
             if (device.FeatureLevel == FeatureLevel.Level_11_0) {
                 _useTessellation = true;
             }
@@ -144,13 +151,17 @@ namespace Core.Terrain {
 
             _heightMap = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, Info.HeightScale);
             if (!string.IsNullOrEmpty(Info.HeightMapFilename)) {
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f, "Loading terrain from file");
                 _heightMap.LoadHeightmap(Info.HeightMapFilename);
 
             } else {
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f, "Generating random terrain");
                 GenerateRandomTerrain();
             }
-            _heightMap.Smooth();
+            D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f, "Smoothing terrain");
+            _heightMap.Smooth(true);
 
+            D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f, "Building terrain patches");
             if (_useTessellation) {
                 CalcAllPatchBoundsY();
                 BuildQuadPatchVB(device);
@@ -158,6 +169,7 @@ namespace Core.Terrain {
             } else {
                 BuildPatches(device);
             }
+            D3DApp.GD3DApp.ProgressUpdate.Draw(0.85f, "Loading textures");
             _heightMapSRV = _heightMap.BuildHeightmapSRV(device);
 
             var layerFilenames = new List<string> {
@@ -168,21 +180,21 @@ namespace Core.Terrain {
                 Info.LayerMapFilename4 ?? "textures/null.bmp"
             };
             _layerMapArraySRV = Util.CreateTexture2DArraySRV(device, dc, layerFilenames.ToArray(), Format.R8G8B8A8_UNorm);
-            _blendMapSRV = !string.IsNullOrEmpty(Info.BlendMapFilename) ?
-                ShaderResourceView.FromFile(device, Info.BlendMapFilename) :
-                CreateBlendMap(_heightMap, device);
+            if (!string.IsNullOrEmpty(Info.BlendMapFilename)) {
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.95f, "Loading blendmap from file");
+                _blendMapSRV = ShaderResourceView.FromFile(device, Info.BlendMapFilename);
+            } else {
+                _blendMapSRV = CreateBlendMap(_heightMap, device);
+            }
+            D3DApp.GD3DApp.ProgressUpdate.Draw(1.0f, "Terrain initialized");
         }
-
-
-
         private void GenerateRandomTerrain() {
             var hm2 = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, 2.0f);
-            _heightMap.CreateRandomHeightMapParallel(MathF.Rand(), 1.0f, 0.7f, 7);
-            hm2.CreateRandomHeightMapParallel(MathF.Rand(), 2.5f, 0.8f, 3);
+            _heightMap.CreateRandomHeightMapParallel(Info.Seed, Info.NoiseSize1, Info.Persistence1, Info.Octaves1, true);
+            hm2.CreateRandomHeightMapParallel(Info.Seed, Info.NoiseSize2, Info.Persistence2, Info.Octaves2, true);
             hm2.Cap(hm2.MaxHeight * 0.4f);
             _heightMap *= hm2;
         }
-
         private ShaderResourceView CreateBlendMap(HeightMap hm, Device device) {
             var texDec = new Texture2DDescription {
                 ArraySize = 1,
@@ -213,6 +225,7 @@ namespace Core.Terrain {
                     colors.Add(color);
 
                 }
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.95f + 0.05f * ((float)y / _heightMap.HeightMapHeight), "Generating blendmap");
             }
             SmoothBlendMap(hm, colors);
             SmoothBlendMap(hm, colors);
@@ -238,7 +251,6 @@ namespace Core.Terrain {
             Util.ReleaseCom(ref blendTex);
             return srv;
         }
-
         private void SmoothBlendMap(HeightMap hm, List<Color4> colors) {
             for (int y = 0; y < _heightMap.HeightMapHeight; y++) {
                 for (int x = 0; x < _heightMap.HeightMapWidth; x++) {
@@ -256,7 +268,6 @@ namespace Core.Terrain {
                 }
             }
         }
-
         public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
             if (_useTessellation) {
 
@@ -348,9 +359,6 @@ namespace Core.Terrain {
                 }
             }
         }
-
-
-
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();
             for (var i = 0; i < NumPatchVertRows - 1; i++) {
@@ -374,9 +382,6 @@ namespace Core.Terrain {
                 ibd
             );
         }
-
-
-
         private void CalcAllPatchBoundsY() {
             _patchBoundsY = new List<Vector2>(new Vector2[_numPatchQuadFaces]);
 
@@ -386,7 +391,6 @@ namespace Core.Terrain {
                 }
             }
         }
-
         private void CalcPatchBoundsY(int i, int j) {
             var x0 = j * CellsPerPatch;
             var x1 = (j + 1) * CellsPerPatch;
@@ -406,7 +410,6 @@ namespace Core.Terrain {
             var patchID = i * (NumPatchVertCols - 1) + j;
             _patchBoundsY[patchID] = new Vector2(minY, maxY);
         }
-
         private void BuildQuadPatchVB(Device device) {
             var patchVerts = new Vertex.TerrainCP[_numPatchVertices];
             var halfWidth = 0.5f * Width;
@@ -466,6 +469,7 @@ namespace Core.Terrain {
                     p.CreateMesh(this, r, device);
                     _patches.Add(p);
                 }
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f + 0.1f * ((float)z / (NumPatchVertRows-2)), "Building terrain patches");
             }
         }
     }
