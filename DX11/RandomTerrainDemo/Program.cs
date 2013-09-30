@@ -45,7 +45,8 @@ namespace RandomTerrainDemo {
         private NumericUpDown _txtPersistence2;
         private Label _lblOctaves2;
         private NumericUpDown _txtOctaves2;
-
+        private PictureBox _hmImg;
+        private TableLayoutPanel _tblLayout;
         #endregion
 
 
@@ -174,6 +175,7 @@ namespace RandomTerrainDemo {
                 };
                 _terrain.Init(Device, ImmediateContext, tii);
                 _camera.Height = _terrain.Height;
+                _hmImg.Image = _terrain.HeightMapImg;
                 Window.Cursor = Cursors.Default;
             };
 
@@ -200,7 +202,7 @@ namespace RandomTerrainDemo {
                 DecimalPlaces = 2,
                 Minimum = 0m,
                 Maximum = 10m,
-                Increment = 0.01m,
+                Increment = 0.1m,
                 AutoSize = true
             };
             _lblPersistence1 = new Label {
@@ -241,7 +243,7 @@ namespace RandomTerrainDemo {
                 DecimalPlaces = 2,
                 Minimum = 0m,
                 Maximum = 10m,
-                Increment = 0.01m,
+                Increment = 0.1m,
                 AutoSize = true
             };
             _lblPersistence2 = new Label {
@@ -269,6 +271,14 @@ namespace RandomTerrainDemo {
                 Minimum = 1,
                 Maximum = 20
             };
+
+            _hmImg = new PictureBox() {
+                Image = _terrain.HeightMapImg,
+                MaximumSize = new Size(64,64),
+                MinimumSize = new Size(64,64),
+                SizeMode = PictureBoxSizeMode.StretchImage,
+                BackColor = Color.White
+            };
             
             
             _panel.Controls.Add(_lblNoise1);
@@ -285,13 +295,29 @@ namespace RandomTerrainDemo {
             _panel.Controls.Add(_txtPersistence2);
             _panel.Controls.Add(_lblOctaves2);
             _panel.Controls.Add(_txtOctaves2);
+            
             _panel.SetFlowBreak(_txtOctaves2, true);
 
             _panel.Controls.Add(_lblSeed);
             _panel.Controls.Add(_txtSeed);
             
             _panel.Controls.Add(_generateButton);
-            Window.Controls.Add(_panel);
+            
+            
+            _tblLayout = new TableLayoutPanel {
+                Dock = DockStyle.Top,
+                AutoSize = true
+            };
+            _tblLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            _tblLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            _tblLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+            _tblLayout.Controls.Add(_panel, 0,0);
+            _tblLayout.Controls.Add(_hmImg, 1, 0);
+
+
+            Window.Controls.Add(_tblLayout);
+
 
         }
 

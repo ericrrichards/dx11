@@ -1,6 +1,8 @@
 ﻿namespace Core.Terrain {
     using System;
     using System.Collections.Generic;
+    using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
@@ -14,9 +16,13 @@
 
     public class HeightMap {
         private List<float> _heightMap;
-        public int HeightMapWidth { get; set; }
-        public int HeightMapHeight { get; set; }
-        public float MaxHeight { get; set; }
+        private Bitmap _bitmap;
+        public int HeightMapWidth { get; private set; }
+        public int HeightMapHeight { get; private set; }
+        public float MaxHeight { get; private set; }
+        public Image Bitmap {
+            get { return _bitmap; }
+        }
 
         public HeightMap(int width, int height, float maxHeight) {
             HeightMapWidth = width;
@@ -100,6 +106,8 @@
                     )
                 );
 
+            BuildHeightMapThumb();
+
             var srvDesc = new ShaderResourceViewDescription {
                 Format = texDec.Format,
                 Dimension = ShaderResourceViewDimension.Texture2D,
@@ -112,6 +120,24 @@
 
             Util.ReleaseCom(ref hmapTex);
             return srv;
+        }
+
+        private void BuildHeightMapThumb() {
+            var userBuffer = _heightMap.Select(h => (byte)((h / MaxHeight) * 255)).ToArray();
+            _bitmap = new Bitmap(HeightMapWidth - 1, HeightMapHeight - 1, PixelFormat.Format24bppRgb);
+            var data = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            var ptr = data.Scan0;
+            var bytes = data.Stride * _bitmap.Height;
+            var values = new byte[bytes];
+
+            Marshal.Copy(ptr, values, 0, bytes);
+
+            for (var i = 0; i < values.Length; i++) {
+                values[i] = userBuffer[i / 3];
+            }
+            Marshal.Copy(values, 0, ptr, bytes);
+
+            _bitmap.UnlockBits(data);
         }
 
         // procedural heightmap stuff

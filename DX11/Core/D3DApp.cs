@@ -27,6 +27,9 @@ namespace Core {
         public float AspectRatio { get { return (float)ClientWidth / ClientHeight; } }
 
         public ProgressUpdate ProgressUpdate { get { return _progressUpdate; } }
+        internal WindowRenderTarget DxWrt {
+            get { return _dxWRT; }
+        }
 
         protected bool AppPaused;
         protected bool Minimized;
@@ -51,7 +54,7 @@ namespace Core {
         private int frameCount;
         private float timeElapsed;
         protected SlimDX.Direct2D.Factory _dx2DFactory;
-        protected WindowRenderTarget _dxWRT;
+        private WindowRenderTarget _dxWRT;
         private ProgressUpdate _progressUpdate;
 
         protected bool InitMainWindow() {
@@ -282,12 +285,13 @@ namespace Core {
 
         private bool InitDirect2D() {
             try {
-                _dx2DFactory = new SlimDX.Direct2D.Factory(FactoryType.Multithreaded);
+                _dx2DFactory = new SlimDX.Direct2D.Factory(FactoryType.SingleThreaded);
                 _dxWRT = new WindowRenderTarget(_dx2DFactory, new WindowRenderTargetProperties() {
                     Handle = Window.Handle,
                     PixelSize = Window.ClientSize,
                     PresentOptions = PresentOptions.Immediately
                 });
+
 
                 _progressUpdate = new ProgressUpdate(_dxWRT);
             } catch (Exception ex) {

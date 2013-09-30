@@ -77,6 +77,8 @@ namespace Core.Terrain {
         internal const float MaxTess = 6.0f;
         internal const float MinTess = 0.0f;
 
+        public Image HeightMapImg { get { return _heightMap.Bitmap; } }
+
         public Terrain() {
             World = Matrix.Identity;
             _material = new Material {
@@ -358,6 +360,7 @@ namespace Core.Terrain {
                     }
                 }
             }
+           
         }
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();
