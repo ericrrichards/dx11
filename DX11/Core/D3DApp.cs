@@ -26,10 +26,8 @@ namespace Core {
         public IntPtr AppInst { get; protected set; }
         public float AspectRatio { get { return (float)ClientWidth / ClientHeight; } }
 
-        public ProgressUpdate ProgressUpdate { get { return _progressUpdate; } }
-        internal WindowRenderTarget DxWrt {
-            get { return _dxWRT; }
-        }
+        
+        
 
         protected bool AppPaused;
         protected bool Minimized;
@@ -53,9 +51,12 @@ namespace Core {
         private bool _running;
         private int frameCount;
         private float timeElapsed;
-        protected SlimDX.Direct2D.Factory _dx2DFactory;
-        private WindowRenderTarget _dxWRT;
+private WindowRenderTarget _dxWRT;
+internal WindowRenderTarget DxWrt {
+    get { return _dxWRT; }
+}
         private ProgressUpdate _progressUpdate;
+        public ProgressUpdate ProgressUpdate { get { return _progressUpdate; } }
 
         protected bool InitMainWindow() {
             try {
@@ -238,7 +239,6 @@ namespace Core {
                     Util.ReleaseCom(ref _progressUpdate);
 
                     Util.ReleaseCom(ref _dxWRT);
-                    Util.ReleaseCom(ref _dx2DFactory);
                 }
                 _disposed = true;
             }
@@ -285,15 +285,17 @@ namespace Core {
 
         private bool InitDirect2D() {
             try {
-                _dx2DFactory = new SlimDX.Direct2D.Factory(FactoryType.SingleThreaded);
-                _dxWRT = new WindowRenderTarget(_dx2DFactory, new WindowRenderTargetProperties() {
+                var factory = new SlimDX.Direct2D.Factory(FactoryType.SingleThreaded);
+                _dxWRT = new WindowRenderTarget(factory, new WindowRenderTargetProperties() {
                     Handle = Window.Handle,
                     PixelSize = Window.ClientSize,
                     PresentOptions = PresentOptions.Immediately
                 });
 
-
+                Util.ReleaseCom(ref factory);
                 _progressUpdate = new ProgressUpdate(_dxWRT);
+                
+
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
                 return false;

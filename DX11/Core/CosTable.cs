@@ -12,7 +12,7 @@ namespace Core {
             return CosLookup[a1];
         }
         #region cos table
-        private static float[] CosLookup = new[]{ 
+        private static readonly float[] CosLookup = new[]{ 
 	1f,
 	0.9999995f,
 	0.999998f,
@@ -6301,5 +6301,7 @@ namespace Core {
 
 
         #endregion
+
+        
     }
 }

@@ -63,10 +63,25 @@ namespace Core {
             var prc = (1.0f - LookupCos(angle)) * 0.5f;
             return v1 * (1.0f - prc) + v2 * prc;
         }
+        public static float PerlinNoise2D(int seed, float persistence, int octave, float x, float y) {
+            var freq = (float)Math.Pow(2.0f, octave);
+            var amp = (float)Math.Pow(persistence, octave);
+            var tx = x * freq;
+            var ty = y * freq;
+            var txi = (int)tx;
+            var tyi = (int)ty;
+            var fracX = tx - txi;
+            var fracY = ty - tyi;
 
-        public static float Noise(float min, float max) {
-            var n = Noise(Rand());
-            return n * (max - min) + min;
+            var v1 = Noise(txi + tyi * 57 + seed);
+            var v2 = Noise(txi + 1 + tyi * 57 + seed);
+            var v3 = Noise(txi + (tyi + 1) * 57 + seed);
+            var v4 = Noise(txi + 1 + (tyi + 1) * 57 + seed);
+
+            var i1 = CosInterpolate(v1, v2, fracX);
+            var i2 = CosInterpolate(v3, v4, fracX);
+            var f = CosInterpolate(i1, i2, fracY) * amp;
+            return f;
         }
         
     }

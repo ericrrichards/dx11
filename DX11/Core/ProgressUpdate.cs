@@ -36,12 +36,14 @@ namespace Core {
             _rt = rt1;
             _brush = new SolidColorBrush(_rt, Color.Green);
             _clearColor = new SolidColorBrush(_rt, Color.Black);
+
             _borderBounds = new Rectangle(18, rt1.PixelSize.Height/2 - 2, rt1.PixelSize.Width - 36, 24);
             _barBounds = new Rectangle(20, rt1.PixelSize.Height/2, rt1.PixelSize.Width-40, 20);
 
             _factory = new Factory();
-            _txtFormat = new TextFormat(_factory, "Arial", FontWeight.Normal, FontStyle.Normal, FontStretch.Normal, 18, "en-us" );
-            _txtFormat.TextAlignment = TextAlignment.Center;
+            _txtFormat = new TextFormat(_factory, "Arial", FontWeight.Normal, FontStyle.Normal, FontStretch.Normal, 18, "en-us" ) {
+                TextAlignment = TextAlignment.Center
+            };
             _textRect = new Rectangle(100, rt1.PixelSize.Height / 2-25, _rt.PixelSize.Width-200, 20);
         }
 

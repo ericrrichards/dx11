@@ -14,7 +14,7 @@ namespace Core.Terrain {
     using System.Runtime.InteropServices;
 
     public struct InitInfo {
-        // RAW heightmap image file
+        // RAW heightmap image file or null for random terrain
         public string HeightMapFilename;
         // Heightmap maximum height
         public float HeightScale;
@@ -28,11 +28,13 @@ namespace Core.Terrain {
         public string LayerMapFilename3;
         public string LayerMapFilename4;
         // Blend map which indicates which diffuse map is
-        // applied which portions of the terrain
+        // applied to which portions of the terrain
+        // null if the blendmap should be generated
         public string BlendMapFilename;
         // The distance between vertices in the generated mesh
         public float CellSpacing;
         public Material? Material;
+        // Random heightmap parameters
         public float NoiseSize1;
         public float NoiseSize2;
         public float Persistence1;
@@ -41,6 +43,7 @@ namespace Core.Terrain {
         public int Octaves2;
         public int Seed;
     }
+    
 
     public class Terrain : DisposableClass {
         public const int CellsPerPatch = 64;
@@ -198,6 +201,31 @@ namespace Core.Terrain {
             _heightMap *= hm2;
         }
         private ShaderResourceView CreateBlendMap(HeightMap hm, Device device) {
+            
+            var colors = new List<Color4>();
+            for (int y = 0; y < _heightMap.HeightMapHeight; y++) {
+                for (int x = 0; x < _heightMap.HeightMapWidth; x++) {
+                    var elev = _heightMap[y, x];
+                    var color = new Color4(0);
+                    if (elev > hm.MaxHeight * (0.05f + MathF.Rand(-0.05f, 0.05f))) {
+                        // dark green grass texture
+                        color.Red = elev / (hm.MaxHeight) + MathF.Rand(-0.05f, 0.05f);
+                    }
+                    if (elev > hm.MaxHeight * (0.4f + MathF.Rand(-0.15f, 0.15f))) {
+                        // stone texture
+                        color.Green = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
+                    }
+                    if (elev > hm.MaxHeight * (0.75f + MathF.Rand(-0.1f, 0.1f))) {
+                        // snow texture
+                        color.Alpha = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
+                    }
+                    colors.Add(color);
+
+                }
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.95f + 0.05f * ((float)y / _heightMap.HeightMapHeight), "Generating blendmap");
+            }
+            SmoothBlendMap(hm, colors);
+            SmoothBlendMap(hm, colors);
             var texDec = new Texture2DDescription {
                 ArraySize = 1,
                 BindFlags = BindFlags.ShaderResource,
@@ -210,28 +238,6 @@ namespace Core.Terrain {
                 OptionFlags = ResourceOptionFlags.None,
                 Usage = ResourceUsage.Default
             };
-            var colors = new List<Color4>();
-            for (int y = 0; y < _heightMap.HeightMapHeight; y++) {
-                for (int x = 0; x < _heightMap.HeightMapWidth; x++) {
-                    var elev = _heightMap[y, x];
-                    var color = new Color4(0);
-                    if (elev > hm.MaxHeight * (0.05f + MathF.Rand(-0.05f, 0.05f))) {
-                        color.Red = elev / (hm.MaxHeight) + MathF.Rand(-0.05f, 0.05f);
-                    }
-                    if (elev > hm.MaxHeight * (0.4f + MathF.Rand(-0.15f, 0.15f))) {
-                        color.Green = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
-                    }
-                    if (elev > hm.MaxHeight * (0.75f + MathF.Rand(-0.1f, 0.1f))) {
-                        color.Alpha = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
-                    }
-                    colors.Add(color);
-
-                }
-                D3DApp.GD3DApp.ProgressUpdate.Draw(0.95f + 0.05f * ((float)y / _heightMap.HeightMapHeight), "Generating blendmap");
-            }
-            SmoothBlendMap(hm, colors);
-            SmoothBlendMap(hm, colors);
-
             var blendTex = new Texture2D(
                 device,
                 texDec,
@@ -248,8 +254,7 @@ namespace Core.Terrain {
             };
 
             var srv = new ShaderResourceView(device, blendTex, srvDesc);
-
-
+            
             Util.ReleaseCom(ref blendTex);
             return srv;
         }
@@ -257,7 +262,7 @@ namespace Core.Terrain {
             for (int y = 0; y < _heightMap.HeightMapHeight; y++) {
                 for (int x = 0; x < _heightMap.HeightMapWidth; x++) {
                     var sum = colors[x + y * hm.HeightMapHeight];
-                    var num = 1;
+                    var num = 0;
                     for (int y1 = y - 1; y1 < y + 2; y1++) {
                         for (int x1 = x - 1; x1 < x + 1; x1++) {
                             if (hm.InBounds(y1, x1)) {

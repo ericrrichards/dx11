@@ -51,14 +51,14 @@
             _heightMap = input.Select(i => (i / 255.0f * MaxHeight)).ToList();
         }
 
-        public void Smooth(bool drawProgress=false) {
+        public void Smooth(bool drawProgress = false) {
             var dest = new List<float>();
             for (var i = 0; i < HeightMapHeight; i++) {
                 for (var j = 0; j < HeightMapWidth; j++) {
                     dest.Add(Average(i, j));
                 }
                 if (drawProgress) {
-                    D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f + 0.25f*((float) i/HeightMapHeight), "Smoothing terrain");
+                    D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f + 0.25f * ((float)i / HeightMapHeight), "Smoothing terrain");
                 }
             }
             _heightMap = dest;
@@ -125,7 +125,9 @@
         private void BuildHeightMapThumb() {
             var userBuffer = _heightMap.Select(h => (byte)((h / MaxHeight) * 255)).ToArray();
             _bitmap = new Bitmap(HeightMapWidth - 1, HeightMapHeight - 1, PixelFormat.Format24bppRgb);
-            var data = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            var data = _bitmap.LockBits(
+                new Rectangle(0, 0, _bitmap.Width, _bitmap.Height), 
+                ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             var ptr = data.Scan0;
             var bytes = data.Stride * _bitmap.Height;
             var values = new byte[bytes];
@@ -173,7 +175,7 @@
         }
 
         public void CreateRandomHeightMap(int seed, float noiseSize, float persistence, int octaves) {
-            
+
             for (var y = 0; y < HeightMapHeight; y++) {
                 for (var x = 0; x < HeightMapWidth; x++) {
 
@@ -211,50 +213,35 @@
         }
 
         public void CreateRandomHeightMapParallel(int seed, float noiseSize, float persistence, int octaves, bool drawProgress = false) {
-            
+
             for (var y = 0; y < HeightMapHeight; y++) {
                 var tasks = new List<Action>();
                 int y1 = y;
-                tasks.Add(() => {
-                    
-                    for (var x = 0; x < HeightMapWidth; x++) {
-                        int x1 = x;
+
+
+                for (var x = 0; x < HeightMapWidth; x++) {
+                    int x1 = x;
+                    tasks.Add(() => {
                         var xf = (x1 / (float)HeightMapWidth) * noiseSize;
                         var yf = (y1 / (float)HeightMapHeight) * noiseSize;
 
                         var total = 0.0f;
                         for (var i = 0; i < octaves; i++) {
-                            var freq = (float)Math.Pow(2.0f, i);
-                            var amp = (float)Math.Pow(persistence, i);
-                            var tx = xf * freq;
-                            var ty = yf * freq;
-                            var txi = (int)tx;
-                            var tyi = (int)ty;
-                            var fracX = tx - txi;
-                            var fracY = ty - tyi;
-
-                            var v1 = MathF.Noise(txi + tyi * 57 + seed);
-                            var v2 = MathF.Noise(txi + 1 + tyi * 57 + seed);
-                            var v3 = MathF.Noise(txi + (tyi + 1) * 57 + seed);
-                            var v4 = MathF.Noise(txi + 1 + (tyi + 1) * 57 + seed);
-
-                            var i1 = MathF.CosInterpolate(v1, v2, fracX);
-                            var i2 = MathF.CosInterpolate(v3, v4, fracX);
-                            total += MathF.CosInterpolate(i1, i2, fracY) * amp;
+                            var f = MathF.PerlinNoise2D(seed, persistence, i, xf, yf);
+                            total += f;
                         }
                         var b = (int)(128 + total * 128.0f);
                         if (b < 0) b = 0;
                         if (b > 255) b = 255;
 
                         _heightMap[x1 + y1 * HeightMapHeight] = (b / 255.0f) * MaxHeight;
-                    }
-                });
-                Parallel.Invoke(tasks.ToArray());
-                if (drawProgress) {
-                    D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f + 0.40f*((float) y/HeightMapHeight), "Generating random terrain");
+                    });
                 }
+                if (drawProgress) {
+                    D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f + 0.40f * ((float)y / HeightMapHeight), "Generating random terrain");
+                }
+                Parallel.Invoke(tasks.ToArray());
             }
-            
         }
     }
 }
