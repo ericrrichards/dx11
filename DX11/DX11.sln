@@ -61,6 +61,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CosCalculator", "CosCalcula
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RandomTerrainDemo", "RandomTerrainDemo\RandomTerrainDemo.csproj", "{4BCAFDA9-BFED-48C7-A510-6766B1686995}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkinnedModels", "SkinnedModels\SkinnedModels.csproj", "{CD06AF9A-3460-41CC-8628-82E838601689}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -171,6 +173,10 @@ Global
 		{4BCAFDA9-BFED-48C7-A510-6766B1686995}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4BCAFDA9-BFED-48C7-A510-6766B1686995}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4BCAFDA9-BFED-48C7-A510-6766B1686995}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD06AF9A-3460-41CC-8628-82E838601689}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD06AF9A-3460-41CC-8628-82E838601689}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD06AF9A-3460-41CC-8628-82E838601689}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD06AF9A-3460-41CC-8628-82E838601689}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -200,5 +206,6 @@ Global
 		{00DCEE71-2638-4B54-95CA-5FEF89383167} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{93B55A1E-AA33-472D-AA63-B07A5CD74A35} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{4BCAFDA9-BFED-48C7-A510-6766B1686995} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+		{CD06AF9A-3460-41CC-8628-82E838601689} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 	EndGlobalSection
 EndGlobal

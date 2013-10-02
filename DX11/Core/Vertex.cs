@@ -289,6 +289,9 @@ namespace Core {
                 if (tech != null) {
                     var passDesc = tech.Light1SkinnedTech.GetPassByIndex(0).Description;
                     PosNormalTexTanSkinned = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTanSkinned);
+                } else if ((tech = Effects.NormalMapFX) != null) {
+                    var passDesc = tech.Light1SkinnedTech.GetPassByIndex(0).Description;
+                    PosNormalTexTanSkinned = new InputLayout(device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTanSkinned);
                 }
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);

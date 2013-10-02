@@ -1,36 +1,40 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Drawing;
-using System.Windows.Forms;
-using Core;
-using Core.Camera;
-using Core.FX;
-using Core.Model;
 
-using SlimDX;
-using SlimDX.DXGI;
-using SlimDX.Direct3D11;
+namespace SkinnedModels {
+    using System.Diagnostics;
+    using System.Drawing;
+    using System.Windows.Forms;
 
-namespace AssimpModel {
-    class AssimpModelDemo : D3DApp {
+    using Core;
+    using Core.Camera;
+    using Core.FX;
+    using Core.Model;
+
+    using SlimDX;
+    using SlimDX.DXGI;
+    using SlimDX.Direct3D11;
+
+    class SkinnedModelDemo : D3DApp {
 
         private TextureManager _texMgr;
 
-        private BasicModel _treeModel;
-        private BasicModel _stoneModel;
-        private BasicModelInstance _modelInstance;
-        private BasicModelInstance _stoneInstance;
-        
         private readonly DirectionalLight[] _dirLights;
 
         private readonly FpsCamera _camera;
         private Point _lastMousePos;
         private bool _disposed;
 
-        private AssimpModelDemo(IntPtr hInstance) : base(hInstance) {
-            MainWindowCaption = "Assimp Model Demo";
+        private SkinnedModel _drone;
+        private SkinnedModelInstance _droneInstance;
+        private SkinnedModel _soldier;
+        private SkinnedModelInstance _soldierInstance;
+        private SkinnedModelInstance _mageInstance;
+        private SkinnedModel _mage;
+
+        private SkinnedModelDemo(IntPtr hInstance) : base(hInstance) {
+            MainWindowCaption = "Skinned Model Demo";
             _lastMousePos = new Point();
-            Enable4xMsaa = true;
+            //Enable4xMsaa = true;
 
             _camera = new FpsCamera {
                 Position = new Vector3(0, 2, -15)
@@ -60,7 +64,9 @@ namespace AssimpModel {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    Util.ReleaseCom(ref _treeModel);
+                    Util.ReleaseCom(ref _drone);
+                    Util.ReleaseCom(ref _soldier);
+                    Util.ReleaseCom(ref _mage);
                     Util.ReleaseCom(ref _texMgr);
 
                     Effects.DestroyAll();
@@ -82,21 +88,34 @@ namespace AssimpModel {
             _texMgr = new TextureManager();
             _texMgr.Init(Device);
 
-            _treeModel = new BasicModel(Device, _texMgr, "Models/tree.x", "Textures");
+            _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true);
+            _droneInstance = new SkinnedModelInstance {
+                ClipName = "Attack",
+                World = Matrix.Identity,
+                TimePos = 0.0f,
+                Model = _drone
 
-            _modelInstance = new BasicModelInstance {
-                Model = _treeModel,
-                World = Matrix.RotationX(MathF.PI/2)
+            };
+            _mage = new SkinnedModel(Device, _texMgr, "Models/magician.x", "textures", true);
+
+            _mageInstance = new SkinnedModelInstance {
+                ClipName = "Attack",
+                World = Matrix.Translation(4.0f, 0, 0),
+                TimePos = 0.0f,
+                Model = _mage
+
             };
 
-            _stoneModel = new BasicModel(Device, _texMgr, "Models/stone.x", "Textures");
-            _stoneInstance = new BasicModelInstance {
-                Model = _stoneModel,
-                World = Matrix.Scaling(0.1f, 0.1f, 0.1f)*Matrix.Translation(2, 0, 2)
+            _soldier = new SkinnedModel(Device, _texMgr, "Models/soldier.x", "Textures", true);
+            _soldierInstance = new SkinnedModelInstance {
+                ClipName = "Attack",
+                Model = _soldier,
+                World = Matrix.Translation(10, 0, 0),
+                TimePos = 0.0f
             };
-
 
             return true;
+
         }
         public override void OnResize() {
             base.OnResize();
@@ -122,15 +141,17 @@ namespace AssimpModel {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            
-            
+            _droneInstance.Update(dt *20);
+            _mageInstance.Update(dt *15);
+            _soldierInstance.Update(dt *10);
         }
+
         public override void DrawScene() {
             base.DrawScene();
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0 );
+            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTanSkinned;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
             _camera.UpdateViewMatrix();
@@ -139,26 +160,31 @@ namespace AssimpModel {
             Effects.NormalMapFX.SetDirLights(_dirLights);
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
 
-            var activeTech = Effects.NormalMapFX.Light3TexTech;
-            for (int p = 0; p < activeTech.Description.PassCount; p++) {
-                var world = _modelInstance.World;
+            
+
+            for (int p = 0; p < Effects.NormalMapFX.Light3TexSkinnedTech.Description.PassCount; p++) {
+                var world = _mageInstance.World;
                 var wit = MathF.InverseTranspose(world);
-                var wvp = world*viewProj;
+                var wvp = world * viewProj;
 
                 Effects.NormalMapFX.SetWorld(world);
                 Effects.NormalMapFX.SetWorldInvTranspose(wit);
                 Effects.NormalMapFX.SetWorldViewProj(wvp);
                 Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
 
-                for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
-                    Effects.NormalMapFX.SetMaterial(_modelInstance.Model.Materials[i]);
-                    Effects.NormalMapFX.SetDiffuseMap(_modelInstance.Model.DiffuseMapSRV[i]);
-                    Effects.NormalMapFX.SetNormalMap(_modelInstance.Model.NormalMapSRV[i]);
+                Effects.NormalMapFX.SetBoneTransforms(_mageInstance.FinalTransforms);
 
-                    activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _modelInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                
+                for (int i = 0; i < _mageInstance.Model.SubsetCount; i++) {
+                    Effects.NormalMapFX.SetMaterial(_mageInstance.Model.Materials[i]);
+                    Effects.NormalMapFX.SetDiffuseMap(_mageInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_mageInstance.Model.NormalMapSRV[i]);
+                    
+
+                    Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _mageInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
-                world = _stoneInstance.World;
+                world = _droneInstance.World;
                 wit = MathF.InverseTranspose(world);
                 wvp = world * viewProj;
 
@@ -167,16 +193,38 @@ namespace AssimpModel {
                 Effects.NormalMapFX.SetWorldViewProj(wvp);
                 Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
 
-                for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
-                    Effects.NormalMapFX.SetMaterial(_stoneInstance.Model.Materials[i]);
-                    Effects.NormalMapFX.SetDiffuseMap(_stoneInstance.Model.DiffuseMapSRV[i]);
-                    Effects.NormalMapFX.SetNormalMap(_stoneInstance.Model.NormalMapSRV[i]);
+                Effects.NormalMapFX.SetBoneTransforms(_droneInstance.FinalTransforms);
 
-                    activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _stoneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                
+                for (int i = 0; i < _droneInstance.Model.SubsetCount; i++) {
+                    Effects.NormalMapFX.SetMaterial(_droneInstance.Model.Materials[i]);
+                    Effects.NormalMapFX.SetDiffuseMap(_droneInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_droneInstance.Model.NormalMapSRV[i]);
+
+                    Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _droneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                }
+                world = _soldierInstance.World;
+                wit = MathF.InverseTranspose(world);
+                wvp = world * viewProj;
+
+                Effects.NormalMapFX.SetWorld(world);
+                Effects.NormalMapFX.SetWorldInvTranspose(wit);
+                Effects.NormalMapFX.SetWorldViewProj(wvp);
+                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
+
+                Effects.NormalMapFX.SetBoneTransforms(_soldierInstance.FinalTransforms);
+
+                
+                for (int i = 0; i < _soldierInstance.Model.SubsetCount; i++) {
+                    Effects.NormalMapFX.SetMaterial(_soldierInstance.Model.Materials[i]);
+                    Effects.NormalMapFX.SetDiffuseMap(_soldierInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_soldierInstance.Model.NormalMapSRV[i]);
+
+                    Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _soldierInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
             }
-            
             SwapChain.Present(0, PresentFlags.None);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
@@ -198,9 +246,11 @@ namespace AssimpModel {
             _lastMousePos = e.Location;
         }
 
+
+
         static void Main() {
             Configuration.EnableObjectTracking = true;
-            var app = new AssimpModelDemo(Process.GetCurrentProcess().Handle);
+            var app = new SkinnedModelDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
                 return;
             }
