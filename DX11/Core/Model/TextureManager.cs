@@ -4,10 +4,10 @@ using SlimDX.Direct3D11;
 namespace Core.Model {
     using System.IO;
 
-    public class TextureManager :DisposableClass {
+    public class TextureManager : DisposableClass {
         private bool _disposed;
         private Device _device;
-        private readonly Dictionary<string, ShaderResourceView> _textureSRVs; 
+        private readonly Dictionary<string, ShaderResourceView> _textureSRVs;
         public TextureManager() {
             _textureSRVs = new Dictionary<string, ShaderResourceView>();
         }
@@ -36,7 +36,7 @@ namespace Core.Model {
                 }
             }
             return _textureSRVs[path];
-            
+
         }
     }
 }

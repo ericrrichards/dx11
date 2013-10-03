@@ -76,15 +76,9 @@
     <Compile Include="MathF.cs" />
     <Compile Include="Model\AnimEvaluator.cs" />
     <Compile Include="Model\BasicModel.cs" />
-    <Compile Include="Model\dx9\AllocMeshHierarchy.cs" />
-    <Compile Include="Model\dx9\CustomMeshContainer.cs" />
-    <Compile Include="Model\dx9\FrameEx.cs" />
-    <Compile Include="Model\dx9\SkinnedMesh.cs" />
     <Compile Include="Model\MeshGeometry.cs" />
     <Compile Include="Model\SceneAnimator.cs" />
     <Compile Include="Model\SkinnedModel.cs" />
-    <Compile Include="Model\dx9\SkinnedModelInstance.cs" />
-    <Compile Include="Model\dx9\SkinnedModel9.cs" />
     <Compile Include="Model\TextureManager.cs" />
     <Compile Include="ProgressUpdate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

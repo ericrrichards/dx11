@@ -27,9 +27,7 @@ namespace Core {
 
         }
 
-        public static int LowWord(this int i) {
-            return i & 0xFFFF;
-        }
+        
         public static Vector3 ToVector3(this Vector4 v) {
             return new Vector3(v.X, v.Y, v.Z);
         }
@@ -40,7 +38,7 @@ namespace Core {
             return new Vector2(v.X, v.Y);
         }
         public static Material ToMaterial(this Assimp.Material m) {
-            var ret = new Material() {
+            var ret = new Material {
                 Ambient = new Color4(m.ColorAmbient.A, m.ColorAmbient.R, m.ColorAmbient.G, m.ColorAmbient.B),
                 Diffuse = new Color4(m.ColorDiffuse.A, m.ColorAmbient.R, m.ColorAmbient.G, m.ColorAmbient.B),
                 Specular = new Color4(m.Shininess, m.ColorSpecular.R, m.ColorSpecular.G, m.ColorSpecular.B),
@@ -60,7 +58,7 @@ namespace Core {
 
             return ret;
         } 
-        public static Matrix ToMatrix(this Assimp.Matrix4x4 m) {
+        public static Matrix ToMatrix(this Matrix4x4 m) {
             var ret = Matrix.Identity;
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
@@ -71,6 +69,9 @@ namespace Core {
         }
         public static Quaternion ToQuat(this Assimp.Quaternion q) {
             return new Quaternion(q.X, q.Y, q.Z, q.W);
+        }
+        public static int LowWord(this int i) {
+            return i & 0xFFFF;
         }
 
         public static int HighWord(this int i) {

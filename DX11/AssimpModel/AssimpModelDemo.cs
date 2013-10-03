@@ -20,14 +20,15 @@ namespace AssimpModel {
         private BasicModel _stoneModel;
         private BasicModelInstance _modelInstance;
         private BasicModelInstance _stoneInstance;
-        
+
         private readonly DirectionalLight[] _dirLights;
 
         private readonly FpsCamera _camera;
         private Point _lastMousePos;
         private bool _disposed;
 
-        private AssimpModelDemo(IntPtr hInstance) : base(hInstance) {
+        private AssimpModelDemo(IntPtr hInstance)
+            : base(hInstance) {
             MainWindowCaption = "Assimp Model Demo";
             _lastMousePos = new Point();
             Enable4xMsaa = true;
@@ -86,13 +87,13 @@ namespace AssimpModel {
 
             _modelInstance = new BasicModelInstance {
                 Model = _treeModel,
-                World = Matrix.RotationX(MathF.PI/2)
+                World = Matrix.RotationX(MathF.PI / 2)
             };
 
             _stoneModel = new BasicModel(Device, _texMgr, "Models/stone.x", "Textures");
             _stoneInstance = new BasicModelInstance {
                 Model = _stoneModel,
-                World = Matrix.Scaling(0.1f, 0.1f, 0.1f)*Matrix.Translation(2, 0, 2)
+                World = Matrix.Scaling(0.1f, 0.1f, 0.1f) * Matrix.Translation(2, 0, 2)
             };
 
 
@@ -122,13 +123,14 @@ namespace AssimpModel {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            
-            
+
+
         }
         public override void DrawScene() {
             base.DrawScene();
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0 );
+            ImmediateContext.ClearDepthStencilView(
+                DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
@@ -141,42 +143,11 @@ namespace AssimpModel {
 
             var activeTech = Effects.NormalMapFX.Light3TexTech;
             for (int p = 0; p < activeTech.Description.PassCount; p++) {
-                var world = _modelInstance.World;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world*viewProj;
-
-                Effects.NormalMapFX.SetWorld(world);
-                Effects.NormalMapFX.SetWorldInvTranspose(wit);
-                Effects.NormalMapFX.SetWorldViewProj(wvp);
-                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
-
-                for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
-                    Effects.NormalMapFX.SetMaterial(_modelInstance.Model.Materials[i]);
-                    Effects.NormalMapFX.SetDiffuseMap(_modelInstance.Model.DiffuseMapSRV[i]);
-                    Effects.NormalMapFX.SetNormalMap(_modelInstance.Model.NormalMapSRV[i]);
-
-                    activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _modelInstance.Model.ModelMesh.Draw(ImmediateContext, i);
-                }
-                world = _stoneInstance.World;
-                wit = MathF.InverseTranspose(world);
-                wvp = world * viewProj;
-
-                Effects.NormalMapFX.SetWorld(world);
-                Effects.NormalMapFX.SetWorldInvTranspose(wit);
-                Effects.NormalMapFX.SetWorldViewProj(wvp);
-                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
-
-                for (int i = 0; i < _modelInstance.Model.SubsetCount; i++) {
-                    Effects.NormalMapFX.SetMaterial(_stoneInstance.Model.Materials[i]);
-                    Effects.NormalMapFX.SetDiffuseMap(_stoneInstance.Model.DiffuseMapSRV[i]);
-                    Effects.NormalMapFX.SetNormalMap(_stoneInstance.Model.NormalMapSRV[i]);
-
-                    activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _stoneInstance.Model.ModelMesh.Draw(ImmediateContext, i);
-                }
+                var pass = activeTech.GetPassByIndex(p);
+                _modelInstance.Draw(ImmediateContext, pass, viewProj);
+                _stoneInstance.Draw(ImmediateContext, pass, viewProj);
             }
-            
+
             SwapChain.Present(0, PresentFlags.None);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {

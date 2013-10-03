@@ -67,7 +67,7 @@ namespace Core.Model {
                     }
                 }
                 var subset = new MeshGeometry.Subset {
-                    Id = s,
+                    
                     VertexCount = mesh.VertexCount,
                     VertexStart = _vertices.Count,
                     FaceStart = _indices.Count / 3,
