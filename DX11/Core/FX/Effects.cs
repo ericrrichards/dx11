@@ -51,6 +51,18 @@
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+
+            try {
+                FireFX = new ParticleEffect(device, "FX/Fire.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+            try {
+                RainFX = new ParticleEffect(device, "FX/Rain.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+
         }
         public static void DestroyAll() {
             Util.ReleaseCom(ref BasicFX);
@@ -62,6 +74,9 @@
             Util.ReleaseCom(ref TerrainFX);
             Util.ReleaseCom(ref ColorFX);
             Util.ReleaseCom(ref InstancedNormalMapFX);
+
+            Util.ReleaseCom(ref FireFX);
+            Util.ReleaseCom(ref RainFX);
         }
 
         public static BasicEffect BasicFX;
@@ -73,5 +88,8 @@
         public static TerrainEffect TerrainFX;
         public static ColorEffect ColorFX;
         public static InstancedNormalMapEffect InstancedNormalMapFX;
+
+        public static ParticleEffect FireFX;
+        public static ParticleEffect RainFX;
     }
 }

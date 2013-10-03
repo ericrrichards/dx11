@@ -66,11 +66,14 @@
     <Compile Include="FX\InstancedBasicEffect.cs" />
     <Compile Include="FX\InstancedNormalMapEffect.cs" />
     <Compile Include="FX\NormalMapEffect.cs" />
+    <Compile Include="FX\ParticleEffect.cs" />
     <Compile Include="FX\SkyEffect.cs" />
     <Compile Include="FX\TerrainEffect.cs" />
     <Compile Include="FX\TreeSpriteEffect.cs" />
     <Compile Include="GameTimer.cs" />
     <Compile Include="GeometryGenerator.cs" />
+    <Compile Include="InputLayoutDescriptions.cs" />
+    <Compile Include="InputLayouts.cs" />
     <Compile Include="Lights.cs" />
     <Compile Include="Camera\LookAtCamera.cs" />
     <Compile Include="MathF.cs" />
@@ -80,6 +83,7 @@
     <Compile Include="Model\SceneAnimator.cs" />
     <Compile Include="Model\SkinnedModel.cs" />
     <Compile Include="Model\TextureManager.cs" />
+    <Compile Include="ParticleSystem.cs" />
     <Compile Include="ProgressUpdate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderStates.cs" />

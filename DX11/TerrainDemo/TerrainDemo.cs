@@ -96,7 +96,7 @@ namespace TerrainDemo {
             RenderStates.InitAll(Device);
 
             _sky = new Sky(Device, "Textures/grasscube1024.dds", 5000.0f);
-
+            Patch.InitPatchData(Terrain.CellsPerPatch, Device);
             var tii = new InitInfo {
                 HeightMapFilename = "Textures/terrain.raw",
                 LayerMapFilename0 = "textures/grass.dds",

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using Assimp;
 using SlimDX;
@@ -152,6 +153,34 @@ namespace Core {
             }
 
             return texArraySRV;
+        }
+
+        public static ShaderResourceView CreateRandomTexture1DSRV(Device device) {
+            var randomValues = new List<Vector4>();
+            for (int i = 0; i < 1024; i++) {
+                randomValues.Add(new Vector4(MathF.Rand(-1.0f, 1.0f), MathF.Rand(-1.0f, 1.0f), MathF.Rand(-1.0f, 1.0f), MathF.Rand(-1.0f, 1.0f)));
+            }
+            var texDesc = new Texture1DDescription() {
+                ArraySize = 1,
+                BindFlags = BindFlags.ShaderResource,
+                CpuAccessFlags = CpuAccessFlags.None,
+                Format = Format.R32G32B32A32_Float,
+                MipLevels = 1,
+                OptionFlags = ResourceOptionFlags.None,
+                Usage = ResourceUsage.Immutable,
+                Width = 1024
+            };
+            var randTex = new Texture1D(device, texDesc, new DataStream(randomValues.ToArray(), false, false));
+
+            var viewDesc = new ShaderResourceViewDescription() {
+                Format = texDesc.Format,
+                Dimension = ShaderResourceViewDimension.Texture1D,
+                MipLevels = texDesc.MipLevels,
+                MostDetailedMip = 0
+            };
+            var randTexSRV = new ShaderResourceView(device, randTex, viewDesc);
+            ReleaseCom(ref randTex);
+            return randTexSRV;
         }
     }
 }
