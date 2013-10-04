@@ -84,7 +84,7 @@ namespace ParticlesDemo {
 
         public override bool Init() {
             if (!base.Init()) return false;
-
+            Enable4xMsaa = true;
             Effects.InitAll(Device);
             InputLayouts.InitAll(Device);
             RenderStates.InitAll(Device);

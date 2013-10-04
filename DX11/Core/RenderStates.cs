@@ -86,7 +86,8 @@ namespace Core {
                 DepthComparison = Comparison.Less,
                 IsStencilEnabled = true,
                 StencilReadMask = 0xff,
-                StencilWriteMask = 0xff, FrontFace = new DepthStencilOperationDescription {
+                StencilWriteMask = 0xff, 
+                FrontFace = new DepthStencilOperationDescription {
                     FailOperation = StencilOperation.Keep,
                     DepthFailOperation = StencilOperation.Keep,
                     PassOperation = StencilOperation.Replace,

@@ -258,5 +258,18 @@ namespace Core {
             return ret;
         }
 
+        public static MeshData CreateFullScreenQuad() {
+            var ret = new MeshData();
+
+            ret.Vertices.Add(new Vertex(-1,-1,0,0,0,-1,1,0,0,0,1));
+            ret.Vertices.Add(new Vertex(-1,1,0,0,0,-1,1,0,0,0,0));
+            ret.Vertices.Add(new Vertex(1,1,0,0,0,-1,1,0,0,1,0));
+            ret.Vertices.Add(new Vertex(1,-1,0,0,0,-1,1,0,0,1,1));
+
+            ret.Indices.AddRange(new[]{0,1,2,0,2,3});
+
+
+            return ret;
+        }
     }
 }

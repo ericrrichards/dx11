@@ -11,6 +11,7 @@
         protected SlimDX.Direct3D11.Effect FX;
         private bool _disposed;
         protected Effect(Device device, string filename) {
+            //Console.WriteLine("Loading effects from: " + Directory.GetCurrentDirectory());
             if (!File.Exists(filename)) {
                 throw new FileNotFoundException(string.Format("Effect file {0} not present", filename));
             }

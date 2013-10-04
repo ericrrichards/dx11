@@ -94,7 +94,9 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd FX
+
 fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Sky.fxo Sky.fx
+
 fxc /O0 /Fc /Zi /T  fx_5_0 /Fo Terrain.fxo Terrain.fx</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

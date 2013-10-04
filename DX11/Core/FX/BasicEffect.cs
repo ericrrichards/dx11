@@ -121,6 +121,7 @@
         private readonly EffectMatrixVariable _world;
         private readonly EffectMatrixVariable _worldInvTranspose;
         private readonly EffectMatrixVariable _texTransform;
+        private readonly EffectMatrixVariable _shadowTransform;
         private readonly EffectVectorVariable _eyePosW;
         private readonly EffectVectorVariable _fogColor;
         private readonly EffectScalarVariable _fogStart;
@@ -129,8 +130,10 @@
         private readonly EffectVariable _mat;
 
         private readonly EffectResourceVariable _diffuseMap;
+        private readonly EffectResourceVariable _shadowMap;
         private readonly EffectResourceVariable _cubeMap;
         private readonly EffectMatrixVariable _boneTransforms;
+        
 
         public BasicEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -259,9 +262,12 @@
             _dirLights = FX.GetVariableByName("gDirLights");
             _mat = FX.GetVariableByName("gMaterial");
             _diffuseMap = FX.GetVariableByName("gDiffuseMap").AsResource();
+            _shadowMap = FX.GetVariableByName("gShadowMap").AsResource();
             _cubeMap = FX.GetVariableByName("gCubeMap").AsResource();
 
             _boneTransforms = FX.GetVariableByName("gBoneTransforms").AsMatrix();
+
+            _shadowTransform = FX.GetVariableByName("gShadowTransform").AsMatrix();
 
         }
         public void SetWorldViewProj(Matrix m) {
@@ -298,6 +304,9 @@
         public void SetDiffuseMap(ShaderResourceView tex) {
             _diffuseMap.SetResource(tex);
         }
+        public void SetShadowMap(ShaderResourceView tex) {
+            _shadowMap.SetResource(tex);
+        }
         public void SetCubeMap(ShaderResourceView tex) {
             _cubeMap.SetResource(tex);
         }
@@ -314,6 +323,10 @@
 
         public void SetBoneTransforms(List<Matrix> bones) {
             _boneTransforms.SetMatrixArray(bones.ToArray());
+        }
+
+        public void SetShadowTransform(Matrix matrix) {
+            _shadowTransform.SetMatrix(matrix);
         }
     }
 }

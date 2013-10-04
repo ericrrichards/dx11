@@ -83,6 +83,9 @@ namespace Core {
             var f = CosInterpolate(i1, i2, fracY) * amp;
             return f;
         }
-        
+
+        public static float Sqrt(float f) {
+            return (float)Math.Sqrt(f);
+        }
     }
 }

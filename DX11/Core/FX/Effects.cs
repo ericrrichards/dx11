@@ -1,11 +1,16 @@
 ﻿namespace Core.FX {
     using System;
+    using System.IO;
     using System.Text;
 
     using SlimDX.Direct3D11;
 
     public static class Effects {
         public static void InitAll(Device device) {
+            if (!Directory.GetCurrentDirectory().EndsWith("bin\\Debug")) {
+                Directory.SetCurrentDirectory(Directory.GetCurrentDirectory() + "\\bin\\debug");
+            }
+            Console.WriteLine("Loading effects from: " + Directory.GetCurrentDirectory());
             try {
                 BasicFX = new BasicEffect(device, "FX/Basic.fxo");
             } catch (Exception ex) {
@@ -62,6 +67,16 @@
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+            try {
+                BuildShadowMapFX = new BuildShadowMapEffect(device, "FX/BuildShadowMap.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+            try {
+                DebugTexFX = new DebugTexEffect(device, "FX/DebugTexture.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
 
         }
         public static void DestroyAll() {
@@ -77,6 +92,9 @@
 
             Util.ReleaseCom(ref FireFX);
             Util.ReleaseCom(ref RainFX);
+
+            Util.ReleaseCom(ref BuildShadowMapFX);
+            Util.ReleaseCom(ref DebugTexFX);
         }
 
         public static BasicEffect BasicFX;
@@ -91,5 +109,8 @@
 
         public static ParticleEffect FireFX;
         public static ParticleEffect RainFX;
+
+        public static BuildShadowMapEffect BuildShadowMapFX;
+        public static DebugTexEffect DebugTexFX;
     }
 }

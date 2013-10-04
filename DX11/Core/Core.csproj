@@ -59,7 +59,9 @@
     <Compile Include="DisposableClass.cs" />
     <Compile Include="Frustum.cs" />
     <Compile Include="FX\BasicEffect.cs" />
+    <Compile Include="FX\BuildShadowMapEffect.cs" />
     <Compile Include="FX\ColorEffect.cs" />
+    <Compile Include="FX\DebugTexEffect.cs" />
     <Compile Include="FX\DisplacementMapEffect.cs" />
     <Compile Include="FX\Effect.cs" />
     <Compile Include="FX\Effects.cs" />
@@ -87,6 +89,7 @@
     <Compile Include="ProgressUpdate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderStates.cs" />
+    <Compile Include="ShadowMap.cs" />
     <Compile Include="Sky.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
     <Compile Include="Terrain\Patch.cs" />
