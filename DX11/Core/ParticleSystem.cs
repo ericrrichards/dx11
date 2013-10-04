@@ -83,20 +83,19 @@ namespace Core {
             dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PointList;
 
             var stride = Particle.Stride;
-            const int offset = 0;
+            const int Offset = 0;
 
-            if (_firstRun) {
-                dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_initVB, stride, offset));
-            } else {
-                dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_drawVB, stride, offset));
-            }
-            dc.StreamOutput.SetTargets(new StreamOutputBufferBinding(_streamOutVB, offset));
+           
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_firstRun ? _initVB : _drawVB, stride, Offset));
+            
+            dc.StreamOutput.SetTargets(new StreamOutputBufferBinding(_streamOutVB, Offset));
 
             var techDesc = _fx.StreamOutTech.Description;
             for (int p = 0; p < techDesc.PassCount; p++) {
                 _fx.StreamOutTech.GetPassByIndex(p).Apply(dc);
                 if (_firstRun) {
                     dc.Draw(1, 0);
+                    _firstRun = false;
                 } else {
                     dc.DrawAuto();
                 }
@@ -107,7 +106,7 @@ namespace Core {
             _drawVB = _streamOutVB;
             _streamOutVB = temp;
 
-            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_drawVB, stride, offset));
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_drawVB, stride, Offset));
 
             techDesc = _fx.DrawTech.Description;
             for (int p = 0; p < techDesc.PassCount; p++) {
