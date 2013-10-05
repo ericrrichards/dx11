@@ -25,6 +25,9 @@ namespace Core.Model {
         public bool HasSkeleton { get { return Bones.Count > 0; } }
         public string AnimationName { get { return Animations[CurrentAnimationIndex].Name; } }
         public float AnimationSpeed { get { return Animations[CurrentAnimationIndex].TicksPerSecond; } }
+        public float Duration {
+            get { return Animations[CurrentAnimationIndex].Duration/ Animations[CurrentAnimationIndex].TicksPerSecond; }
+        }
 
         public SceneAnimator() {
             Skeleton = null;

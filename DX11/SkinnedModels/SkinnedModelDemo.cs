@@ -89,30 +89,40 @@ namespace SkinnedModels {
             _texMgr.Init(Device);
 
             _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true);
-            _droneInstance = new SkinnedModelInstance {
-                ClipName = "Attack",
-                World = Matrix.Identity,
-                TimePos = 0.0f,
-                Model = _drone
+            _droneInstance = new SkinnedModelInstance(
+                "Attack",
+                Matrix.Identity,
+                _drone
 
-            };
+            );
+            foreach (var clip in _droneInstance.Clips) {
+                _droneInstance.AddClip(clip);
+            }
+            _droneInstance.LoopClips = true;
+
             _mage = new SkinnedModel(Device, _texMgr, "Models/magician.x", "textures", true);
 
-            _mageInstance = new SkinnedModelInstance {
-                ClipName = "Attack",
-                World = Matrix.Translation(4.0f, 0, 0),
-                TimePos = 0.0f,
-                Model = _mage
-
-            };
+            _mageInstance = new SkinnedModelInstance(
+                "Attack",
+                Matrix.Translation(4.0f, 0, 0),
+                _mage
+            );
+            foreach (var clip in _mageInstance.Clips) {
+                _mageInstance.AddClip(clip);
+            }
+            _mageInstance.LoopClips = true;
 
             _soldier = new SkinnedModel(Device, _texMgr, "Models/soldier.x", "Textures", true);
-            _soldierInstance = new SkinnedModelInstance {
-                ClipName = "Attack",
-                Model = _soldier,
-                World = Matrix.Translation(10, 0, 0),
-                TimePos = 0.0f
-            };
+            _soldierInstance = new SkinnedModelInstance (
+                "Attack",
+                Matrix.Translation(10, 0, 0),
+                _soldier
+            );
+
+            foreach (var clip in _soldierInstance.Clips) {
+                _soldierInstance.AddClip(clip);
+            }
+            _soldierInstance.LoopClips = true;
 
             return true;
 
@@ -141,9 +151,9 @@ namespace SkinnedModels {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            _droneInstance.Update(dt *20);
-            _mageInstance.Update(dt *15);
-            _soldierInstance.Update(dt *10);
+            _droneInstance.Update(dt );
+            _mageInstance.Update(dt );
+            _soldierInstance.Update(dt );
         }
 
         public override void DrawScene() {
