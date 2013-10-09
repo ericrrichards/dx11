@@ -9,13 +9,13 @@
 
     public class AnimEvaluator {
         public string Name { get; set; }
-        public List<AnimationChannel> Channels { get; set; }
+        public List<AnimationChannel> Channels { get; private set; }
         public bool PlayAnimationForward { get; set; }
         public float LastTime { get; set; }
         public float TicksPerSecond { get; set; }
         public float Duration { get; set; }
         public List<MutableTuple<int, int, int>> LastPositions { get; set; }
-        public List<List<Matrix>> Transforms { get; set; }
+        public List<List<Matrix>> Transforms { get; private set; }
 
         public AnimEvaluator() {
             LastTime = 0.0f;
@@ -24,18 +24,19 @@
             PlayAnimationForward = true;
             Transforms = new List<List<Matrix>>();
         }
-        public AnimEvaluator(Animation anim, SceneAnimator scene) {
+        public AnimEvaluator(Animation anim) {
             LastTime = 0.0f;
             TicksPerSecond = anim.TicksPerSecond != 0.0f ? (float)anim.TicksPerSecond : 3000.0f;
             Duration = (float)anim.DurationInTicks;
             Name = anim.Name;
             Channels = new List<AnimationChannel>();
             foreach (var channel in anim.NodeAnimationChannels) {
-                var c = new AnimationChannel();
-                c.Name = channel.NodeName;
-                c.PositionKeys = channel.PositionKeys.ToList();
-                c.RotationKeys = channel.RotationKeys.ToList();
-                c.ScalingKeys = channel.ScalingKeys.ToList();
+                var c = new AnimationChannel {
+                    Name = channel.NodeName,
+                    PositionKeys = channel.PositionKeys.ToList(),
+                    RotationKeys = channel.RotationKeys.ToList(),
+                    ScalingKeys = channel.ScalingKeys.ToList()
+                };
                 Channels.Add(c);
             }
             LastPositions = Enumerable.Repeat(new MutableTuple<int, int, int>(0, 0, 0), anim.NodeAnimationChannelCount).ToList();
@@ -146,7 +147,7 @@
                     }*/
                     LastPositions[i].Item3 = frame;
                 }
-                var mat = new Assimp.Matrix4x4(pRot.GetMatrix());
+                var mat = new Matrix4x4(pRot.GetMatrix());
                 mat.A1 *= pscale.X; mat.B1 *= pscale.X; mat.C1 *= pscale.X;
                 mat.A2 *= pscale.Y; mat.B2 *= pscale.Y; mat.C2 *= pscale.Y;
                 mat.A3 *= pscale.Z; mat.B3 *= pscale.Z; mat.C3 *= pscale.Z;

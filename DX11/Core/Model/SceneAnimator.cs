@@ -1,10 +1,4 @@
-﻿using System.Drawing;
-using Core.Camera;
-using Core.FX;
-using Core.Vertex;
-using SlimDX.Direct3D11;
-
-namespace Core.Model {
+﻿namespace Core.Model {
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -14,15 +8,15 @@ namespace Core.Model {
     using SlimDX;
 
     public class SceneAnimator {
-        protected Bone Skeleton;
-        protected readonly Dictionary<string, Bone> BonesByName;
-        protected readonly Dictionary<string, int> BonesToIndex;
-        protected readonly Dictionary<string, int> AnimationNameToId;
-        protected readonly List<Bone> Bones;
-        protected List<Matrix> _transforms;
+        private Bone _skeleton;
+        private readonly Dictionary<string, Bone> _bonesByName;
+        private readonly Dictionary<string, int> _bonesToIndex;
+        private readonly Dictionary<string, int> _animationNameToId;
+        private readonly List<Bone> _bones;
+        private List<Matrix> _transforms;
         public List<AnimEvaluator> Animations { get; private set; }
         public int CurrentAnimationIndex { get; private set; }
-        public bool HasSkeleton { get { return Bones.Count > 0; } }
+        public bool HasSkeleton { get { return _bones.Count > 0; } }
         public string AnimationName { get { return Animations[CurrentAnimationIndex].Name; } }
         public float AnimationSpeed { get { return Animations[CurrentAnimationIndex].TicksPerSecond; } }
         public float Duration {
@@ -30,12 +24,12 @@ namespace Core.Model {
         }
 
         public SceneAnimator() {
-            Skeleton = null;
+            _skeleton = null;
             CurrentAnimationIndex = -1;
-            BonesByName = new Dictionary<string, Bone>();
-            BonesToIndex = new Dictionary<string, int>();
-            AnimationNameToId = new Dictionary<string, int>();
-            Bones = new List<Bone>();
+            _bonesByName = new Dictionary<string, Bone>();
+            _bonesToIndex = new Dictionary<string, int>();
+            _animationNameToId = new Dictionary<string, int>();
+            _bones = new List<Bone>();
             Animations = new List<AnimEvaluator>();
         }
 
@@ -44,40 +38,40 @@ namespace Core.Model {
                 return;
             }
             Release();
-            Skeleton = CreateBoneTree(scene.RootNode, null);
+            _skeleton = CreateBoneTree(scene.RootNode, null);
 
 
             foreach (var mesh in scene.Meshes) {
                 foreach (var bone in mesh.Bones) {
                     Bone found;
-                    if (BonesByName.TryGetValue(bone.Name, out found)) {
-                        var skip = (from t in Bones let bname = bone.Name where t.Name == bname select t).Any();
-                        if (!skip) {
-                            var tes = found.Name;
-                            found.Offset = Matrix.Transpose(bone.OffsetMatrix.ToMatrix());
-                            Bones.Add(found);
-                            BonesToIndex[found.Name] = Bones.IndexOf(found);
-                        }
-                    }
+                    if (!_bonesByName.TryGetValue(bone.Name, out found)) continue;
+
+                    var skip = (from t in _bones let bname = bone.Name where t.Name == bname select t).Any();
+                    if (skip) continue;
+
+                    found.Offset = Matrix.Transpose(bone.OffsetMatrix.ToMatrix());
+                    _bones.Add(found);
+                    _bonesToIndex[found.Name] = _bones.IndexOf(found);
                 }
-                foreach (var bone in BonesByName.Keys.Where(b => !mesh.Bones.Any(b1 => b1.Name == b) && b.StartsWith("Bone"))) {
-                    BonesByName[bone].Offset = BonesByName[bone].Parent.Offset;
-                    Bones.Add(BonesByName[bone]);
-                    BonesToIndex[bone] = Bones.IndexOf(BonesByName[bone]);
+                var mesh1 = mesh;
+                foreach (var bone in _bonesByName.Keys.Where(b => mesh1.Bones.All(b1 => b1.Name != b) && b.StartsWith("Bone"))) {
+                    _bonesByName[bone].Offset = _bonesByName[bone].Parent.Offset;
+                    _bones.Add(_bonesByName[bone]);
+                    _bonesToIndex[bone] = _bones.IndexOf(_bonesByName[bone]);
                 }
             }
             ExtractAnimations(scene);
-            _transforms = new List<Matrix>(Enumerable.Repeat(Matrix.Identity, Bones.Count));
+            _transforms = new List<Matrix>(Enumerable.Repeat(Matrix.Identity, _bones.Count));
             const float timestep = 1.0f / 60.0f;
-            for (int i = 0; i < Animations.Count; i++) {
+            for (var i = 0; i < Animations.Count; i++) {
                 SetAnimationIndex(i);
                 var dt = 0.0f;
                 for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond / 60.0f) {
                     dt += timestep;
                     Calculate(dt);
                     var trans = new List<Matrix>();
-                    for (int a = 0; a < _transforms.Count; a++) {
-                        var rotMat = Bones[a].Offset * Bones[a].GlobalTransform;
+                    for (var a = 0; a < _transforms.Count; a++) {
+                        var rotMat = _bones[a].Offset * _bones[a].GlobalTransform;
                         trans.Add(rotMat);
                     }
                     Animations[i].Transforms.Add(trans);
@@ -87,18 +81,18 @@ namespace Core.Model {
                     Console.WriteLine("All transforms are the same");
                 }
             }
-            Console.WriteLine("Finished loading animations with " + Bones.Count + " bones");
+            Console.WriteLine("Finished loading animations with " + _bones.Count + " bones");
         }
 
         private void Calculate(float dt) {
             if ((CurrentAnimationIndex < 0) | (CurrentAnimationIndex >= Animations.Count)) {
                 return;
             }
-            Animations[CurrentAnimationIndex].Evaluate(dt, BonesByName);
-            UpdateTransforms(Skeleton);
+            Animations[CurrentAnimationIndex].Evaluate(dt, _bonesByName);
+            UpdateTransforms(_skeleton);
         }
 
-        private void UpdateTransforms(Bone node) {
+        private static void UpdateTransforms(Bone node) {
             CalculateBoneToWorldTransform(node);
             foreach (var child in node.Children) {
                 UpdateTransforms(child);
@@ -107,10 +101,10 @@ namespace Core.Model {
 
         private void ExtractAnimations(Scene scene) {
             foreach (var animation in scene.Animations) {
-                Animations.Add(new AnimEvaluator(animation, this));
+                Animations.Add(new AnimEvaluator(animation));
             }
-            for (int i = 0; i < Animations.Count; i++) {
-                AnimationNameToId[Animations[i].Name] = i;
+            for (var i = 0; i < Animations.Count; i++) {
+                _animationNameToId[Animations[i].Name] = i;
             }
             CurrentAnimationIndex = 0;
             SetAnimation("Idle");
@@ -118,9 +112,7 @@ namespace Core.Model {
 
         private int _i;
         private Bone CreateBoneTree(Node node, Bone parent) {
-            /*if (string.IsNullOrEmpty(node.Name)) {
-                return null;
-            }*/
+            
             var internalNode = new Bone {
                 Name = node.Name, Parent = parent
             };
@@ -128,7 +120,7 @@ namespace Core.Model {
                 internalNode.Name = "foo" + _i++;
             }
 
-            BonesByName[internalNode.Name] = internalNode;
+            _bonesByName[internalNode.Name] = internalNode;
             var trans = node.Transform;
             trans.Transpose();
             internalNode.LocalTransform = trans.ToMatrix();
@@ -156,7 +148,7 @@ namespace Core.Model {
         private void Release() {
             CurrentAnimationIndex = -1;
             Animations.Clear();
-            Skeleton = null;
+            _skeleton = null;
         }
 
         public bool SetAnimationIndex(int animIndex) {
@@ -169,7 +161,7 @@ namespace Core.Model {
         }
         public bool SetAnimation(string animation) {
             int index;
-            if (AnimationNameToId.TryGetValue(animation, out index)) {
+            if (_animationNameToId.TryGetValue(animation, out index)) {
                 var oldIndex = CurrentAnimationIndex;
                 CurrentAnimationIndex = index;
                 return oldIndex != CurrentAnimationIndex;
@@ -195,12 +187,10 @@ namespace Core.Model {
             return Animations[CurrentAnimationIndex].Transforms[frame % Animations[CurrentAnimationIndex].Transforms.Count];
         }
         public int GetBoneIndex(string name) {
-            /*if (BonesByName[name].Children.Count(c=>c.Name!="") == 1) {
-                return BonesToIndex[BonesByName[name].Children.First(c=>c.Name != "").Name];
-            }*/
-            if (BonesToIndex.ContainsKey(name)) {
+            
+            if (_bonesToIndex.ContainsKey(name)) {
 
-                return BonesToIndex[name];
+                return _bonesToIndex[name];
             }
             return -1;
         }
@@ -214,72 +204,5 @@ namespace Core.Model {
         public Matrix GetBoneTransform(float dt, int i) {
             return Animations[CurrentAnimationIndex].GetTransforms(dt)[i];
         }
-
-        private static Color[] boneColors = {
-            Color.Black,
-            Color.Red,
-            Color.Blue,
-            Color.Green,
-            Color.Yellow,
-            Color.Magenta,
-            Color.Cyan,
-            Color.White,
-            Color.BlueViolet,
-            Color.YellowGreen,
-            Color.Brown,
-            Color.CadetBlue,
-            Color.SandyBrown,
-            Color.Tomato,
-            Color.SpringGreen,
-            Color.Sienna,
-            Color.Thistle,
-            Color.CornflowerBlue
-        };
-
-        public void RenderSkeleton(DeviceContext dc, CameraBase camera, Bone bone, Bone parent, Matrix world) {
-            if (bone == null) {
-                bone = Bones.First(b => b.Parent.Parent == null);
-            }
-            if (parent != null && !string.IsNullOrEmpty(bone.Name) && !string.IsNullOrEmpty(parent.Name)) {
-
-                var w1 = Animations[CurrentAnimationIndex].GetTransforms(0)[BonesToIndex[bone.Name]];
-                var w2 = Animations[CurrentAnimationIndex].GetTransforms(0)[BonesToIndex[parent.Name]];
-                var thisBone = new Vector3(w1[3, 0], w1[3, 1], w1[3, 2]);
-                var parentBone = new Vector3(w2[3, 0], w2[3, 1], w2[3, 2]);
-                Console.WriteLine("this: {0} - {1}", bone.Name, thisBone);
-                Console.WriteLine("parent: {0} - {1}", parent.Name, parentBone);
-
-                var vb = new SlimDX.Direct3D11.Buffer(dc.Device,
-                    new DataStream(new[] {
-                        new VertexPC(parentBone, boneColors[BonesToIndex[parent.Name] % boneColors.Length]), 
-                        new VertexPC(thisBone, boneColors[BonesToIndex[bone.Name] % boneColors.Length]),
-                    }, false, false),
-                    new BufferDescription(
-                        VertexPC.Stride * 2,
-                        ResourceUsage.Immutable,
-                        BindFlags.VertexBuffer,
-                        CpuAccessFlags.None,
-                        ResourceOptionFlags.None,
-                        0));
-
-                //if (Vector3.Distance(thisBone , parentBone) < 20.0f) {
-                Effects.ColorFX.SetWorldViewProj(world * camera.ViewProj);
-                dc.InputAssembler.InputLayout = InputLayouts.PosColor;
-                dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
-                dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(vb, VertexPC.Stride, 0));
-                for (int p = 0; p < Effects.ColorFX.ColorTech.Description.PassCount; p++) {
-                    Effects.ColorFX.ColorTech.GetPassByIndex(p).Apply(dc);
-                    dc.Draw(2, 0);
-                }
-                //}
-                Util.ReleaseCom(ref vb);
-
-            }
-            foreach (var child in bone.Children) {
-                RenderSkeleton(dc, camera, child, bone, world);
-            }
-
-        }
-
     }
 }
