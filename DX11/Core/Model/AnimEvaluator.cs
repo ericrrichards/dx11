@@ -14,7 +14,7 @@
         public float LastTime { get; set; }
         public float TicksPerSecond { get; set; }
         public float Duration { get; set; }
-        public List<Tuple<int, int, int>> LastPositions { get; set; }
+        public List<MutableTuple<int, int, int>> LastPositions { get; set; }
         public List<List<Matrix>> Transforms { get; set; }
 
         public AnimEvaluator() {
@@ -38,7 +38,7 @@
                 c.ScalingKeys = channel.ScalingKeys.ToList();
                 Channels.Add(c);
             }
-            LastPositions = Enumerable.Repeat(new Tuple<int, int, int>(0, 0, 0), anim.NodeAnimationChannelCount).ToList();
+            LastPositions = Enumerable.Repeat(new MutableTuple<int, int, int>(0, 0, 0), anim.NodeAnimationChannelCount).ToList();
             Transforms = new List<List<Matrix>>();
             PlayAnimationForward = true;
         }
@@ -113,7 +113,7 @@
                     } else {
                         pRot = key.Value;
                     }
-                    LastPositions[i].Item2 = frame;
+                    LastPositions[i].Item1= frame;
 
                 }
                 var pscale = new Vector3D(1);
@@ -174,24 +174,5 @@
             var frameIndexAt = (int)(Transforms.Count * percent);
             return frameIndexAt;
         }
-    }
-
-    public class AnimationChannel {
-        public string Name { get; set; }
-        public List<VectorKey> PositionKeys { get; set; }
-        public List<QuaternionKey> RotationKeys { get; set; }
-        public List<VectorKey> ScalingKeys { get; set; }
-    }
-
-    public class Tuple<T1, T2, T3> {
-        public Tuple(T1 i, T2 i1, T3 i2) {
-            Item1 = i;
-            Item2 = i1;
-            Item3 = i2;
-        }
-
-        public T1 Item1 { get; set; }
-        public T2 Item2 { get; set; }
-        public T3 Item3 { get; set; }
     }
 }
