@@ -64,5 +64,9 @@ namespace Core.Model {
         public void ClearClips() {
             _clipQueue.Clear();
         }
+
+        public Matrix GetBoneTransform(string boneName) {
+            return Model.Animator.GetBoneTransform(TimePos, boneName);
+        }
     }
 }

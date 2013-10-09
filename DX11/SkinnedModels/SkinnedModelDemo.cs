@@ -30,6 +30,8 @@ namespace SkinnedModels {
         private SkinnedModelInstance _soldierInstance;
         private SkinnedModelInstance _mageInstance;
         private SkinnedModel _mage;
+        private BasicModel _sword;
+        private BasicModelInstance _swordInstance;
 
         private SkinnedModelDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Skinned Model Demo";
@@ -67,7 +69,9 @@ namespace SkinnedModels {
                     Util.ReleaseCom(ref _drone);
                     Util.ReleaseCom(ref _soldier);
                     Util.ReleaseCom(ref _mage);
+                    Util.ReleaseCom(ref _sword);
                     Util.ReleaseCom(ref _texMgr);
+                    
 
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();
@@ -124,6 +128,12 @@ namespace SkinnedModels {
             }
             _soldierInstance.LoopClips = true;
 
+            _sword = new BasicModel(Device, _texMgr, "Models/tree.x", "Textures");
+            _swordInstance = new BasicModelInstance() {
+                Model = _sword,
+                World = Matrix.RotationX(MathF.PI / 2)
+            };
+
             return true;
 
         }
@@ -154,6 +164,8 @@ namespace SkinnedModels {
             _droneInstance.Update(dt );
             _mageInstance.Update(dt );
             _soldierInstance.Update(dt );
+
+            _swordInstance.World = _droneInstance.GetBoneTransform("Bone18");
         }
 
         public override void DrawScene() {
@@ -234,6 +246,12 @@ namespace SkinnedModels {
                     Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _soldierInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
+
+                
+            }
+            var activeTech = Effects.NormalMapFX.Light3TexTech;
+            for (int p = 0; p < activeTech.Description.PassCount; p++) {
+                _swordInstance.Draw(ImmediateContext, activeTech.GetPassByIndex(p), viewProj);
             }
             SwapChain.Present(0, PresentFlags.None);
         }

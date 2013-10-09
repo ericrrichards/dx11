@@ -48,6 +48,11 @@ namespace Core.Model {
             if (!importer.IsImportFormatSupported(Path.GetExtension(filename))) {
                 throw new ArgumentException("Model format " + Path.GetExtension(filename) + " is not supported!  Cannot load {1}", "filename");
             }
+#if DEBUG
+
+            importer.AttachLogStream(new ConsoleLogStream());
+            importer.VerboseLoggingEnabled = true;
+#endif
             var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace);
 
 
