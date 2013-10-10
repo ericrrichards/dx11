@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Assimp;
-using Core.FX;
+
 using Core.Vertex;
 using SlimDX;
 using SlimDX.Direct3D11;
 
 namespace Core.Model {
+    using System.Drawing;
+
     public class BasicModel : DisposableClass {
         private bool _disposed;
         private readonly List<MeshGeometry.Subset> _subsets;
@@ -33,6 +35,15 @@ namespace Core.Model {
                 _disposed = true;
             }
             base.Dispose(disposing);
+        }
+        private BasicModel() {
+            _subsets = new List<MeshGeometry.Subset>();
+            _vertices = new List<PosNormalTexTan>();
+            _indices = new List<short>();
+            DiffuseMapSRV = new List<ShaderResourceView>();
+            NormalMapSRV = new List<ShaderResourceView>();
+            Materials = new List<Material>();
+            _modelMesh = new MeshGeometry();
         }
 
         public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath) {
@@ -117,37 +128,32 @@ namespace Core.Model {
             _modelMesh.SetIndices(device, _indices);
         }
 
-    }
-    public struct BasicModelInstance {
-        public BasicModel Model;
-        public Matrix World;
-        public BoundingBox BoundingBox {
-            get {
-                return new BoundingBox(
-                    Vector3.TransformCoordinate(Model.BoundingBox.Minimum, World),
-                    Vector3.TransformCoordinate(Model.BoundingBox.Maximum, World)
-                );
-            }
+        public static BasicModel CreateSphere(Device device, float radius, int slices, int stacks) {
+            var sphere = GeometryGenerator.CreateSphere(radius, slices, stacks);
+
+            var subset = new MeshGeometry.Subset {
+                FaceCount = sphere.Indices.Count / 3,
+                FaceStart = 0,
+                VertexCount = sphere.Vertices.Count,
+                VertexStart = 0
+            };
+
+            var ret = new BasicModel();
+            ret._subsets.Add(subset);
+
+            ret._vertices.AddRange(sphere.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
+            ret._indices.AddRange(sphere.Indices.Select(i=>(short)i));
+
+
+            ret.Materials.Add(new Material(){ Ambient = Color.Blue, Diffuse = Color.DeepSkyBlue});
+            ret.DiffuseMapSRV.Add(null);
+            ret.NormalMapSRV.Add(null);
+
+            ret._modelMesh.SetSubsetTable(ret._subsets);
+            ret._modelMesh.SetVertices(device, ret._vertices);
+            ret._modelMesh.SetIndices(device, ret._indices);
+
+            return ret;
         }
-        public void Draw(DeviceContext dc, EffectPass effectPass, Matrix viewProj) {
-            var world = World;
-            var wit = MathF.InverseTranspose(world);
-            var wvp = world * viewProj;
-
-            Effects.NormalMapFX.SetWorld(world);
-            Effects.NormalMapFX.SetWorldInvTranspose(wit);
-            Effects.NormalMapFX.SetWorldViewProj(wvp);
-            Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
-
-            for (int i = 0; i < Model.SubsetCount; i++) {
-                Effects.NormalMapFX.SetMaterial(Model.Materials[i]);
-                Effects.NormalMapFX.SetDiffuseMap(Model.DiffuseMapSRV[i]);
-                Effects.NormalMapFX.SetNormalMap(Model.NormalMapSRV[i]);
-
-                effectPass.Apply(dc);
-                Model.ModelMesh.Draw(dc, i);
-            }
-        }
-
     }
 }

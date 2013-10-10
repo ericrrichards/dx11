@@ -128,10 +128,9 @@ namespace SkinnedModels {
             }
             _soldierInstance.LoopClips = true;
 
-            _sword = new BasicModel(Device, _texMgr, "Models/tree.x", "Textures");
+            _sword = BasicModel.CreateSphere(Device, 100.0f, 10, 10);
             _swordInstance = new BasicModelInstance() {
                 Model = _sword,
-                World = Matrix.RotationX(MathF.PI / 2)
             };
 
             return true;
@@ -165,7 +164,7 @@ namespace SkinnedModels {
             _mageInstance.Update(dt );
             _soldierInstance.Update(dt );
 
-            _swordInstance.World = _droneInstance.GetBoneTransform("Bone18");
+            _swordInstance.World = _droneInstance.GetBoneTransform("Bone20");
         }
 
         public override void DrawScene() {
@@ -249,9 +248,27 @@ namespace SkinnedModels {
 
                 
             }
+
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
             var activeTech = Effects.NormalMapFX.Light3TexTech;
             for (int p = 0; p < activeTech.Description.PassCount; p++) {
-                _swordInstance.Draw(ImmediateContext, activeTech.GetPassByIndex(p), viewProj);
+                var world = _swordInstance.World;
+                var wit = MathF.InverseTranspose(world);
+                var wvp = world * viewProj;
+
+                Effects.NormalMapFX.SetWorld(world);
+                Effects.NormalMapFX.SetWorldInvTranspose(wit);
+                Effects.NormalMapFX.SetWorldViewProj(wvp);
+                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
+
+                for (int i = 0; i < _swordInstance.Model.SubsetCount; i++) {
+                    Effects.NormalMapFX.SetMaterial(_swordInstance.Model.Materials[i]);
+                    Effects.NormalMapFX.SetDiffuseMap(_swordInstance.Model.DiffuseMapSRV[i]);
+                    Effects.NormalMapFX.SetNormalMap(_swordInstance.Model.NormalMapSRV[i]);
+
+                    activeTech.GetPassByIndex(p).Apply(ImmediateContext);
+                    _swordInstance.Model.ModelMesh.Draw(ImmediateContext, i);
+                }
             }
             SwapChain.Present(0, PresentFlags.None);
         }

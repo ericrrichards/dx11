@@ -82,6 +82,7 @@
     <Compile Include="Model\AnimationChannel.cs" />
     <Compile Include="Model\AnimEvaluator.cs" />
     <Compile Include="Model\BasicModel.cs" />
+    <Compile Include="Model\BasicModelInstance.cs" />
     <Compile Include="Model\Bone.cs" />
     <Compile Include="Model\MeshGeometry.cs" />
     <Compile Include="Model\MutableTuple.cs" />

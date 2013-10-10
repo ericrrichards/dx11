@@ -66,7 +66,7 @@ namespace Core.Model {
         }
 
         public Matrix GetBoneTransform(string boneName) {
-            return Model.Animator.GetBoneTransform(TimePos, boneName);
+            return World*FinalTransforms[Model.Animator.GetBoneIndex(boneName)];
         }
     }
 }

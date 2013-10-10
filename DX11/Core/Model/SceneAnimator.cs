@@ -62,12 +62,12 @@
             }
             ExtractAnimations(scene);
             _transforms = new List<Matrix>(Enumerable.Repeat(Matrix.Identity, _bones.Count));
-            const float timestep = 1.0f / 60.0f;
+            const float Timestep = 1.0f / 60.0f;
             for (var i = 0; i < Animations.Count; i++) {
                 SetAnimationIndex(i);
                 var dt = 0.0f;
                 for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond / 60.0f) {
-                    dt += timestep;
+                    dt += Timestep;
                     Calculate(dt);
                     var trans = new List<Matrix>();
                     for (var a = 0; a < _transforms.Count; a++) {
@@ -76,10 +76,7 @@
                     }
                     Animations[i].Transforms.Add(trans);
                 }
-                var distinctTrans = Animations[i].Transforms.Select(t => t.First()).Distinct().ToList();
-                if (distinctTrans.Count == 1) {
-                    Console.WriteLine("All transforms are the same");
-                }
+                
             }
             Console.WriteLine("Finished loading animations with " + _bones.Count + " bones");
         }
