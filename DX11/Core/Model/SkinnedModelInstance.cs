@@ -9,11 +9,7 @@ namespace Core.Model {
         public string ClipName {
             get { return _clipName; }
             set {
-                if (Model.Animator.Animations.Any(a => a.Name == value)) {
-                    _clipName = value;
-                } else {
-                    _clipName = "Still";
-                }
+                _clipName = Model.Animator.Animations.Any(a => a.Name == value) ? value : "Still";
                 Model.Animator.SetAnimation(_clipName);
                 TimePos = 0;
 
@@ -63,10 +59,6 @@ namespace Core.Model {
         }
         public void ClearClips() {
             _clipQueue.Clear();
-        }
-
-        public Matrix GetBoneTransform(string boneName) {
-            return World*FinalTransforms[Model.Animator.GetBoneIndex(boneName)];
         }
     }
 }

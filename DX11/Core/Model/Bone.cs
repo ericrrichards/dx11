@@ -10,7 +10,7 @@
         public Matrix GlobalTransform { get; set; }
         public Matrix OriginalLocalTransform { get; set; }
         public Bone Parent { get; set; }
-        public List<Bone> Children { get; set; }
+        public List<Bone> Children { get; private set; }
         public Bone() {
             Children = new List<Bone>();
         }

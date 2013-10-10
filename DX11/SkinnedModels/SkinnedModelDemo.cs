@@ -103,6 +103,7 @@ namespace SkinnedModels {
                 _droneInstance.AddClip(clip);
             }
             _droneInstance.LoopClips = true;
+            
 
             _mage = new SkinnedModel(Device, _texMgr, "Models/magician.x", "textures", true);
 
@@ -128,7 +129,7 @@ namespace SkinnedModels {
             }
             _soldierInstance.LoopClips = true;
 
-            _sword = BasicModel.CreateSphere(Device, 100.0f, 10, 10);
+            _sword = BasicModel.CreateSphere(Device, 20.0f, 20, 20);
             _swordInstance = new BasicModelInstance() {
                 Model = _sword,
             };
@@ -164,7 +165,7 @@ namespace SkinnedModels {
             _mageInstance.Update(dt );
             _soldierInstance.Update(dt );
 
-            _swordInstance.World = _droneInstance.GetBoneTransform("Bone20");
+            
         }
 
         public override void DrawScene() {
@@ -248,28 +249,7 @@ namespace SkinnedModels {
 
                 
             }
-
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
-            var activeTech = Effects.NormalMapFX.Light3TexTech;
-            for (int p = 0; p < activeTech.Description.PassCount; p++) {
-                var world = _swordInstance.World;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world * viewProj;
-
-                Effects.NormalMapFX.SetWorld(world);
-                Effects.NormalMapFX.SetWorldInvTranspose(wit);
-                Effects.NormalMapFX.SetWorldViewProj(wvp);
-                Effects.NormalMapFX.SetTexTransform(Matrix.Identity);
-
-                for (int i = 0; i < _swordInstance.Model.SubsetCount; i++) {
-                    Effects.NormalMapFX.SetMaterial(_swordInstance.Model.Materials[i]);
-                    Effects.NormalMapFX.SetDiffuseMap(_swordInstance.Model.DiffuseMapSRV[i]);
-                    Effects.NormalMapFX.SetNormalMap(_swordInstance.Model.NormalMapSRV[i]);
-
-                    activeTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    _swordInstance.Model.ModelMesh.Draw(ImmediateContext, i);
-                }
-            }
+            
             SwapChain.Present(0, PresentFlags.None);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {

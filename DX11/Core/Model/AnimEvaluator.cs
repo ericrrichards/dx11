@@ -8,25 +8,18 @@
     using SlimDX;
 
     public class AnimEvaluator {
-        public string Name { get; set; }
-        public List<AnimationChannel> Channels { get; private set; }
+        public string Name { get; private set; }
+        private List<AnimationChannel> Channels { get; set; }
         public bool PlayAnimationForward { get; set; }
-        public float LastTime { get; set; }
+        private float LastTime { get; set; }
         public float TicksPerSecond { get; set; }
-        public float Duration { get; set; }
-        public List<MutableTuple<int, int, int>> LastPositions { get; set; }
+        public float Duration { get; private set; }
+        private List<MutableTuple<int, int, int>> LastPositions { get; set; }
         public List<List<Matrix>> Transforms { get; private set; }
 
-        public AnimEvaluator() {
-            LastTime = 0.0f;
-            TicksPerSecond = 0.0f;
-            Duration = 0.0f;
-            PlayAnimationForward = true;
-            Transforms = new List<List<Matrix>>();
-        }
         public AnimEvaluator(Animation anim) {
             LastTime = 0.0f;
-            TicksPerSecond = anim.TicksPerSecond != 0.0f ? (float)anim.TicksPerSecond : 60.0f;
+            TicksPerSecond = anim.TicksPerSecond <= 0.0f ? (float)anim.TicksPerSecond : 920.0f;
             Duration = (float)anim.DurationInTicks;
             Name = anim.Name;
             Channels = new List<AnimationChannel>();
@@ -129,22 +122,6 @@
                     if (frame >= channel.ScalingKeys.Count) {
                         frame = 0;
                     }
-                    var nextFrame = (frame + 1) % channel.ScalingKeys.Count;
-                    var key = channel.ScalingKeys[frame];
-                    var nextKey = channel.ScalingKeys[nextFrame];
-                    var diffTime = nextKey.Time - key.Time;
-                    if (diffTime < 0.0) {
-                        diffTime += Duration;
-                    }
-                    pscale = key.Value;
-                    /*
-                    if (diffTime > 0.0) {
-                        var factor = (float) ((time - key.Time)/diffTime);
-                        pscale = Vector3.Lerp(key.Value.ToVector3(), nextKey.Value.ToVector3(), factor);
-                    } else {
-
-                        pscale = channel.ScalingKeys[frame].Value.ToVector3();
-                    }*/
                     LastPositions[i].Item3 = frame;
                 }
                 var mat = new Matrix4x4(pRot.GetMatrix());
@@ -162,7 +139,7 @@
             return Transforms[GetFrameIndexAt(dt)];
         }
 
-        public int GetFrameIndexAt(float dt) {
+        private int GetFrameIndexAt(float dt) {
             dt *= TicksPerSecond;
             var time = 0.0f;
             if (Duration > 0.0f) {

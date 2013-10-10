@@ -15,7 +15,7 @@
         private readonly List<Bone> _bones;
         private List<Matrix> _transforms;
         public List<AnimEvaluator> Animations { get; private set; }
-        public int CurrentAnimationIndex { get; private set; }
+        private int CurrentAnimationIndex { get; set; }
         public bool HasSkeleton { get { return _bones.Count > 0; } }
         public string AnimationName { get { return Animations[CurrentAnimationIndex].Name; } }
         public float AnimationSpeed { get { return Animations[CurrentAnimationIndex].TicksPerSecond; } }
@@ -62,12 +62,12 @@
             }
             ExtractAnimations(scene);
             _transforms = new List<Matrix>(Enumerable.Repeat(Matrix.Identity, _bones.Count));
-            const float Timestep = 1.0f / 60.0f;
+            const float timestep = 1.0f / 30.0f;
             for (var i = 0; i < Animations.Count; i++) {
                 SetAnimationIndex(i);
                 var dt = 0.0f;
-                for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond / 60.0f) {
-                    dt += Timestep;
+                for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond/30.0f) {
+                    dt += timestep;
                     Calculate(dt);
                     var trans = new List<Matrix>();
                     for (var a = 0; a < _transforms.Count; a++) {
@@ -76,7 +76,6 @@
                     }
                     Animations[i].Transforms.Add(trans);
                 }
-                
             }
             Console.WriteLine("Finished loading animations with " + _bones.Count + " bones");
         }
@@ -148,13 +147,13 @@
             _skeleton = null;
         }
 
-        public bool SetAnimationIndex(int animIndex) {
+        private void SetAnimationIndex(int animIndex) {
             if (animIndex >= Animations.Count) {
-                return false;
+                return;
             }
             var oldIndex = CurrentAnimationIndex;
             CurrentAnimationIndex = animIndex;
-            return oldIndex != CurrentAnimationIndex;
+            
         }
         public bool SetAnimation(string animation) {
             int index;
@@ -172,7 +171,7 @@
             Animations[CurrentAnimationIndex].PlayAnimationForward = false;
         }
         public void AdjustAnimationSpeedBy(float prc) {
-            Animations[CurrentAnimationIndex].TicksPerSecond *= prc / 100.0f;
+            Animations[CurrentAnimationIndex].TicksPerSecond *= prc;
         }
         public void AdjustAnimationSpeedTo(float ticksPerSec) {
             Animations[CurrentAnimationIndex].TicksPerSecond = ticksPerSec;
@@ -180,9 +179,7 @@
         public List<Matrix> GetTransforms(float dt) {
             return Animations[CurrentAnimationIndex].GetTransforms(dt);
         }
-        public List<Matrix> GetTransforms(int frame) {
-            return Animations[CurrentAnimationIndex].Transforms[frame % Animations[CurrentAnimationIndex].Transforms.Count];
-        }
+
         public int GetBoneIndex(string name) {
             
             if (_bonesToIndex.ContainsKey(name)) {
@@ -190,16 +187,6 @@
                 return _bonesToIndex[name];
             }
             return -1;
-        }
-        public Matrix GetBoneTransform(float dt, string bname) {
-            var i = GetBoneIndex(bname);
-            if (i == -1) {
-                return Matrix.Identity;
-            }
-            return Animations[CurrentAnimationIndex].GetTransforms(dt)[i];
-        }
-        public Matrix GetBoneTransform(float dt, int i) {
-            return Animations[CurrentAnimationIndex].GetTransforms(dt)[i];
         }
     }
 }
