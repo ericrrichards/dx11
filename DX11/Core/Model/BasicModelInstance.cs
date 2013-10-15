@@ -1,10 +1,10 @@
 ﻿namespace Core.Model {
-    using Core.FX;
+    using FX;
 
     using SlimDX;
     using SlimDX.Direct3D11;
 
-    public struct BasicModelInstance {
+    public class BasicModelInstance {
         public BasicModel Model;
         public Matrix World;
         public BoundingBox BoundingBox {
@@ -14,6 +14,9 @@
                     Vector3.TransformCoordinate(Model.BoundingBox.Maximum, World)
                     );
             }
+        }
+        public BasicModelInstance() {
+            World = Matrix.Identity;
         }
         public void Draw(DeviceContext dc, EffectPass effectPass, Matrix viewProj) {
             var world = World;

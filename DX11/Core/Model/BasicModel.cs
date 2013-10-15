@@ -142,10 +142,35 @@ namespace Core.Model {
             ret._subsets.Add(subset);
 
             ret._vertices.AddRange(sphere.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
-            ret._indices.AddRange(sphere.Indices.Select(i=>(short)i));
+            ret._indices.AddRange(sphere.Indices.Select(i => (short)i));
 
 
-            ret.Materials.Add(new Material(){ Ambient = Color.Blue, Diffuse = Color.DeepSkyBlue});
+            ret.Materials.Add(new Material() { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1)});
+            ret.DiffuseMapSRV.Add(null);
+            ret.NormalMapSRV.Add(null);
+
+            ret._modelMesh.SetSubsetTable(ret._subsets);
+            ret._modelMesh.SetVertices(device, ret._vertices);
+            ret._modelMesh.SetIndices(device, ret._indices);
+
+            return ret;
+        }
+        public static BasicModel CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
+            var grid = GeometryGenerator.CreateGrid(width, depth, xVerts, zVerts);
+            var subset = new MeshGeometry.Subset() {
+                FaceCount = grid.Indices.Count/3,
+                FaceStart = 0,
+                VertexCount = grid.Vertices.Count,
+                VertexStart = 0
+            };
+            var ret = new BasicModel();
+            ret._subsets.Add(subset);
+
+            ret._vertices.AddRange(grid.Vertices.Select(v=>new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
+            ret._indices.AddRange(grid.Indices.Select(i=>(short)i));
+
+            ret.Materials.Add(new Material() { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
+
             ret.DiffuseMapSRV.Add(null);
             ret.NormalMapSRV.Add(null);
 

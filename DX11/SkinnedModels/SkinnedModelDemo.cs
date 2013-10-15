@@ -30,10 +30,11 @@ namespace SkinnedModels {
         private SkinnedModelInstance _soldierInstance;
         private SkinnedModelInstance _mageInstance;
         private SkinnedModel _mage;
-        private BasicModel _sword;
-        private BasicModelInstance _swordInstance;
+        private BasicModel _grid;
+        private BasicModelInstance _gridInstance;
 
-        private SkinnedModelDemo(IntPtr hInstance) : base(hInstance) {
+        private SkinnedModelDemo(IntPtr hInstance)
+            : base(hInstance) {
             MainWindowCaption = "Skinned Model Demo";
             _lastMousePos = new Point();
             //Enable4xMsaa = true;
@@ -69,9 +70,9 @@ namespace SkinnedModels {
                     Util.ReleaseCom(ref _drone);
                     Util.ReleaseCom(ref _soldier);
                     Util.ReleaseCom(ref _mage);
-                    Util.ReleaseCom(ref _sword);
+                    Util.ReleaseCom(ref _grid);
                     Util.ReleaseCom(ref _texMgr);
-                    
+
 
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();
@@ -95,7 +96,7 @@ namespace SkinnedModels {
             _drone = new SkinnedModel(Device, _texMgr, "Models/drone.x", "Textures", true);
             _droneInstance = new SkinnedModelInstance(
                 "Attack",
-                Matrix.Identity,
+                Matrix.RotationY(MathF.PI),
                 _drone
 
             );
@@ -109,7 +110,7 @@ namespace SkinnedModels {
 
             _mageInstance = new SkinnedModelInstance(
                 "Attack",
-                Matrix.Translation(4.0f, 0, 0),
+                Matrix.RotationY(MathF.PI)*Matrix.Translation(4.0f, 0, 0),
                 _mage
             );
             foreach (var clip in _mageInstance.Clips) {
@@ -120,7 +121,7 @@ namespace SkinnedModels {
             _soldier = new SkinnedModel(Device, _texMgr, "Models/soldier.x", "Textures", true);
             _soldierInstance = new SkinnedModelInstance (
                 "Attack",
-                Matrix.Translation(10, 0, 0),
+                Matrix.RotationY(MathF.PI)*Matrix.Translation(10, 0, 0),
                 _soldier
             );
 
@@ -129,9 +130,13 @@ namespace SkinnedModels {
             }
             _soldierInstance.LoopClips = true;
 
-            _sword = BasicModel.CreateSphere(Device, 20.0f, 20, 20);
-            _swordInstance = new BasicModelInstance() {
-                Model = _sword,
+            _grid = BasicModel.CreateGrid(Device, 30, 30, 60, 60);
+            _grid.DiffuseMapSRV[0] = (_texMgr.CreateTexture("Textures/floor.dds"));
+            _grid.NormalMapSRV[0]= (_texMgr.CreateTexture("Textures/floor_nmap.dds"));
+            _gridInstance = new BasicModelInstance() {
+                Model = _grid,
+                World = Matrix.Translation(0, -1.5f, 0)
+                
             };
 
             return true;
@@ -161,11 +166,11 @@ namespace SkinnedModels {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
-            _droneInstance.Update(dt );
-            _mageInstance.Update(dt );
-            _soldierInstance.Update(dt );
+            _droneInstance.Update(dt);
+            _mageInstance.Update(dt);
+            _soldierInstance.Update(dt);
 
-            
+
         }
 
         public override void DrawScene() {
@@ -182,7 +187,7 @@ namespace SkinnedModels {
             Effects.NormalMapFX.SetDirLights(_dirLights);
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
 
-            
+
 
             for (int p = 0; p < Effects.NormalMapFX.Light3TexSkinnedTech.Description.PassCount; p++) {
                 var world = _mageInstance.World;
@@ -196,12 +201,12 @@ namespace SkinnedModels {
 
                 Effects.NormalMapFX.SetBoneTransforms(_mageInstance.FinalTransforms);
 
-                
+
                 for (int i = 0; i < _mageInstance.Model.SubsetCount; i++) {
                     Effects.NormalMapFX.SetMaterial(_mageInstance.Model.Materials[i]);
                     Effects.NormalMapFX.SetDiffuseMap(_mageInstance.Model.DiffuseMapSRV[i]);
                     Effects.NormalMapFX.SetNormalMap(_mageInstance.Model.NormalMapSRV[i]);
-                    
+
 
                     Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _mageInstance.Model.ModelMesh.Draw(ImmediateContext, i);
@@ -217,7 +222,7 @@ namespace SkinnedModels {
 
                 Effects.NormalMapFX.SetBoneTransforms(_droneInstance.FinalTransforms);
 
-                
+
                 for (int i = 0; i < _droneInstance.Model.SubsetCount; i++) {
                     Effects.NormalMapFX.SetMaterial(_droneInstance.Model.Materials[i]);
                     Effects.NormalMapFX.SetDiffuseMap(_droneInstance.Model.DiffuseMapSRV[i]);
@@ -237,7 +242,7 @@ namespace SkinnedModels {
 
                 Effects.NormalMapFX.SetBoneTransforms(_soldierInstance.FinalTransforms);
 
-                
+
                 for (int i = 0; i < _soldierInstance.Model.SubsetCount; i++) {
                     Effects.NormalMapFX.SetMaterial(_soldierInstance.Model.Materials[i]);
                     Effects.NormalMapFX.SetDiffuseMap(_soldierInstance.Model.DiffuseMapSRV[i]);
@@ -246,10 +251,14 @@ namespace SkinnedModels {
                     Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p).Apply(ImmediateContext);
                     _soldierInstance.Model.ModelMesh.Draw(ImmediateContext, i);
                 }
-
                 
             }
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
+            for (int p = 0; p < Effects.NormalMapFX.Light3Tech.Description.PassCount; p++) {
+                _gridInstance.Draw(ImmediateContext, Effects.NormalMapFX.Light3Tech.GetPassByIndex(p), viewProj);
+            }
             
+
             SwapChain.Present(0, PresentFlags.None);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
