@@ -13,14 +13,13 @@
         private readonly Dictionary<string, int> _bonesToIndex;
         private readonly Dictionary<string, int> _animationNameToId;
         private readonly List<Bone> _bones;
-        private List<Matrix> _transforms;
         public List<AnimEvaluator> Animations { get; private set; }
         private int CurrentAnimationIndex { get; set; }
         public bool HasSkeleton { get { return _bones.Count > 0; } }
         public string AnimationName { get { return Animations[CurrentAnimationIndex].Name; } }
         public float AnimationSpeed { get { return Animations[CurrentAnimationIndex].TicksPerSecond; } }
         public float Duration {
-            get { return Animations[CurrentAnimationIndex].Duration/ Animations[CurrentAnimationIndex].TicksPerSecond; }
+            get { return Animations[CurrentAnimationIndex].Duration / Animations[CurrentAnimationIndex].TicksPerSecond; }
         }
 
         public SceneAnimator() {
@@ -61,16 +60,15 @@
                 }
             }
             ExtractAnimations(scene);
-            _transforms = new List<Matrix>(Enumerable.Repeat(Matrix.Identity, _bones.Count));
             const float timestep = 1.0f / 30.0f;
             for (var i = 0; i < Animations.Count; i++) {
                 SetAnimationIndex(i);
                 var dt = 0.0f;
-                for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond/30.0f) {
+                for (var ticks = 0.0f; ticks < Animations[i].Duration; ticks += Animations[i].TicksPerSecond / 30.0f) {
                     dt += timestep;
                     Calculate(dt);
                     var trans = new List<Matrix>();
-                    for (var a = 0; a < _transforms.Count; a++) {
+                    for (var a = 0; a < _bones.Count; a++) {
                         var rotMat = _bones[a].Offset * _bones[a].GlobalTransform;
                         trans.Add(rotMat);
                     }
@@ -103,14 +101,14 @@
                 _animationNameToId[Animations[i].Name] = i;
             }
             CurrentAnimationIndex = 0;
-            SetAnimation("Idle");
         }
 
         private int _i;
         private Bone CreateBoneTree(Node node, Bone parent) {
-            
+
             var internalNode = new Bone {
-                Name = node.Name, Parent = parent
+                Name = node.Name,
+                Parent = parent
             };
             if (internalNode.Name == "") {
                 internalNode.Name = "foo" + _i++;
@@ -153,7 +151,7 @@
             }
             var oldIndex = CurrentAnimationIndex;
             CurrentAnimationIndex = animIndex;
-            
+
         }
         public bool SetAnimation(string animation) {
             int index;
@@ -181,7 +179,7 @@
         }
 
         public int GetBoneIndex(string name) {
-            
+
             if (_bonesToIndex.ContainsKey(name)) {
 
                 return _bonesToIndex[name];

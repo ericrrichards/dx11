@@ -67,7 +67,8 @@ namespace Core.Model {
             var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace);
 
 
-
+            var min = new Vector3(float.MaxValue);
+            var max = new Vector3(float.MinValue);
             var verts = new List<PosNormalTexTan>();
             foreach (var mesh in model.Meshes) {
                 var subset = new MeshGeometry.Subset {
@@ -79,8 +80,7 @@ namespace Core.Model {
                 };
                 _subsets.Add(subset);
                 // bounding box corners
-                var min = new Vector3(float.MaxValue);
-                var max = new Vector3(float.MinValue);
+                
 
                 for (var i = 0; i < mesh.VertexCount; i++) {
                     var pos = mesh.HasVertices ? mesh.Vertices[i].ToVector3() : new Vector3();
@@ -93,7 +93,7 @@ namespace Core.Model {
                     var v = new PosNormalTexTan(pos, norm.ToVector3(), texC.ToVector2(), tan.ToVector3());
                     verts.Add(v);
                 }
-                BoundingBox = new BoundingBox(min, max);
+                
                 _vertices.AddRange(verts);
 
                 var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
@@ -123,6 +123,7 @@ namespace Core.Model {
 
                 }
             }
+            BoundingBox = new BoundingBox(min, max);
             _modelMesh.SetSubsetTable(_subsets);
             _modelMesh.SetVertices(device, _vertices);
             _modelMesh.SetIndices(device, _indices);

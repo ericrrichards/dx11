@@ -85,20 +85,23 @@ VertexOut VS(VertexIn vin)
 VertexOut SkinnedVS(SkinnedVertexIn vin)
 {
     VertexOut vout;
-
-	// Init array or else we get strange warnings about SV_POSITION.
-	
+    
+    // first bone weight
 	float weight0 = vin.Weight0;
+    // calculate second bone weight
 	float weight1 = 1.0f - weight0;
 
+    // offset position by bone matrices, using weights to scale
 	float4 p     = weight0 * mul(float4(vin.PosL, 1.0f), gBoneTransforms[vin.BoneIndex[0]]);
 	p += weight1 * mul(float4(vin.PosL, 1.0f), gBoneTransforms[vin.BoneIndex[1]]);
 	p.w = 1.0f;
-	
+
+	// offset normal by bone matrices, using weights to scale
 	float4 n     = weight0 * mul(float4(vin.NormalL, 0.0f), gBoneTransforms[vin.BoneIndex[0]]);
 	n += weight1 * mul(float4(vin.NormalL, 0.0f), gBoneTransforms[vin.BoneIndex[1]]);
 	n.w = 0.0f;
 
+    // offset tangent by bone matrices, using weights to scale
 	float4 t     = weight0 * mul(float4(vin.Tan.xyz, 0.0f), gBoneTransforms[vin.BoneIndex[0]]);
 	t += weight1 * mul(float4(vin.Tan.xyz, 0.0f), gBoneTransforms[vin.BoneIndex[1]]);
 	t.w = 0.0f;

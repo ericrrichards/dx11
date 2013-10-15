@@ -49,6 +49,7 @@
                     Console.WriteLine("Did not find the bone node " + channel.Name);
                     continue;
                 }
+                // interpolate position keyframes
                 var pPosition = new Vector3D();
                 if (channel.PositionKeys.Count > 0) {
                     var frame = (time >= LastTime) ? LastPositions[i].Item1 : 0;
@@ -79,6 +80,7 @@
                     LastPositions[i].Item1 = frame;
 
                 }
+                // interpolate rotation keyframes
                 var pRot = new Assimp.Quaternion(1, 0, 0, 0);
                 if (channel.RotationKeys.Count > 0) {
                     var frame = (time >= LastTime) ? LastPositions[i].Item2 : 0;
@@ -110,6 +112,7 @@
                     LastPositions[i].Item1= frame;
 
                 }
+                // interpolate scale keyframes
                 var pscale = new Vector3D(1);
                 if (channel.ScalingKeys.Count > 0) {
                     var frame = (time >= LastTime) ? LastPositions[i].Item3 : 0;
@@ -124,12 +127,15 @@
                     }
                     LastPositions[i].Item3 = frame;
                 }
+
+                // create the combined transformation matrix
                 var mat = new Matrix4x4(pRot.GetMatrix());
                 mat.A1 *= pscale.X; mat.B1 *= pscale.X; mat.C1 *= pscale.X;
                 mat.A2 *= pscale.Y; mat.B2 *= pscale.Y; mat.C2 *= pscale.Y;
                 mat.A3 *= pscale.Z; mat.B3 *= pscale.Z; mat.C3 *= pscale.Z;
                 mat.A4 = pPosition.X; mat.B4 = pPosition.Y; mat.C4 = pPosition.Z;
 
+                // transpose to get DirectX style matrix
                 mat.Transpose();
                 bones[channel.Name].LocalTransform = mat.ToMatrix();
             }

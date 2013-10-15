@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Assimp;
 using Core.Vertex;
+using SlimDX;
 using SlimDX.Direct3D11;
 
 using Device = SlimDX.Direct3D11.Device;
@@ -10,20 +11,28 @@ using Device = SlimDX.Direct3D11.Device;
 namespace Core.Model {
     public class SkinnedModel : DisposableClass {
         private MeshGeometry _modelMesh;
+        public MeshGeometry ModelMesh { get { return _modelMesh; } }
+
         private readonly List<MeshGeometry.Subset> _subsets;
+        public int SubsetCount { get { return _subsets.Count; } }
+
         private readonly List<PosNormalTexTanSkinned> _vertices;
         private readonly List<short> _indices;
-        private bool _disposed;
 
-        public int SubsetCount { get { return _subsets.Count; } }
-        public List<Material> Materials { get; private set; }
-        public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
-        public MeshGeometry ModelMesh { get { return _modelMesh; } }
-        public List<ShaderResourceView> NormalMapSRV { get; private set; }
         protected internal SceneAnimator Animator { get; private set; }
 
+        public List<Material> Materials { get; private set; }
+        public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
+        public List<ShaderResourceView> NormalMapSRV { get; private set; }
+
+        public BoundingBox BoundingBox { get; private set; }
+        private Vector3 _min;
+        private Vector3 _max;
+
+        private bool _disposed;
 
         public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipTexY = false) {
+            // initialize collections
             _subsets = new List<MeshGeometry.Subset>();
             _vertices = new List<PosNormalTexTanSkinned>();
             _indices = new List<short>();
@@ -32,20 +41,22 @@ namespace Core.Model {
             Materials = new List<Material>();
             
             var importer = new AssimpImporter();
-#if DEBUG
-
+        #if DEBUG
             importer.AttachLogStream(new ConsoleLogStream());
             importer.VerboseLoggingEnabled = true;
-#endif
+        #endif
             var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace );
-
-
+    
+            // Load animation data
             Animator = new SceneAnimator();
             Animator.Init(model);
 
             // create our vertex-to-boneweights lookup
             var vertToBoneWeight = new Dictionary<uint, List<VertexWeight>>();
-            
+            // create bounding box extents
+            _min = new Vector3(float.MaxValue);
+            _max = new Vector3(float.MinValue);
+
             foreach (var mesh in model.Meshes) {
                 ExtractBoneWeightsFromMesh(mesh, vertToBoneWeight);
                 var subset = new MeshGeometry.Subset {
@@ -65,8 +76,8 @@ namespace Core.Model {
                 // extract materials
                 var mat = model.Materials[mesh.MaterialIndex];
                 var material = mat.ToMaterial();
-
                 Materials.Add(material);
+
                 // extract material textures
                 var diffusePath = mat.GetTexture(TextureType.Diffuse, 0).FilePath;
                 if (!string.IsNullOrEmpty(diffusePath)) {
@@ -86,17 +97,20 @@ namespace Core.Model {
                     }
                 }
             }
-
+            BoundingBox = new BoundingBox(_min, _max);
             _modelMesh = new MeshGeometry();
             _modelMesh.SetSubsetTable(_subsets);
             _modelMesh.SetVertices(device, _vertices);
             _modelMesh.SetIndices(device, _indices);
         }
 
-        private static IEnumerable<PosNormalTexTanSkinned> ExtractVertices(Mesh mesh, IReadOnlyDictionary<uint, List<VertexWeight>> vertToBoneWeights, bool flipTexY) {
+        private IEnumerable<PosNormalTexTanSkinned> ExtractVertices(Mesh mesh, IReadOnlyDictionary<uint, List<VertexWeight>> vertToBoneWeights, bool flipTexY) {
             var verts = new List<PosNormalTexTanSkinned>();
             for (var i = 0; i < mesh.VertexCount; i++) {
-                var pos = mesh.HasVertices ? mesh.Vertices[i] : new Vector3D();
+                var pos = mesh.HasVertices ? mesh.Vertices[i].ToVector3() : new Vector3();
+                _min = Vector3.Minimize(_min, pos);
+                _max = Vector3.Maximize(_max, pos);
+                
                 var norm = mesh.HasNormals ? mesh.Normals[i] : new Vector3D();
 
                 var tan = mesh.HasTangentBasis ? mesh.Tangents[i] : new Vector3D();
@@ -113,7 +127,7 @@ namespace Core.Model {
                 var weights = vertToBoneWeights[(uint) i].Select(w => w.Weight).ToArray();
                 var boneIndices = vertToBoneWeights[(uint) i].Select(w => (byte) w.VertexID).ToArray();
 
-                var v = new PosNormalTexTanSkinned(pos.ToVector3(), norm.ToVector3(), texC.ToVector2(), tan.ToVector3(), weights.First(), boneIndices);
+                var v = new PosNormalTexTanSkinned(pos, norm.ToVector3(), texC.ToVector2(), tan.ToVector3(), weights.First(), boneIndices);
                 verts.Add(v);
             }
             return verts;
@@ -129,7 +143,9 @@ namespace Core.Model {
                     if (vertToBoneWeight.ContainsKey(weight.VertexID)) {
                         vertToBoneWeight[weight.VertexID].Add(new VertexWeight((uint) boneIndex, weight.Weight));
                     } else {
-                        vertToBoneWeight[weight.VertexID] = new List<VertexWeight>(new[] {new VertexWeight((uint) boneIndex, weight.Weight)});
+                        vertToBoneWeight[weight.VertexID] = new List<VertexWeight>(
+                            new[] {new VertexWeight((uint) boneIndex, weight.Weight)}
+                        );
                     }
                 }
             }
