@@ -21,6 +21,11 @@ cbuffer cbPerFrame
 	float gTimeStep;
 	float4x4 gViewProj; 
 };
+// Array of textures for texturing the particles.
+Texture2DArray gTexArray;
+
+// Random texture used to generate random numbers in shaders.
+Texture1D gRandomTex;
 
 cbuffer cbFixed
 {
@@ -38,11 +43,6 @@ cbuffer cbFixed
 	};
 };
  
-// Array of textures for texturing the particles.
-Texture2DArray gTexArray;
-
-// Random texture used to generate random numbers in shaders.
-Texture1D gRandomTex;
  
 SamplerState samLinear
 {
