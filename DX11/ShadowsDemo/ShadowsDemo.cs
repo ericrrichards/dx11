@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Core.Model;
 
 namespace ShadowsDemo {
     using System.Diagnostics;
@@ -16,27 +17,17 @@ namespace ShadowsDemo {
     using SlimDX;
     using SlimDX.DXGI;
     using SlimDX.Direct3D11;
-    enum RenderOptions {
-        Basic,
-        NormalMap,
-        DisplacementMap
-    }
+  
     class ShadowsDemo : D3DApp {
         private Sky _sky;
 
-        private Buffer _shapesVB;
-        private Buffer _shapesIB;
 
         private Buffer _skullVB;
         private Buffer _skullIB;
         private Buffer _screenQuadVB;
         private Buffer _screenQuadIB;
 
-        private ShaderResourceView _stoneTexSRV;
-        private ShaderResourceView _brickTexSRV;
-
-        private ShaderResourceView _stoneNormalTexSRV;
-        private ShaderResourceView _brickNormalTexSRV;
+        private TextureManager _texMgr;
 
         private BoundingSphere _sceneBounds;
 
@@ -49,38 +40,25 @@ namespace ShadowsDemo {
         private float _lightRotationAngle;
         private readonly Vector3[] _originalLightDirs;
         private readonly DirectionalLight[] _dirLights;
-        private readonly Material _gridMat;
-        private readonly Material _boxMat;
-        private readonly Material _cylinderMat;
-        private readonly Material _sphereMat;
+
         private readonly Material _skullMat;
-
-        private readonly Matrix[] _sphereWorld = new Matrix[10];
-        private readonly Matrix[] _cylWorld = new Matrix[10];
-        private readonly Matrix _boxWorld;
-        private readonly Matrix _gridWorld;
         private readonly Matrix _skullWorld;
-
-        private int _boxVertexOffset;
-        private int _gridVertexOffset;
-        private int _sphereVertexOffset;
-        private int _cylinderVertexOffset;
-
-        private int _boxIndexOffset;
-        private int _gridIndexOffset;
-        private int _sphereIndexOffset;
-        private int _cylinderIndexOffset;
-
-        private int _boxIndexCount;
-        private int _gridIndexCount;
-        private int _sphereIndexCount;
-        private int _cylinderIndexCount;
         private int _skullIndexCount;
 
-        private RenderOptions _renderOptions;
         private readonly FpsCamera _camera;
         private Point _lastMousePos;
         private bool _disposed;
+
+        private BasicModel _boxModel;
+        private BasicModel _gridModel;
+        private BasicModel _sphereModel;
+        private BasicModel _cylinderModel;
+
+        private BasicModelInstance _grid;
+        private BasicModelInstance _box;
+        private readonly BasicModelInstance[] _spheres = new BasicModelInstance[10];
+        private readonly BasicModelInstance[] _cylinders = new BasicModelInstance[10];
+
 
         private ShadowsDemo(IntPtr hInstance)
             : base(hInstance) {
@@ -94,18 +72,10 @@ namespace ShadowsDemo {
 
             _sceneBounds = new BoundingSphere(new Vector3(), MathF.Sqrt(10 * 10 + 15 * 15));
 
-            _gridWorld = Matrix.Identity;
-
-            _boxWorld = Matrix.Scaling(3.0f, 1.0f, 3.0f) * Matrix.Translation(0, 0.5f, 0);
+            
             _skullWorld = Matrix.Scaling(0.5f, 0.5f, 0.5f) * Matrix.Translation(0, 1.0f, 0);
 
-            for (var i = 0; i < 5; i++) {
-                _cylWorld[i * 2] = Matrix.Translation(-5.0f, 1.5f, -10.0f + i * 5.0f);
-                _cylWorld[i * 2 + 1] = Matrix.Translation(5.0f, 1.5f, -10.0f + i * 5.0f);
-
-                _sphereWorld[i * 2] = Matrix.Translation(-5.0f, 3.5f, -10.0f + i * 5.0f);
-                _sphereWorld[i * 2 + 1] = Matrix.Translation(5.0f, 3.5f, -10.0f + i * 5.0f);
-            }
+            
             _dirLights = new[] {
                 new DirectionalLight {
                     Ambient = new Color4( 0.2f, 0.2f, 0.2f),
@@ -129,30 +99,7 @@ namespace ShadowsDemo {
 
             _originalLightDirs = _dirLights.Select(l => l.Direction).ToArray();
 
-            _gridMat = new Material {
-                Ambient = new Color4(0.8f, 0.8f, 0.8f),
-                Diffuse = new Color4(0.8f, 0.8f, 0.8f),
-                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
-                Reflect = Color.Black
-            };
-            _cylinderMat = new Material {
-                Ambient = Color.White,
-                Diffuse = Color.White,
-                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
-                Reflect = Color.Black
-            };
-            _sphereMat = new Material {
-                Ambient = new Color4(0.6f, 0.8f, 0.9f),
-                Diffuse = new Color4(0.6f, 0.8f, 0.9f),
-                Specular = new Color4(16.0f, 0.9f, 0.9f, 0.9f),
-                Reflect = new Color4(0.4f, 0.4f, 0.4f)
-            };
-            _boxMat = new Material {
-                Ambient = Color.White,
-                Diffuse = Color.White,
-                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
-                Reflect = Color.Black
-            };
+            
             _skullMat = new Material {
                 Ambient = new Color4(0.4f, 0.4f, 0.4f),
                 Diffuse = new Color4(0.8f, 0.8f, 0.8f),
@@ -165,8 +112,6 @@ namespace ShadowsDemo {
                 if (disposing) {
                     Util.ReleaseCom(ref _sky);
                     Util.ReleaseCom(ref _sMap);
-                    Util.ReleaseCom(ref _shapesVB);
-                    Util.ReleaseCom(ref _shapesIB);
                     Util.ReleaseCom(ref _skullVB);
                     Util.ReleaseCom(ref _skullIB);
 
@@ -174,11 +119,12 @@ namespace ShadowsDemo {
                     Util.ReleaseCom(ref _screenQuadIB);
 
 
-                    Util.ReleaseCom(ref _stoneTexSRV);
-                    Util.ReleaseCom(ref _brickTexSRV);
+                    Util.ReleaseCom(ref _texMgr);
 
-                    Util.ReleaseCom(ref _stoneNormalTexSRV);
-                    Util.ReleaseCom(ref _brickNormalTexSRV);
+                    Util.ReleaseCom(ref _gridModel);
+                    Util.ReleaseCom(ref _boxModel);
+                    Util.ReleaseCom(ref _sphereModel);
+                    Util.ReleaseCom(ref _cylinderModel);
 
 
 
@@ -199,32 +145,16 @@ namespace ShadowsDemo {
             _sky = new Sky(Device, "Textures/desertcube1024.dds", 5000.0f);
             _sMap = new ShadowMap(Device, SMapSize, SMapSize);
 
-            _stoneTexSRV = ShaderResourceView.FromFile(Device, "Textures/floor.dds");
-            _brickTexSRV = ShaderResourceView.FromFile(Device, "Textures/bricks.dds");
-            _stoneNormalTexSRV = ShaderResourceView.FromFile(Device, "Textures/floor_nmap.dds");
-            _brickNormalTexSRV = ShaderResourceView.FromFile(Device, "Textures/bricks_nmap.dds");
+            
 
             BuildShapeGeometryBuffers();
             BuildSkullGeometryBuffers();
             BuildScreenQuadGeometryBuffers();
 
-            Window.KeyDown += SwitchMode;
 
             return true;
         }
-        private void SwitchMode(object sender, KeyEventArgs e) {
-            switch (e.KeyCode) {
-                case Keys.D0:
-                    _renderOptions = RenderOptions.Basic;
-                    break;
-                case Keys.D1:
-                    _renderOptions = RenderOptions.NormalMap;
-                    break;
-                case Keys.D2:
-                    _renderOptions = RenderOptions.DisplacementMap;
-                    break;
-            }
-        }
+        
         public override void OnResize() {
             base.OnResize();
             _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
@@ -266,7 +196,6 @@ namespace ShadowsDemo {
         public override void DrawScene() {
             Effects.BasicFX.SetShadowMap(null);
             Effects.NormalMapFX.SetShadowMap(null);
-            Effects.DisplacementMapFX.SetShadowMap(null);
 
             _sMap.BindDsvAndSetNullRenderTarget(ImmediateContext);
 
@@ -291,167 +220,29 @@ namespace ShadowsDemo {
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
             Effects.NormalMapFX.SetCubeMap(_sky.CubeMapSRV);
             Effects.NormalMapFX.SetShadowMap(_sMap.DepthMapSRV);
-
-            Effects.DisplacementMapFX.SetDirLights(_dirLights);
-            Effects.DisplacementMapFX.SetEyePosW(_camera.Position);
-            Effects.DisplacementMapFX.SetCubeMap(_sky.CubeMapSRV);
-            Effects.DisplacementMapFX.SetShadowMap(_sMap.DepthMapSRV);
-
-            Effects.DisplacementMapFX.SetHeightScale(0.07f);
-            Effects.DisplacementMapFX.SetMaxTessDistance(1.0f);
-            Effects.DisplacementMapFX.SetMinTessDistance(25.0f);
-            Effects.DisplacementMapFX.SetMinTessFactor(1.0f);
-            Effects.DisplacementMapFX.SetMaxTessFactor(5.0f);
-
-            var activeTech = Effects.DisplacementMapFX.Light3Tech;
+            
+            var activeTech = Effects.NormalMapFX.Light3TexTech;
             var activeSphereTech = Effects.BasicFX.Light3ReflectTech;
             var activeSkullTech = Effects.BasicFX.Light3ReflectTech;
 
-            switch (_renderOptions) {
-                case RenderOptions.Basic:
-                    activeTech = Effects.BasicFX.Light3TexTech;
-                    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                    break;
-                case RenderOptions.NormalMap:
-                    activeTech = Effects.NormalMapFX.Light3TexTech;
-                    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                    break;
-                case RenderOptions.DisplacementMap:
-                    activeTech = Effects.DisplacementMapFX.Light3TexTech;
-                    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith3ControlPoints;
-                    break;
-            }
-            var stride = PosNormalTexTan.Stride;
-            var offset = 0;
-
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_shapesVB, stride, offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_shapesIB, Format.R32_UInt, 0);
 
             if (Util.IsKeyDown(Keys.W)) {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
-            for (int p = 0; p < activeTech.Description.PassCount; p++) {
+            for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 // draw grid
-                var world = _gridWorld;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world * viewProj;
-
-                switch (_renderOptions) {
-                    case RenderOptions.Basic:
-                        Effects.BasicFX.SetWorld(world);
-                        Effects.BasicFX.SetWorldInvTranspose(wit);
-                        Effects.BasicFX.SetWorldViewProj(wvp);
-                        Effects.BasicFX.SetShadowTransform(world * _shadowTransform);
-                        Effects.BasicFX.SetTexTransform(Matrix.Scaling(8, 10, 1));
-                        Effects.BasicFX.SetMaterial(_gridMat);
-                        Effects.BasicFX.SetDiffuseMap(_stoneTexSRV);
-                        break;
-                    case RenderOptions.NormalMap:
-                        Effects.NormalMapFX.SetWorld(world);
-                        Effects.NormalMapFX.SetWorldInvTranspose(wit);
-                        Effects.NormalMapFX.SetWorldViewProj(wvp);
-                        Effects.NormalMapFX.SetTexTransform(Matrix.Scaling(8, 10, 1));
-                        Effects.NormalMapFX.SetShadowTransform(world * _shadowTransform);
-                        Effects.NormalMapFX.SetMaterial(_gridMat);
-                        Effects.NormalMapFX.SetDiffuseMap(_stoneTexSRV);
-                        Effects.NormalMapFX.SetNormalMap(_stoneNormalTexSRV);
-                        break;
-                    case RenderOptions.DisplacementMap:
-                        Effects.DisplacementMapFX.SetWorld(world);
-                        Effects.DisplacementMapFX.SetWorldInvTranspose(wit);
-                        Effects.DisplacementMapFX.SetViewProj(viewProj);
-                        Effects.DisplacementMapFX.SetWorldViewProj(wvp);
-                        Effects.DisplacementMapFX.SetTexTransform(Matrix.Scaling(8, 10, 1));
-                        Effects.DisplacementMapFX.SetShadowTransform(_shadowTransform);
-                        Effects.DisplacementMapFX.SetMaterial(_gridMat);
-                        Effects.DisplacementMapFX.SetDiffuseMap(_stoneTexSRV);
-                        Effects.DisplacementMapFX.SetNormalMap(_stoneNormalTexSRV);
-                        break;
-                }
                 var pass = activeTech.GetPassByIndex(p);
-                pass.Apply(ImmediateContext);
-                ImmediateContext.DrawIndexed(_gridIndexCount, _gridIndexOffset, _gridVertexOffset);
+                _grid.ShadowTransform = _shadowTransform;
+                _grid.Draw(ImmediateContext, pass, viewProj);
                 // draw box
-                world = _boxWorld;
-                wit = MathF.InverseTranspose(world);
-                wvp = world * viewProj;
-
-                switch (_renderOptions) {
-                    case RenderOptions.Basic:
-                        Effects.BasicFX.SetWorld(world);
-                        Effects.BasicFX.SetWorldInvTranspose(wit);
-                        Effects.BasicFX.SetWorldViewProj(wvp);
-                        Effects.BasicFX.SetTexTransform(Matrix.Scaling(2, 1, 1));
-                        Effects.BasicFX.SetShadowTransform(world * _shadowTransform);
-                        Effects.BasicFX.SetMaterial(_boxMat);
-                        Effects.BasicFX.SetDiffuseMap(_brickTexSRV);
-                        break;
-                    case RenderOptions.NormalMap:
-                        Effects.NormalMapFX.SetWorld(world);
-                        Effects.NormalMapFX.SetWorldInvTranspose(wit);
-                        Effects.NormalMapFX.SetWorldViewProj(wvp);
-                        Effects.NormalMapFX.SetTexTransform(Matrix.Scaling(2, 1, 1));
-                        Effects.NormalMapFX.SetShadowTransform(world * _shadowTransform);
-                        Effects.NormalMapFX.SetMaterial(_boxMat);
-                        Effects.NormalMapFX.SetDiffuseMap(_brickTexSRV);
-                        Effects.NormalMapFX.SetNormalMap(_brickNormalTexSRV);
-                        break;
-                    case RenderOptions.DisplacementMap:
-                        Effects.DisplacementMapFX.SetWorld(world);
-                        Effects.DisplacementMapFX.SetWorldInvTranspose(wit);
-                        Effects.DisplacementMapFX.SetViewProj(viewProj);
-                        Effects.DisplacementMapFX.SetWorldViewProj(wvp);
-                        Effects.DisplacementMapFX.SetTexTransform(Matrix.Scaling(2, 1, 1));
-                        Effects.DisplacementMapFX.SetShadowTransform(_shadowTransform);
-                        Effects.DisplacementMapFX.SetMaterial(_boxMat);
-                        Effects.DisplacementMapFX.SetDiffuseMap(_brickTexSRV);
-                        Effects.DisplacementMapFX.SetNormalMap(_brickNormalTexSRV);
-                        break;
-                }
-                pass.Apply(ImmediateContext);
-                ImmediateContext.DrawIndexed(_boxIndexCount, _boxIndexOffset, _boxVertexOffset);
+                _box.ShadowTransform = _shadowTransform;
+                _box.Draw(ImmediateContext, pass, viewProj);
 
                 // draw columns
-                foreach (var matrix in _cylWorld) {
-                    world = matrix;
-                    wit = MathF.InverseTranspose(world);
-                    wvp = world * viewProj;
-
-                    switch (_renderOptions) {
-                        case RenderOptions.Basic:
-                            Effects.BasicFX.SetWorld(world);
-                            Effects.BasicFX.SetWorldInvTranspose(wit);
-                            Effects.BasicFX.SetWorldViewProj(wvp);
-                            Effects.BasicFX.SetTexTransform(Matrix.Scaling(1, 2, 1));
-                            Effects.BasicFX.SetShadowTransform(world * _shadowTransform);
-                            Effects.BasicFX.SetMaterial(_cylinderMat);
-                            Effects.BasicFX.SetDiffuseMap(_brickTexSRV);
-                            break;
-                        case RenderOptions.NormalMap:
-                            Effects.NormalMapFX.SetWorld(world);
-                            Effects.NormalMapFX.SetWorldInvTranspose(wit);
-                            Effects.NormalMapFX.SetWorldViewProj(wvp);
-                            Effects.NormalMapFX.SetTexTransform(Matrix.Scaling(1, 2, 1));
-                            Effects.NormalMapFX.SetShadowTransform(world * _shadowTransform);
-                            Effects.NormalMapFX.SetMaterial(_cylinderMat);
-                            Effects.NormalMapFX.SetDiffuseMap(_brickTexSRV);
-                            Effects.NormalMapFX.SetNormalMap(_brickNormalTexSRV);
-                            break;
-                        case RenderOptions.DisplacementMap:
-                            Effects.DisplacementMapFX.SetWorld(world);
-                            Effects.DisplacementMapFX.SetWorldInvTranspose(wit);
-                            Effects.DisplacementMapFX.SetViewProj(viewProj);
-                            Effects.DisplacementMapFX.SetWorldViewProj(wvp);
-                            Effects.DisplacementMapFX.SetTexTransform(Matrix.Scaling(1, 2, 1));
-                            Effects.DisplacementMapFX.SetShadowTransform(_shadowTransform);
-                            Effects.DisplacementMapFX.SetMaterial(_cylinderMat);
-                            Effects.DisplacementMapFX.SetDiffuseMap(_brickTexSRV);
-                            Effects.DisplacementMapFX.SetNormalMap(_brickNormalTexSRV);
-                            break;
-                    }
-                    pass.Apply(ImmediateContext);
-                    ImmediateContext.DrawIndexed(_cylinderIndexCount, _cylinderIndexOffset, _cylinderVertexOffset);
+                foreach (var cylinder in _cylinders) {
+                    cylinder.ShadowTransform = _shadowTransform;
+                    cylinder.Draw(ImmediateContext, pass, viewProj);
                 }
 
             }
@@ -459,25 +250,17 @@ namespace ShadowsDemo {
             ImmediateContext.DomainShader.Set(null);
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-            for (int p = 0; p < activeSphereTech.Description.PassCount; p++) {
-                foreach (var matrix in _sphereWorld) {
-                    var world = matrix;
-                    var wit = MathF.InverseTranspose(world);
-                    var wvp = world * viewProj;
+            for (var p = 0; p < activeSphereTech.Description.PassCount; p++) {
+                var pass = activeSphereTech.GetPassByIndex(p);
 
-                    Effects.BasicFX.SetWorld(world);
-                    Effects.BasicFX.SetWorldInvTranspose(wit);
-                    Effects.BasicFX.SetWorldViewProj(wvp);
-                    Effects.BasicFX.SetTexTransform(Matrix.Identity);
-                    Effects.BasicFX.SetShadowTransform(world * _shadowTransform);
-                    Effects.BasicFX.SetMaterial(_sphereMat);
-
-                    activeSphereTech.GetPassByIndex(p).Apply(ImmediateContext);
-                    ImmediateContext.DrawIndexed(_sphereIndexCount, _sphereIndexOffset, _sphereVertexOffset);
+                foreach (var sphere in _spheres) {
+                    sphere.ShadowTransform = _shadowTransform;
+                    sphere.DrawBasic(ImmediateContext, pass, viewProj);
                 }
+                
             }
-            stride = Basic32.Stride;
-            offset = 0;
+            int stride = Basic32.Stride;
+            const int offset = 0;
 
             ImmediateContext.Rasterizer.State = null;
 
@@ -551,76 +334,27 @@ namespace ShadowsDemo {
                 Effects.BuildShadowMapFX.SetMinTessFactor(1.0f);
                 Effects.BuildShadowMapFX.SetMaxTessFactor(5.0f);
 
-                var tessSmapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
+                ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 var smapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
+                var tessSmapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
 
-                switch (_renderOptions) {
-                    case RenderOptions.Basic:
-                        ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                        smapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
-                        tessSmapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
-                        break;
-                    case RenderOptions.NormalMap:
-                        ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                        smapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
-                        tessSmapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
-                        break;
-                    case RenderOptions.DisplacementMap:
-                        ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith3ControlPoints;
-                        smapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
-                        tessSmapTech = Effects.BuildShadowMapFX.TessBuildShadowMapTech;
-                        break;
-                }
 
-                Matrix world, wit, wvp;
-
-                var stride = PosNormalTexTan.Stride;
-                const int Offset = 0;
+                const int offset = 0;
 
                 ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_shapesVB, stride, Offset));
-                ImmediateContext.InputAssembler.SetIndexBuffer(_shapesIB, Format.R32_UInt, 0);
 
                 if (Util.IsKeyDown(Keys.W)) {
                     ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
                 }
 
                 for (int p = 0; p < tessSmapTech.Description.PassCount; p++) {
-                    world = _gridWorld;
-                    wit = MathF.InverseTranspose(world);
-                    wvp = world * viewProj;
-
-                    Effects.BuildShadowMapFX.SetWorld(world);
-                    Effects.BuildShadowMapFX.SetWorldInvTranspose(wit);
-                    Effects.BuildShadowMapFX.SetWorldViewProj(wvp);
-                    Effects.BuildShadowMapFX.SetTexTransform(Matrix.Scaling(8, 10, 1));
                     var pass = tessSmapTech.GetPassByIndex(p);
-                    pass.Apply(ImmediateContext);
-                    ImmediateContext.DrawIndexed(_gridIndexCount, _gridIndexOffset, _gridVertexOffset);
+                    _grid.DrawShadow(ImmediateContext, pass, viewProj);
 
+                    _box.DrawShadow(ImmediateContext, pass, viewProj);
 
-                    world = _boxWorld;
-                    wit = MathF.InverseTranspose(world);
-                    wvp = world * viewProj;
-
-                    Effects.BuildShadowMapFX.SetWorld(world);
-                    Effects.BuildShadowMapFX.SetWorldInvTranspose(wit);
-                    Effects.BuildShadowMapFX.SetWorldViewProj(wvp);
-                    Effects.BuildShadowMapFX.SetTexTransform(Matrix.Scaling(2, 1, 1));
-                    pass.Apply(ImmediateContext);
-                    ImmediateContext.DrawIndexed(_boxIndexCount, _boxIndexOffset, _boxVertexOffset);
-
-                    foreach (var matrix in _cylWorld) {
-                        world = matrix;
-                        wit = MathF.InverseTranspose(world);
-                        wvp = world * viewProj;
-
-                        Effects.BuildShadowMapFX.SetWorld(world);
-                        Effects.BuildShadowMapFX.SetWorldInvTranspose(wit);
-                        Effects.BuildShadowMapFX.SetWorldViewProj(wvp);
-                        Effects.BuildShadowMapFX.SetTexTransform(Matrix.Scaling(1, 2, 1));
-                        pass.Apply(ImmediateContext);
-                        ImmediateContext.DrawIndexed(_cylinderIndexCount, _cylinderIndexOffset, _cylinderVertexOffset);
+                    foreach (var cylinder in _cylinders) {
+                        cylinder.DrawShadow(ImmediateContext, pass, viewProj);
                     }
                 }
 
@@ -628,32 +362,23 @@ namespace ShadowsDemo {
                 ImmediateContext.DomainShader.Set(null);
                 ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-                for (int p = 0; p < smapTech.Description.PassCount; p++) {
+                for (var p = 0; p < smapTech.Description.PassCount; p++) {
                     var pass = smapTech.GetPassByIndex(p);
-                    foreach (var matrix in _sphereWorld) {
-                        world = matrix;
-                        wit = MathF.InverseTranspose(world);
-                        wvp = world * viewProj;
-
-                        Effects.BuildShadowMapFX.SetWorld(world);
-                        Effects.BuildShadowMapFX.SetWorldInvTranspose(wit);
-                        Effects.BuildShadowMapFX.SetWorldViewProj(wvp);
-                        Effects.BuildShadowMapFX.SetTexTransform(Matrix.Scaling(1, 2, 1));
-                        pass.Apply(ImmediateContext);
-                        ImmediateContext.DrawIndexed(_sphereIndexCount, _sphereIndexOffset, _sphereVertexOffset);
+                    foreach (var sphere in _spheres) {
+                        sphere.DrawShadow(ImmediateContext, pass, viewProj);
                     }
                 }
-                stride = Basic32.Stride;
+                int stride = Basic32.Stride;
                 ImmediateContext.Rasterizer.State = null;
 
                 ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, offset));
                 ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
-                for (int p = 0; p < smapTech.Description.PassCount; p++) {
-                    world = _skullWorld;
-                    wit = MathF.InverseTranspose(world);
-                    wvp = world * viewProj;
+                for (var p = 0; p < smapTech.Description.PassCount; p++) {
+                    var world = _skullWorld;
+                    var wit = MathF.InverseTranspose(world);
+                    var wvp = world * viewProj;
 
                     Effects.BuildShadowMapFX.SetWorld(world);
                     Effects.BuildShadowMapFX.SetWorldInvTranspose(wit);
@@ -670,11 +395,11 @@ namespace ShadowsDemo {
 
         private void DrawScreenQuad() {
             var stride = Basic32.Stride;
-            const int Offset = 0;
+            const int offset = 0;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
@@ -723,45 +448,82 @@ namespace ShadowsDemo {
         }
 
         private void BuildShapeGeometryBuffers() {
-            var box = GeometryGenerator.CreateBox(1, 1, 1);
-            var grid = GeometryGenerator.CreateGrid(20, 30, 60, 40);
-            var sphere = GeometryGenerator.CreateSphere(0.5f, 20, 20);
-            var cylinder = GeometryGenerator.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
+            _texMgr = new TextureManager();
+            _texMgr.Init(Device);
 
-            _boxVertexOffset = 0;
-            _gridVertexOffset = box.Vertices.Count;
-            _sphereVertexOffset = _gridVertexOffset + grid.Vertices.Count;
-            _cylinderVertexOffset = _sphereVertexOffset + sphere.Vertices.Count;
+            _boxModel = BasicModel.CreateBox(Device, 1, 1, 1);
+            _boxModel.Materials[0] = new Material {
+                Ambient = Color.White,
+                Diffuse = Color.White,
+                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
+                Reflect = Color.Black
+            };
+            _boxModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/bricks.dds");
+            _boxModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
 
-            _boxIndexCount = box.Indices.Count;
-            _gridIndexCount = grid.Indices.Count;
-            _sphereIndexCount = sphere.Indices.Count;
-            _cylinderIndexCount = cylinder.Indices.Count;
+            _gridModel = BasicModel.CreateGrid(Device, 20, 30, 40, 60);
+            _gridModel.Materials[0] = new Material {
+                Ambient = new Color4(0.8f, 0.8f, 0.8f),
+                Diffuse = new Color4(0.8f, 0.8f, 0.8f),
+                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
+                Reflect = Color.Black
+            };
+            _gridModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/floor.dds");
+            _gridModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/floor_nmap.dds");
 
-            _boxIndexOffset = 0;
-            _gridIndexOffset = _boxIndexCount;
-            _sphereIndexOffset = _gridIndexOffset + _gridIndexCount;
-            _cylinderIndexOffset = _sphereIndexOffset + _sphereIndexCount;
 
-            var totalVertexCount = box.Vertices.Count + grid.Vertices.Count + sphere.Vertices.Count + cylinder.Vertices.Count;
-            var totalIndexCount = _boxIndexCount + _gridIndexCount + _sphereIndexCount + _cylinderIndexCount;
+            _sphereModel = BasicModel.CreateSphere(Device, 0.5f, 20, 20);
+            _sphereModel.Materials[0] = new Material {
+                Ambient = new Color4(0.6f, 0.8f, 0.9f),
+                Diffuse = new Color4(0.6f, 0.8f, 0.9f),
+                Specular = new Color4(16.0f, 0.9f, 0.9f, 0.9f),
+                Reflect = new Color4(0.4f, 0.4f, 0.4f)
+            };
+            _cylinderModel = BasicModel.CreateCylinder(Device, 0.5f, 0.3f, 3.0f, 20, 20);
+            _cylinderModel.Materials[0] = new Material {
+                Ambient = Color.White,
+                Diffuse = Color.White,
+                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
+                Reflect = Color.Black
+            };
+            _cylinderModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/bricks.dds");
+            _cylinderModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
 
-            var vertices = box.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList();
-            vertices.AddRange(grid.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
-            vertices.AddRange(sphere.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
-            vertices.AddRange(cylinder.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
+            for (var i = 0; i < 5; i++) {
+                _cylinders[i*2] = new BasicModelInstance {
+                    Model = _cylinderModel,
+                    World = Matrix.Translation(-5.0f, 1.5f, -10.0f + i*5.0f),
+                    TexTransform = Matrix.Scaling(1, 2, 1)
+                };
+                _cylinders[i * 2 + 1] = new BasicModelInstance {
+                    Model = _cylinderModel,
+                    World = Matrix.Translation(5.0f, 1.5f, -10.0f + i * 5.0f),
+                    TexTransform = Matrix.Scaling(1, 2, 1)
+                };
 
-            var vbd = new BufferDescription(PosNormalTexTan.Stride * totalVertexCount, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-            _shapesVB = new Buffer(Device, new DataStream(vertices.ToArray(), false, false), vbd);
+                _spheres[i*2] = new BasicModelInstance {
+                    Model = _sphereModel,
+                    World = Matrix.Translation(-5.0f, 3.5f, -10.0f + i*5.0f)
+                };
+                _spheres[i*2 + 1] = new BasicModelInstance {
+                    Model = _sphereModel,
+                    World = Matrix.Translation(5.0f, 3.5f, -10.0f + i*5.0f)
+                };
+            }
 
-            var indices = new List<int>();
-            indices.AddRange(box.Indices);
-            indices.AddRange(grid.Indices);
-            indices.AddRange(sphere.Indices);
-            indices.AddRange(cylinder.Indices);
+            _grid = new BasicModelInstance {
+                Model = _gridModel,
+                TexTransform = Matrix.Scaling(8, 10, 1),
+                World = Matrix.Identity
+            };
 
-            var ibd = new BufferDescription(sizeof(int) * totalIndexCount, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-            _shapesIB = new Buffer(Device, new DataStream(indices.ToArray(), false, false), ibd);
+            _box = new BasicModelInstance {
+                Model = _boxModel,
+                TexTransform = Matrix.Scaling(2, 1, 1),
+                World = Matrix.Scaling(3.0f, 1.0f, 3.0f)*Matrix.Translation(0, 0.5f, 0)
+            };
+
+            
         }
 
         private void BuildSkullGeometryBuffers() {

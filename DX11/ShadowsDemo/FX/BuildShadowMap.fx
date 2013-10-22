@@ -236,7 +236,7 @@ technique11 BuildShadowMapTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, VS() ) );
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
         SetGeometryShader( NULL );
         SetPixelShader( NULL );
 
@@ -248,9 +248,9 @@ technique11 BuildShadowMapAlphaClipTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, VS() ) );
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
         SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS() ) );
+        SetPixelShader( CompileShader( ps_4_0, PS() ) );
     }
 }
 
@@ -258,7 +258,7 @@ technique11 TessBuildShadowMapTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, TessVS() ) );
+        SetVertexShader( CompileShader( vs_4_0, TessVS() ) );
 		SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
         SetGeometryShader( NULL );
@@ -272,10 +272,10 @@ technique11 TessBuildShadowMapAlphaClipTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, TessVS() ) );
+        SetVertexShader( CompileShader( vs_4_0, TessVS() ) );
 		SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
         SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, TessPS() ) );
+        SetPixelShader( CompileShader( ps_4_0, TessPS() ) );
     }
 }

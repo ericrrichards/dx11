@@ -54,9 +54,9 @@ technique11 ViewArgbTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, VS() ) );
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
         SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS() ) );
+        SetPixelShader( CompileShader( ps_4_0, PS() ) );
     }
 }
 
@@ -64,9 +64,9 @@ technique11 ViewRedTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, VS() ) );
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
         SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS(0) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(0) ) );
     }
 }
 
@@ -74,9 +74,9 @@ technique11 ViewGreenTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, VS() ) );
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
         SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS(1) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(1) ) );
     }
 }
 
@@ -84,9 +84,9 @@ technique11 ViewBlueTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, VS() ) );
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
         SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS(2) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(2) ) );
     }
 }
 
@@ -94,8 +94,8 @@ technique11 ViewAlphaTech
 {
     pass P0
     {
-        SetVertexShader( CompileShader( vs_5_0, VS() ) );
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
         SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS(3) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(3) ) );
     }
 }

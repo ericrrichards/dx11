@@ -80,7 +80,7 @@ namespace Core.Model {
                 };
                 _subsets.Add(subset);
                 // bounding box corners
-                
+
 
                 for (var i = 0; i < mesh.VertexCount; i++) {
                     var pos = mesh.HasVertices ? mesh.Vertices[i].ToVector3() : new Vector3();
@@ -93,7 +93,7 @@ namespace Core.Model {
                     var v = new PosNormalTexTan(pos, norm.ToVector3(), texC.ToVector2(), tan.ToVector3());
                     verts.Add(v);
                 }
-                
+
                 _vertices.AddRange(verts);
 
                 var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
@@ -146,7 +146,7 @@ namespace Core.Model {
             ret._indices.AddRange(sphere.Indices.Select(i => (short)i));
 
 
-            ret.Materials.Add(new Material() { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1)});
+            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
             ret.DiffuseMapSRV.Add(null);
             ret.NormalMapSRV.Add(null);
 
@@ -158,8 +158,8 @@ namespace Core.Model {
         }
         public static BasicModel CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
             var grid = GeometryGenerator.CreateGrid(width, depth, xVerts, zVerts);
-            var subset = new MeshGeometry.Subset() {
-                FaceCount = grid.Indices.Count/3,
+            var subset = new MeshGeometry.Subset {
+                FaceCount = grid.Indices.Count / 3,
                 FaceStart = 0,
                 VertexCount = grid.Vertices.Count,
                 VertexStart = 0
@@ -167,11 +167,58 @@ namespace Core.Model {
             var ret = new BasicModel();
             ret._subsets.Add(subset);
 
-            ret._vertices.AddRange(grid.Vertices.Select(v=>new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
-            ret._indices.AddRange(grid.Indices.Select(i=>(short)i));
+            ret._vertices.AddRange(grid.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
+            ret._indices.AddRange(grid.Indices.Select(i => (short)i));
 
-            ret.Materials.Add(new Material() { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
+            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
 
+            ret.DiffuseMapSRV.Add(null);
+            ret.NormalMapSRV.Add(null);
+
+            ret._modelMesh.SetSubsetTable(ret._subsets);
+            ret._modelMesh.SetVertices(device, ret._vertices);
+            ret._modelMesh.SetIndices(device, ret._indices);
+
+            return ret;
+        }
+        public static BasicModel CreateBox(Device device, float width, float height, float depth) {
+            var box = GeometryGenerator.CreateBox(width, height, depth);
+            var subset = new MeshGeometry.Subset {
+                FaceCount = box.Indices.Count / 3,
+                FaceStart = 0,
+                VertexCount = box.Vertices.Count,
+                VertexStart = 0
+            };
+            var ret = new BasicModel();
+            ret._subsets.Add(subset);
+            ret._vertices.AddRange(box.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
+            ret._indices.AddRange(box.Indices.Select(i => (short)i));
+
+            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
+            ret.DiffuseMapSRV.Add(null);
+            ret.NormalMapSRV.Add(null);
+
+            ret._modelMesh.SetSubsetTable(ret._subsets);
+            ret._modelMesh.SetVertices(device, ret._vertices);
+            ret._modelMesh.SetIndices(device, ret._indices);
+
+            return ret;
+        }
+        public static BasicModel CreateCylinder(Device device, float bottomRadius, float topRadius, float height, int sliceCount, int stackCount) {
+            var cylinder = GeometryGenerator.CreateCylinder(bottomRadius, topRadius, height, sliceCount, stackCount);
+
+            var subset = new MeshGeometry.Subset {
+                FaceCount = cylinder.Indices.Count / 3,
+                FaceStart = 0,
+                VertexCount = cylinder.Vertices.Count,
+                VertexStart = 0
+            };
+            var ret = new BasicModel();
+            ret._subsets.Add(subset);
+            ret._vertices.AddRange(cylinder.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
+            ret._indices.AddRange(cylinder.Indices.Select(i => (short)i));
+
+            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
             ret.DiffuseMapSRV.Add(null);
             ret.NormalMapSRV.Add(null);
 
