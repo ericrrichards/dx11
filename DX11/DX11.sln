@@ -1,17 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{41ACBEF1-B159-4C49-A0F9-A07911617B52}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{79E45F9D-B161-4C12-AB0D-306B0051717E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InitDirect3D", "InitDirect3D\InitDirect3D.csproj", "{C67D7BC4-21E4-4563-A0BC-79F78CD4C1C8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "1-InitDirect3D", "InitDirect3D\1-InitDirect3D.csproj", "{C67D7BC4-21E4-4563-A0BC-79F78CD4C1C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BoxDemo", "BoxDemo\BoxDemo.csproj", "{2183B279-2804-4749-803E-3DD4DD8EA9D0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "2-BoxDemo", "BoxDemo\2-BoxDemo.csproj", "{2183B279-2804-4749-803E-3DD4DD8EA9D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HillDemo", "HillDemo\HillDemo.csproj", "{9DC8B8EF-E3F0-4306-9646-D82F1D134625}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "3-HillDemo", "HillDemo\3-HillDemo.csproj", "{9DC8B8EF-E3F0-4306-9646-D82F1D134625}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShapesDemo", "ShapesDemo\ShapesDemo.csproj", "{5A76A5C4-2E85-470B-8039-87565D625F6E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "4-ShapesDemo", "ShapesDemo\4-ShapesDemo.csproj", "{5A76A5C4-2E85-470B-8039-87565D625F6E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{177C5CB8-FF8B-4CBC-9D3F-25878D8E7501}"
 	ProjectSection(SolutionItems) = preProject
@@ -19,53 +21,53 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkullDemo", "SkullDemo\SkullDemo.csproj", "{85770DD8-59C4-48E6-BDD5-26760B9691B4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "5-SkullDemo", "SkullDemo\5-SkullDemo.csproj", "{85770DD8-59C4-48E6-BDD5-26760B9691B4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaveDemo", "WaveDemo\WaveDemo.csproj", "{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "6-WaveDemo", "WaveDemo\6-WaveDemo.csproj", "{E3C0B4FA-10D0-45E6-9035-A72B8C4BE803}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightingDemo", "LightingDemo\LightingDemo.csproj", "{C817B76A-97D4-4CC1-9651-3D405934AC83}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "7-LightingDemo", "LightingDemo\7-LightingDemo.csproj", "{C817B76A-97D4-4CC1-9651-3D405934AC83}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LitSkull", "LitSkull\LitSkull.csproj", "{2947BFA6-798E-4960-9310-05E32CFA32A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "8-LitSkull", "LitSkull\8-LitSkull.csproj", "{2947BFA6-798E-4960-9310-05E32CFA32A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrateDemo", "CrateDemo\CrateDemo.csproj", "{BEDF8CD8-078B-4BC6-A388-B63D36499ABB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "9-CrateDemo", "CrateDemo\9-CrateDemo.csproj", "{BEDF8CD8-078B-4BC6-A388-B63D36499ABB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TexturedHills", "TexturedHills\TexturedHills.csproj", "{0FDE6743-D46D-44B1-98D4-116863D258C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "10-TexturedHills", "TexturedHills\10-TexturedHills.csproj", "{0FDE6743-D46D-44B1-98D4-116863D258C1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FireBox", "FireBox\FireBox.csproj", "{B367EA40-1C5C-4113-B8E6-778198C463F9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "11-FireBox", "FireBox\11-FireBox.csproj", "{B367EA40-1C5C-4113-B8E6-778198C463F9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlendDemo", "BlendDemo\BlendDemo.csproj", "{982A55AD-535B-48C7-AC72-E077FBB76659}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "12-BlendDemo", "BlendDemo\12-BlendDemo.csproj", "{982A55AD-535B-48C7-AC72-E077FBB76659}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MirrorDemo", "MirrorDemo\MirrorDemo.csproj", "{F7E85E28-BF80-4C31-9714-8C7A98718836}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "13-MirrorDemo", "MirrorDemo\13-MirrorDemo.csproj", "{F7E85E28-BF80-4C31-9714-8C7A98718836}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeBillboardDemo", "TreeBillboardDemo\TreeBillboardDemo.csproj", "{6AF064DF-4713-4C85-961E-6C0FF4ED586E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "14-TreeBillboardDemo", "TreeBillboardDemo\14-TreeBillboardDemo.csproj", "{6AF064DF-4713-4C85-961E-6C0FF4ED586E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CameraDemo", "CameraDemo\CameraDemo.csproj", "{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "15-CameraDemo", "CameraDemo\15-CameraDemo.csproj", "{DB5B3D81-4247-4844-9FD8-F6EC185FCD2C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InstancingAndCulling", "InstancingAndCulling\InstancingAndCulling.csproj", "{8D786763-3D08-498D-9E6A-0B4D61CD4112}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "16-InstancingAndCulling", "InstancingAndCulling\16-InstancingAndCulling.csproj", "{8D786763-3D08-498D-9E6A-0B4D61CD4112}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PickingDemo", "PickingDemo\PickingDemo.csproj", "{08ADDC21-4615-4988-BF30-192C9033544B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "17-PickingDemo", "PickingDemo\17-PickingDemo.csproj", "{08ADDC21-4615-4988-BF30-192C9033544B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CubeMap", "CubeMap\CubeMap.csproj", "{183C6E5E-3CCF-40AC-A3EC-6A1FE02B5399}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "18-CubeMap", "CubeMap\18-CubeMap.csproj", "{183C6E5E-3CCF-40AC-A3EC-6A1FE02B5399}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicCubeMap", "DynamicCubeMap\DynamicCubeMap.csproj", "{EBE23FE3-BCE2-4681-BE0D-4CD397FC7F3D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "19-DynamicCubeMap", "DynamicCubeMap\19-DynamicCubeMap.csproj", "{EBE23FE3-BCE2-4681-BE0D-4CD397FC7F3D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NormalDisplacementMaps", "NormalDisplacementMaps\NormalDisplacementMaps.csproj", "{65F1140E-D315-4911-8CAF-E8E28AD5E2D8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "20-NormalDisplacementMaps", "NormalDisplacementMaps\20-NormalDisplacementMaps.csproj", "{65F1140E-D315-4911-8CAF-E8E28AD5E2D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssimpModel", "AssimpModel\AssimpModel.csproj", "{0D4C8BCE-7E85-4511-B78D-BB72743015F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "23-AssimpModel", "AssimpModel\23-AssimpModel.csproj", "{0D4C8BCE-7E85-4511-B78D-BB72743015F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TerrainDemo", "TerrainDemo\TerrainDemo.csproj", "{00DCEE71-2638-4B54-95CA-5FEF89383167}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "21-TerrainDemo", "TerrainDemo\21-TerrainDemo.csproj", "{00DCEE71-2638-4B54-95CA-5FEF89383167}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoronoiMap", "VoronoiMap\VoronoiMap.csproj", "{93B55A1E-AA33-472D-AA63-B07A5CD74A35}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CosCalculator", "CosCalculator\CosCalculator.csproj", "{CA1437FE-E75B-4F82-A3A4-2076B608CCD2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RandomTerrainDemo", "RandomTerrainDemo\RandomTerrainDemo.csproj", "{4BCAFDA9-BFED-48C7-A510-6766B1686995}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "22-RandomTerrainDemo", "RandomTerrainDemo\22-RandomTerrainDemo.csproj", "{4BCAFDA9-BFED-48C7-A510-6766B1686995}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkinnedModels", "SkinnedModels\SkinnedModels.csproj", "{CD06AF9A-3460-41CC-8628-82E838601689}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "24-SkinnedModels", "SkinnedModels\24-SkinnedModels.csproj", "{CD06AF9A-3460-41CC-8628-82E838601689}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParticlesDemo", "ParticlesDemo\ParticlesDemo.csproj", "{07C38152-C421-4933-A59B-295B12CFAFF8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "25-ParticlesDemo", "ParticlesDemo\25-ParticlesDemo.csproj", "{07C38152-C421-4933-A59B-295B12CFAFF8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShadowsDemo", "ShadowsDemo\ShadowsDemo.csproj", "{8221921E-A755-4D28-A440-196CC0826EE5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "26-ShadowsDemo", "ShadowsDemo\26-ShadowsDemo.csproj", "{8221921E-A755-4D28-A440-196CC0826EE5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

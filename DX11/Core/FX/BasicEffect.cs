@@ -326,6 +326,7 @@
         }
 
         public void SetShadowTransform(Matrix matrix) {
+            if ( _shadowTransform != null )
             _shadowTransform.SetMatrix(matrix);
         }
     }
