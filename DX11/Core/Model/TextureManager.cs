@@ -26,6 +26,7 @@ namespace Core.Model {
         }
         public void Init(Device device) {
             _device = device;
+
         }
         public ShaderResourceView CreateTexture(string path) {
             if (!_textureSRVs.ContainsKey(path)) {

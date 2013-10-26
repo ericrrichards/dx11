@@ -129,22 +129,30 @@ namespace Core.Model {
             _modelMesh.SetIndices(device, _indices);
         }
 
-        public static BasicModel CreateSphere(Device device, float radius, int slices, int stacks) {
-            var sphere = GeometryGenerator.CreateSphere(radius, slices, stacks);
+        
+
+        private static BasicModel BuildFromMeshData(Device device, GeometryGenerator.MeshData mesh) {
+            var ret = new BasicModel();
 
             var subset = new MeshGeometry.Subset {
-                FaceCount = sphere.Indices.Count / 3,
+                FaceCount = mesh.Indices.Count / 3,
                 FaceStart = 0,
-                VertexCount = sphere.Vertices.Count,
+                VertexCount = mesh.Vertices.Count,
                 VertexStart = 0
             };
-
-            var ret = new BasicModel();
             ret._subsets.Add(subset);
+            
+            var max = new Vector3(float.MinValue);
+            var min = new Vector3(float.MaxValue);
+            foreach (var vertex in mesh.Vertices) {
+                max = Vector3.Maximize(max, vertex.Position);
+                min = Vector3.Minimize(min, vertex.Position);
+            }
 
-            ret._vertices.AddRange(sphere.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
-            ret._indices.AddRange(sphere.Indices.Select(i => (short)i));
-
+            ret.BoundingBox = new BoundingBox(min, max);
+            
+            ret._vertices.AddRange(mesh.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
+            ret._indices.AddRange(mesh.Indices.Select(i => (short)i));
 
             ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
             ret.DiffuseMapSRV.Add(null);
@@ -156,77 +164,23 @@ namespace Core.Model {
 
             return ret;
         }
-        public static BasicModel CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
-            var grid = GeometryGenerator.CreateGrid(width, depth, xVerts, zVerts);
-            var subset = new MeshGeometry.Subset {
-                FaceCount = grid.Indices.Count / 3,
-                FaceStart = 0,
-                VertexCount = grid.Vertices.Count,
-                VertexStart = 0
-            };
-            var ret = new BasicModel();
-            ret._subsets.Add(subset);
 
-            ret._vertices.AddRange(grid.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
-            ret._indices.AddRange(grid.Indices.Select(i => (short)i));
-
-            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
-
-            ret.DiffuseMapSRV.Add(null);
-            ret.NormalMapSRV.Add(null);
-
-            ret._modelMesh.SetSubsetTable(ret._subsets);
-            ret._modelMesh.SetVertices(device, ret._vertices);
-            ret._modelMesh.SetIndices(device, ret._indices);
-
-            return ret;
-        }
+        
         public static BasicModel CreateBox(Device device, float width, float height, float depth) {
             var box = GeometryGenerator.CreateBox(width, height, depth);
-            var subset = new MeshGeometry.Subset {
-                FaceCount = box.Indices.Count / 3,
-                FaceStart = 0,
-                VertexCount = box.Vertices.Count,
-                VertexStart = 0
-            };
-            var ret = new BasicModel();
-            ret._subsets.Add(subset);
-            ret._vertices.AddRange(box.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
-            ret._indices.AddRange(box.Indices.Select(i => (short)i));
-
-            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
-            ret.DiffuseMapSRV.Add(null);
-            ret.NormalMapSRV.Add(null);
-
-            ret._modelMesh.SetSubsetTable(ret._subsets);
-            ret._modelMesh.SetVertices(device, ret._vertices);
-            ret._modelMesh.SetIndices(device, ret._indices);
-
-            return ret;
+            return BuildFromMeshData(device, box);
+        }
+        public static BasicModel CreateSphere(Device device, float radius, int slices, int stacks) {
+            var sphere = GeometryGenerator.CreateSphere(radius, slices, stacks);
+            return BuildFromMeshData(device, sphere);
         }
         public static BasicModel CreateCylinder(Device device, float bottomRadius, float topRadius, float height, int sliceCount, int stackCount) {
             var cylinder = GeometryGenerator.CreateCylinder(bottomRadius, topRadius, height, sliceCount, stackCount);
-
-            var subset = new MeshGeometry.Subset {
-                FaceCount = cylinder.Indices.Count / 3,
-                FaceStart = 0,
-                VertexCount = cylinder.Vertices.Count,
-                VertexStart = 0
-            };
-            var ret = new BasicModel();
-            ret._subsets.Add(subset);
-            ret._vertices.AddRange(cylinder.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)));
-            ret._indices.AddRange(cylinder.Indices.Select(i => (short)i));
-
-            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
-            ret.DiffuseMapSRV.Add(null);
-            ret.NormalMapSRV.Add(null);
-
-            ret._modelMesh.SetSubsetTable(ret._subsets);
-            ret._modelMesh.SetVertices(device, ret._vertices);
-            ret._modelMesh.SetIndices(device, ret._indices);
-
-            return ret;
+            return BuildFromMeshData(device, cylinder);
+        }
+        public static BasicModel CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
+            var grid = GeometryGenerator.CreateGrid(width, depth, xVerts, zVerts);
+            return BuildFromMeshData(device, grid);
         }
     }
 }
