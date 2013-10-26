@@ -13,7 +13,7 @@
         private DepthStencilView _depthMapDSV;
         private readonly Viewport _viewport;
         private ShaderResourceView _depthMapSRV;
-        private RenderTargetView _depthRTV;
+
         public ShaderResourceView DepthMapSRV {
             get { return _depthMapSRV; }
             private set { _depthMapSRV = value; }
@@ -40,20 +40,6 @@
 
             var depthMap = new Texture2D(device, texDesc);
 
-            texDesc = new Texture2DDescription {
-                Width = _width,
-                Height = _height,
-                MipLevels = 1,
-                ArraySize = 1,
-                Format = Format.R8G8B8A8_UNorm,
-                SampleDescription = new SampleDescription(1, 0),
-                Usage = ResourceUsage.Default,
-                BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
-                CpuAccessFlags = CpuAccessFlags.None,
-                OptionFlags = ResourceOptionFlags.None
-            };
-            var renderMap = new Texture2D(device, texDesc);
-            
             var dsvDesc = new DepthStencilViewDescription {
                 Flags = DepthStencilViewFlags.None,
                 Format = Format.D24_UNorm_S8_UInt,
@@ -69,17 +55,10 @@
                 MostDetailedMip = 0
 
             };
-            var rtDesc = new RenderTargetViewDescription {
-                Format = Format.R8G8B8A8_UNorm,
-                Dimension = RenderTargetViewDimension.Texture2D,
-                MipSlice = 0,
-            };
-            _depthRTV = new RenderTargetView(device, renderMap, rtDesc);
 
             DepthMapSRV = new ShaderResourceView(device, depthMap, srvDesc);
 
             Util.ReleaseCom(ref depthMap);
-            Util.ReleaseCom(ref renderMap);
 
         }
         protected override void Dispose(bool disposing) {
@@ -87,7 +66,6 @@
                 if (disposing) {
                     Util.ReleaseCom(ref _depthMapSRV);
                     Util.ReleaseCom(ref _depthMapDSV);
-                    Util.ReleaseCom(ref _depthRTV);
                 }
                 _disposed = true;
             }
@@ -96,10 +74,10 @@
         public void BindDsvAndSetNullRenderTarget(DeviceContext dc) {
             dc.Rasterizer.SetViewports(_viewport);
 
-            dc.OutputMerger.SetTargets(_depthMapDSV, _depthRTV);
+            dc.OutputMerger.SetTargets(_depthMapDSV, (RenderTargetView)null);
             
             dc.ClearDepthStencilView(_depthMapDSV, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0);
-            dc.ClearRenderTargetView(_depthRTV, Color.Black);
+           
         }
         
     }
