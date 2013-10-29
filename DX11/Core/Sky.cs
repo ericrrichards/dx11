@@ -22,7 +22,7 @@ namespace Core {
 
         public Sky(Device device, string filename, float skySphereRadius) {
             CubeMapSRV = ShaderResourceView.FromFile(device, filename);
-
+            CubeMapSRV.Resource.DebugName = "sky cubemap";
             var sphere = GeometryGenerator.CreateSphere(skySphereRadius, 30, 30);
             var vertices = sphere.Vertices.Select(v => v.Position).ToArray();
             var vbd = new BufferDescription(

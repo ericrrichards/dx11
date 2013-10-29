@@ -78,12 +78,17 @@
                 Console.WriteLine(ex.Message);
             }
             try {
-                SsaoFX = new SsaoEffect(device, "FX/Ssao.fx");
+                SsaoFX = new SsaoEffect(device, "FX/Ssao.fxo");
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
             try {
-                SsaoBlurFX = new SsaoBlurEffect(device, "FX/SsaoBlur.fx");
+                SsaoBlurFX = new SsaoBlurEffect(device, "FX/SsaoBlur.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+            try {
+                SsaoNormalDepthFX = new SsaoNormalDepthEffect(device, "FX/SsaoNormalDepth.fxo");
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
@@ -108,6 +113,7 @@
 
             Util.ReleaseCom(ref SsaoFX);
             Util.ReleaseCom(ref SsaoBlurFX);
+            Util.ReleaseCom(ref SsaoNormalDepthFX);
         }
 
         public static BasicEffect BasicFX;
@@ -128,5 +134,6 @@
 
         public static SsaoEffect SsaoFX;
         public static SsaoBlurEffect SsaoBlurFX;
+        public static SsaoNormalDepthEffect SsaoNormalDepthFX;
     }
 }

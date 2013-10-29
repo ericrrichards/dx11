@@ -31,7 +31,7 @@ namespace AssimpModel {
             : base(hInstance) {
             MainWindowCaption = "Assimp Model Demo";
             _lastMousePos = new Point();
-            Enable4xMsaa = true;
+            Enable4XMsaa = true;
 
             _camera = new FpsCamera {
                 Position = new Vector3(0, 2, -15)

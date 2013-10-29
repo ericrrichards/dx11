@@ -2,8 +2,8 @@
 
 namespace Core.FX {
     public class SsaoBlurEffect : Effect {
-        public EffectTechnique HorzBlurTech { get; private set; };
-        public EffectTechnique VertBlurTech { get; private set; };
+        public EffectTechnique HorzBlurTech { get; private set; }
+        public EffectTechnique VertBlurTech { get; private set; }
 
         private readonly EffectScalarVariable _texelWidth;
         private readonly EffectScalarVariable _texelHeight;

@@ -32,6 +32,7 @@ namespace Core.Model {
             if (!_textureSRVs.ContainsKey(path)) {
                 if (File.Exists(path)) {
                     _textureSRVs[path] = ShaderResourceView.FromFile(_device, path);
+                    _textureSRVs[path].Resource.DebugName = path;
                 } else {
                     return null;
                 }

@@ -155,32 +155,52 @@ namespace Core {
             };
             LessEqualDSS = DepthStencilState.FromDescription(device, lessEqualDesc);
 
+            var equalsDesc = new DepthStencilStateDescription() {
+                IsDepthEnabled = true,
+                DepthWriteMask = DepthWriteMask.Zero,
+                DepthComparison = Comparison.LessEqual,
+                
+            };
+            EqualsDSS = DepthStencilState.FromDescription(device, equalsDesc);
+
         }
         public static void DestroyAll() {
-            Util.ReleaseCom(ref WireframeRS);
-            Util.ReleaseCom(ref NoCullRS);
-            Util.ReleaseCom(ref CullClockwiseRS);
-            Util.ReleaseCom(ref AlphaToCoverageBS);
-            Util.ReleaseCom(ref TransparentBS);
-            Util.ReleaseCom(ref NoRenderTargetWritesBS);
-            Util.ReleaseCom(ref MarkMirrorDSS);
-            Util.ReleaseCom(ref DrawReflectionDSS);
-            Util.ReleaseCom(ref NoDoubleBlendDSS);
-            Util.ReleaseCom(ref LessEqualDSS);
+            var rasterizerState = WireframeRS;
+            Util.ReleaseCom(ref rasterizerState);
+            var noCullRS = NoCullRS;
+            Util.ReleaseCom(ref noCullRS);
+            var cullClockwiseRS = CullClockwiseRS;
+            Util.ReleaseCom(ref cullClockwiseRS);
+            var alphaToCoverageBS = AlphaToCoverageBS;
+            Util.ReleaseCom(ref alphaToCoverageBS);
+            var transparentBS = TransparentBS;
+            Util.ReleaseCom(ref transparentBS);
+            var noRenderTargetWritesBS = NoRenderTargetWritesBS;
+            Util.ReleaseCom(ref noRenderTargetWritesBS);
+            var depthStencilState = MarkMirrorDSS;
+            Util.ReleaseCom(ref depthStencilState);
+            var drawReflectionDSS = DrawReflectionDSS;
+            Util.ReleaseCom(ref drawReflectionDSS);
+            var noDoubleBlendDSS = NoDoubleBlendDSS;
+            Util.ReleaseCom(ref noDoubleBlendDSS);
+            var lessEqualDSS = LessEqualDSS;
+            Util.ReleaseCom(ref lessEqualDSS);
+            var stencilState = EqualsDSS;
+            Util.ReleaseCom(ref stencilState);
         }
 
-        public static RasterizerState WireframeRS;
-        public static RasterizerState NoCullRS;
-        public static RasterizerState CullClockwiseRS;
+        public static RasterizerState WireframeRS { get; private set; }
+        public static RasterizerState NoCullRS { get; private set; }
+        public static RasterizerState CullClockwiseRS { get; private set; }
 
-        public static BlendState AlphaToCoverageBS;
-        public static BlendState TransparentBS;
-        public static BlendState NoRenderTargetWritesBS;
+        public static BlendState AlphaToCoverageBS { get; private set; }
+        public static BlendState TransparentBS { get; private set; }
+        public static BlendState NoRenderTargetWritesBS { get; private set; }
 
-        public static DepthStencilState MarkMirrorDSS;
-        public static DepthStencilState DrawReflectionDSS;
-        public static DepthStencilState NoDoubleBlendDSS;
-        public static DepthStencilState LessEqualDSS;
-
+        public static DepthStencilState MarkMirrorDSS { get; private set; }
+        public static DepthStencilState DrawReflectionDSS { get; private set; }
+        public static DepthStencilState NoDoubleBlendDSS { get; private set; }
+        public static DepthStencilState LessEqualDSS { get; private set; }
+        public static DepthStencilState EqualsDSS { get; private set; }
     }
 }

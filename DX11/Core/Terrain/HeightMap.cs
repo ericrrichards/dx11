@@ -105,7 +105,7 @@
                     new DataStream(hmap.ToArray(), false, false)
                     )
                 );
-
+            hmapTex.DebugName = "heightmap texture";
             BuildHeightMapThumb();
 
             var srvDesc = new ShaderResourceViewDescription {

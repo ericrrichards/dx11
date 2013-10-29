@@ -37,7 +37,7 @@
             };
 
             var depthMap = new Texture2D(device, texDesc);
-
+            depthMap.DebugName = "shadowmap depthmap";
             var dsvDesc = new DepthStencilViewDescription {
                 Flags = DepthStencilViewFlags.None,
                 Format = Format.D24_UNorm_S8_UInt,

@@ -65,7 +65,7 @@ namespace MirrorDemo {
 
             MainWindowCaption = "Mirror Demo";
 
-            Enable4xMsaa = false;
+            Enable4XMsaa = false;
 
             _lastMousePos = new Point();
 

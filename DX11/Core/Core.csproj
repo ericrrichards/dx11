@@ -74,6 +74,7 @@
     <Compile Include="FX\SkyEffect.cs" />
     <Compile Include="FX\SsaoBlurEffect.cs" />
     <Compile Include="FX\SsaoEffect.cs" />
+    <Compile Include="FX\SsaoNormalDepthEffect.cs" />
     <Compile Include="FX\TerrainEffect.cs" />
     <Compile Include="FX\TreeSpriteEffect.cs" />
     <Compile Include="GameTimer.cs" />

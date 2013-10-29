@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Core.Camera;
@@ -14,13 +15,14 @@ using SlimDX.DXGI;
 using Buffer = SlimDX.Direct3D11.Buffer;
 using Device = SlimDX.Direct3D11.Device;
 using Format = SlimDX.DXGI.Format;
+using MapFlags = SlimDX.Direct3D11.MapFlags;
 using Viewport = SlimDX.Direct3D11.Viewport;
 
 namespace Core {
     public class SSAO : DisposableClass {
         #region private members
-        private Device _device;
-        private DeviceContext _dc;
+        private readonly Device _device;
+        private readonly DeviceContext _dc;
 
         private Buffer _screenQuadVB;
         private Buffer _screenQuadIB;
@@ -39,8 +41,8 @@ namespace Core {
         private int _renderTargetWidth;
         private int _renderTargetHeight;
 
-        private Vector4[] _frustumFarCorners = new Vector4[4];
-        Vector4[] _offsets = new Vector4[14];
+        private readonly Vector4[] _frustumFarCorners = new Vector4[4];
+        readonly Vector4[] _offsets = new Vector4[14];
 
         private Viewport _ambientMapViewport;
 
@@ -54,7 +56,7 @@ namespace Core {
         public ShaderResourceView AmbientSRV {
             get { return _ambientSRV0; }
         }
-        public SSAO( Device device, DeviceContext dc, int width, int height, float fovY, float farZ) {
+        public SSAO(Device device, DeviceContext dc, int width, int height, float fovY, float farZ) {
             _device = device;
             _dc = dc;
             OnSize(width, height, fovY, farZ);
@@ -63,7 +65,7 @@ namespace Core {
             BuildOffsetVectors();
             BuildRandomVectorTexture();
         }
-        
+
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
@@ -82,7 +84,7 @@ namespace Core {
             _renderTargetWidth = width;
             _renderTargetHeight = height;
 
-            _ambientMapViewport = new Viewport(0, 0, width/2.0f, height/2.0f, 0, 1);
+            _ambientMapViewport = new Viewport(0, 0, width / 2.0f, height / 2.0f, 0, 1);
 
             BuildFrustumFarCorners(fovY, farZ);
             BuildTextureViews();
@@ -90,7 +92,7 @@ namespace Core {
 
         public void SetNormalDepthRenderTarget(DepthStencilView dsv) {
             _dc.OutputMerger.SetTargets(dsv, _normalDepthRTV);
-            var clearColor = new Color4(0,0,-1, 1e5f);
+            var clearColor = new Color4(1e5f, 0, 0, -1);
             _dc.ClearRenderTargetView(_normalDepthRTV, clearColor);
         }
         public void ComputeSsao(CameraBase camera) {
@@ -105,7 +107,7 @@ namespace Core {
             T.M42 = 0.5f;
 
             var P = camera.Proj;
-            var pt = P*T;
+            var pt = P * T;
 
             Effects.SsaoFX.SetViewToTexSpace(pt);
             Effects.SsaoFX.SetOffsetVectors(_offsets);
@@ -142,8 +144,8 @@ namespace Core {
             _dc.ClearRenderTargetView(outputRTV, Color.Black);
             _dc.Rasterizer.SetViewports(_ambientMapViewport);
 
-            Effects.SsaoBlurFX.SetTexelWidth(1.0f/_ambientMapViewport.Width);
-            Effects.SsaoBlurFX.SetTexelHeight(1.0f/_ambientMapViewport.Height);
+            Effects.SsaoBlurFX.SetTexelWidth(1.0f / _ambientMapViewport.Width);
+            Effects.SsaoBlurFX.SetTexelHeight(1.0f / _ambientMapViewport.Height);
             Effects.SsaoBlurFX.SetNormalDepthMap(_normalDepthSRV);
             Effects.SsaoBlurFX.SetInputImage(inputSRV);
 
@@ -167,32 +169,32 @@ namespace Core {
         }
 
         private void BuildFrustumFarCorners(float fovy, float farz) {
-            var aspect = (float)_renderTargetWidth/_renderTargetHeight;
+            var aspect = (float)_renderTargetWidth / _renderTargetHeight;
 
-            var halfHeight = farz*MathF.Tan(0.5f*fovy);
-            var halfWidth = aspect*halfHeight;
+            var halfHeight = farz * MathF.Tan(0.5f * fovy);
+            var halfWidth = aspect * halfHeight;
 
             _frustumFarCorners[0] = new Vector4(-halfWidth, -halfHeight, farz, 0);
-            _frustumFarCorners[1] = new Vector4(-halfWidth, halfHeight, farz, 0);
-            _frustumFarCorners[2] = new Vector4(halfWidth, halfHeight, farz, 0);
-            _frustumFarCorners[3] = new Vector4(halfWidth, -halfHeight, farz, 0);
+            _frustumFarCorners[1] = new Vector4(-halfWidth, +halfHeight, farz, 0);
+            _frustumFarCorners[2] = new Vector4(+halfWidth, +halfHeight, farz, 0);
+            _frustumFarCorners[3] = new Vector4(+halfWidth, -halfHeight, farz, 0);
         }
 
         private void BuildFullScreenQuad() {
             var v = new Basic32[4];
             // normal.X contains frustum corner array index
-            v[0] = new Basic32(new Vector3( -1, -1, 0), new Vector3(0,0,0), new Vector2(0,1) );
-            v[1] = new Basic32(new Vector3(-1, 1, 0), new Vector3(1, 0, 0), new Vector2(0, 0));
-            v[2] = new Basic32(new Vector3(1, 1, 0), new Vector3(2, 0, 0), new Vector2(1, 0));
-            v[3] = new Basic32(new Vector3(1, -1, 0), new Vector3(3, 0, 0), new Vector2(1, 1));
+            v[0] = new Basic32(new Vector3(-1, -1, 0), new Vector3(0, 0, 0), new Vector2(0, 1));
+            v[1] = new Basic32(new Vector3(-1, +1, 0), new Vector3(1, 0, 0), new Vector2(0, 0));
+            v[2] = new Basic32(new Vector3(+1, +1, 0), new Vector3(2, 0, 0), new Vector2(1, 0));
+            v[3] = new Basic32(new Vector3(+1, -1, 0), new Vector3(3, 0, 0), new Vector2(1, 1));
 
-            var vbd = new BufferDescription(Basic32.Stride*4, ResourceUsage.Immutable, BindFlags.VertexBuffer,
+            var vbd = new BufferDescription(Basic32.Stride * 4, ResourceUsage.Immutable, BindFlags.VertexBuffer,
                 CpuAccessFlags.None, ResourceOptionFlags.None, 0);
 
             _screenQuadVB = new Buffer(_device, new DataStream(v, false, false), vbd);
 
-            var indices = new short[] {0, 1, 2, 0, 2, 3};
-            var ibd = new BufferDescription(sizeof (short)*6, ResourceUsage.Immutable, BindFlags.IndexBuffer,
+            var indices = new short[] { 0, 1, 2, 0, 2, 3 };
+            var ibd = new BufferDescription(sizeof(short) * 6, ResourceUsage.Immutable, BindFlags.IndexBuffer,
                 CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _screenQuadIB = new Buffer(_device, new DataStream(indices, false, false), ibd);
 
@@ -214,26 +216,30 @@ namespace Core {
                 OptionFlags = ResourceOptionFlags.None
             };
             var normalDepthTex = new Texture2D(_device, texDesc);
+            normalDepthTex.DebugName = "normalDepthTex";
             _normalDepthSRV = new ShaderResourceView(_device, normalDepthTex);
             _normalDepthRTV = new RenderTargetView(_device, normalDepthTex);
 
             Util.ReleaseCom(ref normalDepthTex);
 
-            texDesc.Width = _renderTargetWidth/2;
-            texDesc.Height = _renderTargetHeight/2;
+            texDesc.Width = _renderTargetWidth / 2;
+            texDesc.Height = _renderTargetHeight / 2;
             texDesc.Format = Format.R16_Float;
 
             var ambientTex0 = new Texture2D(_device, texDesc);
+            ambientTex0.DebugName = "ambientTex0";
             _ambientSRV0 = new ShaderResourceView(_device, ambientTex0);
             _ambientRTV0 = new RenderTargetView(_device, ambientTex0);
 
+
             var ambientTex1 = new Texture2D(_device, texDesc);
+            ambientTex1.DebugName = "ambientTex1";
             _ambientSRV1 = new ShaderResourceView(_device, ambientTex1);
             _ambientRTV1 = new RenderTargetView(_device, ambientTex1);
 
             Util.ReleaseCom(ref ambientTex0);
             Util.ReleaseCom(ref ambientTex1);
-            
+
         }
 
         private void ReleaseTextureViews() {
@@ -255,19 +261,27 @@ namespace Core {
                 ArraySize = 1,
                 Format = Format.R8G8B8A8_UNorm,
                 SampleDescription = new SampleDescription(1, 0),
-                Usage = ResourceUsage.Immutable,
+                Usage = ResourceUsage.Dynamic,
                 BindFlags = BindFlags.ShaderResource,
-                CpuAccessFlags = CpuAccessFlags.None,
+                CpuAccessFlags = CpuAccessFlags.Write,
                 OptionFlags = ResourceOptionFlags.None
             };
             var color = new List<Color4>();
             for (int i = 0; i < 256; i++) {
                 for (int j = 0; j < 256; j++) {
-                    color.Add(new Color4(MathF.Rand(), MathF.Rand(), MathF.Rand(), 0));
+                    color.Add(new Color4(MathF.Rand(0,1), MathF.Rand(0,1), MathF.Rand(0,1), 0));
                 }
             }
-            var tex = new Texture2D(_device, texDesc,
-                new DataRectangle(256, new DataStream(color.ToArray(), false, false)));
+            var tex = new Texture2D(_device, texDesc);
+
+            var box = _dc.MapSubresource(tex, 0, MapMode.WriteDiscard, MapFlags.None);
+            foreach (var color4 in color) {
+                box.Data.Write(color4.ToArgb());
+            }
+            _dc.UnmapSubresource(tex, 0);
+
+            tex.DebugName = "random ssao texture";
+
             _randomVectorSRV = new ShaderResourceView(_device, tex);
 
             Util.ReleaseCom(ref tex);
@@ -275,31 +289,31 @@ namespace Core {
 
         private void BuildOffsetVectors() {
             // cube corners
-            _offsets[0] = new Vector4(1,1,1,0);
+            _offsets[0] = new Vector4(+1, +1, +1, 0);
             _offsets[0] = new Vector4(-1, -1, -1, 0);
 
-            _offsets[0] = new Vector4(-1, 1, 1, 0);
-            _offsets[0] = new Vector4(1, -1, -1, 0);
+            _offsets[0] = new Vector4(-1, +1, +1, 0);
+            _offsets[0] = new Vector4(+1, -1, -1, 0);
 
-            _offsets[0] = new Vector4(1, 1, -1, 0);
-            _offsets[0] = new Vector4(-1, -1, 1, 0);
+            _offsets[0] = new Vector4(+1, +1, -1, 0);
+            _offsets[0] = new Vector4(-1, -1, +1, 0);
 
-            _offsets[0] = new Vector4(-1, 1, -1, 0);
-            _offsets[0] = new Vector4(1, -1, 1, 0);
+            _offsets[0] = new Vector4(-1, +1, -1, 0);
+            _offsets[0] = new Vector4(+1, -1, +1, 0);
 
             // cube face centers
             _offsets[0] = new Vector4(-1, 0, 0, 0);
-            _offsets[0] = new Vector4(1, 0, 0, 0);
+            _offsets[0] = new Vector4(+1, 0, 0, 0);
 
             _offsets[0] = new Vector4(0, -1, 0, 0);
-            _offsets[0] = new Vector4(0, 1, 0, 0);
+            _offsets[0] = new Vector4(0, +1, 0, 0);
 
             _offsets[0] = new Vector4(0, 0, -1, 0);
-            _offsets[0] = new Vector4(0, 0, 1, 0);
+            _offsets[0] = new Vector4(0, 0, +1, 0);
 
             for (var i = 0; i < 14; i++) {
                 var s = MathF.Rand(0.25f, 1.0f);
-                var v = s*Vector4.Normalize(_offsets[i]);
+                var v = s * Vector4.Normalize(_offsets[i]);
                 _offsets[i] = v;
             }
         }

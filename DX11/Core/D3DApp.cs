@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using SlimDX.Direct2D;
 using SlimDX.Direct3D11;
 using FeatureLevel = SlimDX.Direct3D11.FeatureLevel;
@@ -15,7 +11,7 @@ namespace Core {
     using SlimDX;
     using SlimDX.DXGI;
 
-    using Device = SlimDX.Direct3D11.Device;
+    using Device = Device;
     using Debug = System.Diagnostics.Debug;
 
     public class D3DApp : DisposableClass {
@@ -47,10 +43,10 @@ namespace Core {
         protected DriverType DriverType;
         protected int ClientWidth;
         protected int ClientHeight;
-        protected bool Enable4xMsaa;
+        protected bool Enable4XMsaa;
         private bool _running;
-        private int frameCount;
-        private float timeElapsed;
+        private int _frameCount;
+        private float _timeElapsed;
 private WindowRenderTarget _dxWRT;
 internal WindowRenderTarget DxWrt {
     get { return _dxWRT; }
@@ -110,8 +106,6 @@ internal WindowRenderTarget DxWrt {
         // ReSharper disable InconsistentNaming
         private const int WM_ACTIVATE = 0x0006;
         private const int WM_SIZE = 0x0005;
-        private const int WM_ENTERSIZEMOVE = 0x0231;
-        private const int WM_EXITSIZEMOVE = 0x0232;
         private const int WM_DESTROY = 0x0002;
         // ReSharper restore InconsistentNaming
 
@@ -181,12 +175,12 @@ internal WindowRenderTarget DxWrt {
             }
             //Debug.Assert((Msaa4XQuality = Device.CheckMultisampleQualityLevels(Format.R8G8B8A8_UNorm, 4)) > 0);
             try {
-                var sd = new SwapChainDescription() {
+                var sd = new SwapChainDescription {
                     ModeDescription = new ModeDescription(ClientWidth, ClientHeight, new Rational(60, 1), Format.R8G8B8A8_UNorm) {
                         ScanlineOrdering = DisplayModeScanlineOrdering.Unspecified,
                         Scaling = DisplayModeScaling.Unspecified
                     },
-                    SampleDescription = Enable4xMsaa && Device.FeatureLevel >= FeatureLevel.Level_10_1 ? new SampleDescription(4, Msaa4XQuality - 1) : new SampleDescription(1, 0),
+                    SampleDescription = Enable4XMsaa && Device.FeatureLevel >= FeatureLevel.Level_10_1 ? new SampleDescription(4, Msaa4XQuality - 1) : new SampleDescription(1, 0),
                     Usage = Usage.RenderTargetOutput,
                     BufferCount = 1,
                     OutputHandle = Window.Handle,
@@ -206,15 +200,15 @@ internal WindowRenderTarget DxWrt {
         
 
         protected void CalculateFrameRateStats() {
-            frameCount++;
-            if ((Timer.TotalTime - timeElapsed) >= 1.0f) {
-                var fps = (float)frameCount;
+            _frameCount++;
+            if ((Timer.TotalTime - _timeElapsed) >= 1.0f) {
+                var fps = (float)_frameCount;
                 var mspf = 1000.0f / fps;
 
                 var s = string.Format("{0}    FPS: {1}    Frame Time: {2} (ms)", MainWindowCaption, fps, mspf);
                 Window.Text = s;
-                frameCount = 0;
-                timeElapsed += 1.0f;
+                _frameCount = 0;
+                _timeElapsed += 1.0f;
             }
         }
 
@@ -251,7 +245,7 @@ internal WindowRenderTarget DxWrt {
             DriverType = DriverType.Hardware;
             ClientWidth = 800;
             ClientHeight = 600;
-            Enable4xMsaa = false;
+            Enable4XMsaa = false;
             Window = null;
             AppPaused = false;
             Minimized = false;
@@ -286,12 +280,12 @@ internal WindowRenderTarget DxWrt {
         private bool InitDirect2D() {
             try {
                 var factory = new SlimDX.Direct2D.Factory(FactoryType.SingleThreaded);
-                _dxWRT = new WindowRenderTarget(factory, new WindowRenderTargetProperties() {
+                
+                _dxWRT = new WindowRenderTarget(factory,new WindowRenderTargetProperties {
                     Handle = Window.Handle,
                     PixelSize = Window.ClientSize,
                     PresentOptions = PresentOptions.Immediately
                 });
-
                 Util.ReleaseCom(ref factory);
                 _progressUpdate = new ProgressUpdate(_dxWRT);
                 
@@ -315,21 +309,22 @@ internal WindowRenderTarget DxWrt {
             SwapChain.ResizeBuffers(1, ClientWidth, ClientHeight, Format.R8G8B8A8_UNorm, SwapChainFlags.None);
             using (var resource = SlimDX.Direct3D11.Resource.FromSwapChain<Texture2D>(SwapChain, 0)) {
                 RenderTargetView = new RenderTargetView(Device, resource);
+                RenderTargetView.Resource.DebugName = "main render target";
             }
 
-            var depthStencilDesc = new Texture2DDescription() {
+            var depthStencilDesc = new Texture2DDescription {
                 Width = ClientWidth,
                 Height = ClientHeight,
                 MipLevels = 1,
                 ArraySize = 1,
                 Format = Format.D24_UNorm_S8_UInt,
-                SampleDescription = (Enable4xMsaa && Device.FeatureLevel>= FeatureLevel.Level_10_1) ? new SampleDescription(4, Msaa4XQuality - 1) : new SampleDescription(1, 0),
+                SampleDescription = (Enable4XMsaa && Device.FeatureLevel>= FeatureLevel.Level_10_1) ? new SampleDescription(4, Msaa4XQuality - 1) : new SampleDescription(1, 0),
                 Usage = ResourceUsage.Default,
                 BindFlags = BindFlags.DepthStencil,
                 CpuAccessFlags = CpuAccessFlags.None,
                 OptionFlags = ResourceOptionFlags.None
             };
-            DepthStencilBuffer = new Texture2D(Device, depthStencilDesc);
+            DepthStencilBuffer = new Texture2D(Device, depthStencilDesc) {DebugName = "DepthStencilBuffer"};
             DepthStencilView = new DepthStencilView(Device, DepthStencilBuffer);
 
             ImmediateContext.OutputMerger.SetTargets(DepthStencilView, RenderTargetView);

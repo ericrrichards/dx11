@@ -123,7 +123,7 @@ namespace Core {
             };
 
             var texArray = new Texture2D(device, texArrayDesc);
-
+            texArray.DebugName = "texture array: + " + filenames.Aggregate((i,j) => i + ", " + j);
             for (int texElement = 0; texElement < srcTex.Length; texElement++) {
                 for (int mipLevel = 0; mipLevel < texElementDesc.MipLevels; mipLevel++) {
                     var mappedTex2D = immediateContext.MapSubresource(srcTex[texElement], mipLevel, 0, MapMode.Read, MapFlags.None);

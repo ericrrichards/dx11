@@ -70,6 +70,7 @@ namespace Core {
             bitmap.Save(tmpFile);
 
             TextureView = ShaderResourceView.FromFile(device, tmpFile);
+            TextureView.Resource.DebugName = "texture atlas: " +filenames.Aggregate((i, j) => i + ", " + j);
         }
         
         protected override void Dispose(bool disposing) {

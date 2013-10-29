@@ -76,7 +76,7 @@ namespace NormalDisplacementMaps {
             _renderOptions = RenderOptions.NormalMap;
             MainWindowCaption = "Normal-Displacement Map Demo";
 
-            Enable4xMsaa = true;
+            Enable4XMsaa = true;
             _lastMousePos = new Point();
 
             _camera = new FpsCamera { Position = new Vector3(0, 2, -15) };

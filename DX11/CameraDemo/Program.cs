@@ -68,7 +68,7 @@ namespace CameraDemo {
         public CameraDemo(IntPtr hInstance)
             : base(hInstance) {
             _lightCount = 3;
-            Enable4xMsaa = true;
+            Enable4XMsaa = true;
             MainWindowCaption = "Camera Demo";
 
             _lastMousePos = new Point();

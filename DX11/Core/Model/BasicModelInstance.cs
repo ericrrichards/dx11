@@ -9,6 +9,8 @@
         public Matrix World;
         public Matrix TexTransform = Matrix.Identity;
         public Matrix ShadowTransform = Matrix.Identity;
+        public Matrix ToTexSpace = Matrix.Identity;
+
         public BoundingBox BoundingBox {
             get {
                 return new BoundingBox(
@@ -28,15 +30,35 @@
             Effects.NormalMapFX.SetWorld(world);
             Effects.NormalMapFX.SetWorldInvTranspose(wit);
             Effects.NormalMapFX.SetWorldViewProj(wvp);
+            Effects.NormalMapFX.SetWorldViewProjTex(wvp*ToTexSpace);
+            Effects.NormalMapFX.SetShadowTransform(world * ShadowTransform);
             Effects.NormalMapFX.SetTexTransform(TexTransform);
-            Effects.NormalMapFX.SetShadowTransform(world*ShadowTransform);
-
+            
             for (int i = 0; i < Model.SubsetCount; i++) {
                 Effects.NormalMapFX.SetMaterial(Model.Materials[i]);
                 Effects.NormalMapFX.SetDiffuseMap(Model.DiffuseMapSRV[i]);
                 Effects.NormalMapFX.SetNormalMap(Model.NormalMapSRV[i]);
 
                 effectPass.Apply(dc);
+                Model.ModelMesh.Draw(dc, i);
+            }
+        }
+
+        public void DrawSsaoDepth(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj) {
+            
+            var world = World;
+            var wit = MathF.InverseTranspose(world);
+            var wv = world * view;
+            var witv = wit * view;
+            var wvp = world * view*proj;
+
+            Effects.SsaoNormalDepthFX.SetWorldView(wv);
+            Effects.SsaoNormalDepthFX.SetWorldInvTransposeView(witv);
+            Effects.SsaoNormalDepthFX.SetWorldViewProj(wvp);
+            Effects.SsaoNormalDepthFX.SetTexTransform(TexTransform);
+
+            pass.Apply(dc);
+            for (int i = 0; i < Model.SubsetCount; i++) {
                 Model.ModelMesh.Draw(dc, i);
             }
         }
@@ -48,6 +70,7 @@
             Effects.BasicFX.SetWorld(world);
             Effects.BasicFX.SetWorldInvTranspose(wit);
             Effects.BasicFX.SetWorldViewProj(wvp);
+            Effects.BasicFX.SetWorldViewProjTex(wvp * ToTexSpace);
             Effects.BasicFX.SetTexTransform(TexTransform);
             Effects.BasicFX.SetShadowTransform(world*ShadowTransform);
 

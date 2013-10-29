@@ -116,7 +116,7 @@
         public readonly EffectTechnique Light1TexAlphaClipFogReflectSkinnedTech;
         public readonly EffectTechnique Light2TexAlphaClipFogReflectSkinnedTech;
         public readonly EffectTechnique Light3TexAlphaClipFogReflectSkinnedTech;
-        
+
         private readonly EffectMatrixVariable _worldViewProj;
         private readonly EffectMatrixVariable _world;
         private readonly EffectMatrixVariable _worldInvTranspose;
@@ -134,9 +134,11 @@
         private readonly EffectResourceVariable _cubeMap;
         private readonly EffectMatrixVariable _boneTransforms;
         private readonly EffectResourceVariable _ssaoMap;
-        
+        private EffectMatrixVariable _worldViewProjTex;
 
-        public BasicEffect(Device device, string filename) : base(device, filename) {
+
+        public BasicEffect(Device device, string filename)
+            : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
             Light2Tech = FX.GetTechniqueByName("Light2");
             Light3Tech = FX.GetTechniqueByName("Light3");
@@ -271,6 +273,8 @@
             _shadowTransform = FX.GetVariableByName("gShadowTransform").AsMatrix();
 
             _ssaoMap = FX.GetVariableByName("gSsaoMap").AsResource();
+
+            _worldViewProjTex = FX.GetVariableByName("gWorldViewProjTex").AsMatrix();
         }
         public void SetWorldViewProj(Matrix m) {
             _worldViewProj.SetMatrix(m);
@@ -328,8 +332,14 @@
         }
 
         public void SetShadowTransform(Matrix matrix) {
-            if ( _shadowTransform != null )
-            _shadowTransform.SetMatrix(matrix);
+            if (_shadowTransform != null)
+                _shadowTransform.SetMatrix(matrix);
+        }
+
+        public void SetSsaoMap(ShaderResourceView srv) { _ssaoMap.SetResource(srv); }
+
+        public void SetWorldViewProjTex(Matrix matrix) {
+            if ( _worldViewProjTex != null )_worldViewProjTex.SetMatrix(matrix);
         }
     }
 }

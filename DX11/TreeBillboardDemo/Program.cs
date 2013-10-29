@@ -86,7 +86,7 @@ namespace TreeBillboardDemo {
             _radius = 80.0f;
 
             MainWindowCaption = "Tree Billboard Demo";
-            Enable4xMsaa = true;
+            Enable4XMsaa = true;
 
             _lastMousePos = new Point();
 

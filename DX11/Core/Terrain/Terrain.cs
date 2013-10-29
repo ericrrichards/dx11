@@ -188,6 +188,7 @@ namespace Core.Terrain {
             if (!string.IsNullOrEmpty(Info.BlendMapFilename)) {
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.95f, "Loading blendmap from file");
                 _blendMapSRV = ShaderResourceView.FromFile(device, Info.BlendMapFilename);
+                _blendMapSRV.Resource.DebugName = Info.BlendMapFilename;
             } else {
                 _blendMapSRV = CreateBlendMap(_heightMap, device);
             }
@@ -246,6 +247,7 @@ namespace Core.Terrain {
                     new DataStream(colors.ToArray(), false, false)
                 )
             );
+            blendTex.DebugName = "terrain blend texture";
             var srvDesc = new ShaderResourceViewDescription {
                 Format = texDec.Format,
                 Dimension = ShaderResourceViewDimension.Texture2D,

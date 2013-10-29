@@ -250,6 +250,7 @@ namespace DynamicCubeMap {
                 OptionFlags = ResourceOptionFlags.GenerateMipMaps | ResourceOptionFlags.TextureCube
             };
             var cubeTex = new Texture2D(Device, texDesc);
+            cubeTex.DebugName = "dynamic cubemap texture";
             // create the render target view array
             var rtvDesc = new RenderTargetViewDescription() {
                 Format = texDesc.Format,
@@ -285,6 +286,7 @@ namespace DynamicCubeMap {
                 OptionFlags = ResourceOptionFlags.None
             };
             var depthTex = new Texture2D(Device, depthTexDesc);
+            depthTex.DebugName = "dynamic cubemap depthmap";
             var dsvDesc = new DepthStencilViewDescription() {
                 Format = depthTexDesc.Format,
                 Flags = DepthStencilViewFlags.None,
