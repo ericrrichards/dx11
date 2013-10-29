@@ -77,6 +77,16 @@
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+            try {
+                SsaoFX = new SsaoEffect(device, "FX/Ssao.fx");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+            try {
+                SsaoBlurFX = new SsaoBlurEffect(device, "FX/SsaoBlur.fx");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
 
         }
         public static void DestroyAll() {
@@ -95,6 +105,9 @@
 
             Util.ReleaseCom(ref BuildShadowMapFX);
             Util.ReleaseCom(ref DebugTexFX);
+
+            Util.ReleaseCom(ref SsaoFX);
+            Util.ReleaseCom(ref SsaoBlurFX);
         }
 
         public static BasicEffect BasicFX;
@@ -112,5 +125,8 @@
 
         public static BuildShadowMapEffect BuildShadowMapFX;
         public static DebugTexEffect DebugTexFX;
+
+        public static SsaoEffect SsaoFX;
+        public static SsaoBlurEffect SsaoBlurFX;
     }
 }

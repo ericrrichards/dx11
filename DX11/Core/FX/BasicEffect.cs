@@ -133,6 +133,7 @@
         private readonly EffectResourceVariable _shadowMap;
         private readonly EffectResourceVariable _cubeMap;
         private readonly EffectMatrixVariable _boneTransforms;
+        private readonly EffectResourceVariable _ssaoMap;
         
 
         public BasicEffect(Device device, string filename) : base(device, filename) {
@@ -269,6 +270,7 @@
 
             _shadowTransform = FX.GetVariableByName("gShadowTransform").AsMatrix();
 
+            _ssaoMap = FX.GetVariableByName("gSsaoMap").AsResource();
         }
         public void SetWorldViewProj(Matrix m) {
             _worldViewProj.SetMatrix(m);

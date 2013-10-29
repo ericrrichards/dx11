@@ -72,6 +72,8 @@
     <Compile Include="FX\NormalMapEffect.cs" />
     <Compile Include="FX\ParticleEffect.cs" />
     <Compile Include="FX\SkyEffect.cs" />
+    <Compile Include="FX\SsaoBlurEffect.cs" />
+    <Compile Include="FX\SsaoEffect.cs" />
     <Compile Include="FX\TerrainEffect.cs" />
     <Compile Include="FX\TreeSpriteEffect.cs" />
     <Compile Include="GameTimer.cs" />
@@ -98,6 +100,7 @@
     <Compile Include="RenderStates.cs" />
     <Compile Include="ShadowMap.cs" />
     <Compile Include="Sky.cs" />
+    <Compile Include="SSAO.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
     <Compile Include="Terrain\Patch.cs" />
     <Compile Include="Terrain\Terrain.cs" />

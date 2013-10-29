@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{41ACBEF1-B159-4C49-A0F9-A07911617B52}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{79E45F9D-B161-4C12-AB0D-306B0051717E}"
@@ -69,6 +71,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "26-ShadowsDemo", "ShadowsDemo\26-ShadowsDemo.csproj", "{8221921E-A755-4D28-A440-196CC0826EE5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "27-ShapeModels", "27-ShapeModels\27-ShapeModels.csproj", "{8FC5055E-ABB1-451E-9BC7-09030ED3E538}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "28-SsaoDemo", "28-SsaoDemo\28-SsaoDemo.csproj", "{22940EB3-6BEE-478C-A761-598E866155A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -196,6 +200,10 @@ Global
 		{8FC5055E-ABB1-451E-9BC7-09030ED3E538}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8FC5055E-ABB1-451E-9BC7-09030ED3E538}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8FC5055E-ABB1-451E-9BC7-09030ED3E538}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22940EB3-6BEE-478C-A761-598E866155A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22940EB3-6BEE-478C-A761-598E866155A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22940EB3-6BEE-478C-A761-598E866155A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22940EB3-6BEE-478C-A761-598E866155A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -229,5 +237,6 @@ Global
 		{07C38152-C421-4933-A59B-295B12CFAFF8} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{8221921E-A755-4D28-A440-196CC0826EE5} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{8FC5055E-ABB1-451E-9BC7-09030ED3E538} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+		{22940EB3-6BEE-478C-A761-598E866155A5} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 	EndGlobalSection
 EndGlobal
