@@ -259,13 +259,13 @@ namespace ShadowsDemo {
                 }
                 
             }
-            int stride = Basic32.Stride;
-            const int offset = 0;
+            var stride = Basic32.Stride;
+            const int Offset = 0;
 
             ImmediateContext.Rasterizer.State = null;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
             for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
@@ -290,15 +290,8 @@ namespace ShadowsDemo {
             ImmediateContext.Rasterizer.State = null;
             ImmediateContext.OutputMerger.DepthStencilState = null;
             ImmediateContext.OutputMerger.DepthStencilReference = 0;
-
-
-
+    
             SwapChain.Present(0, PresentFlags.None);
-            var shaderResourceViews = new ShaderResourceView[16];
-            for (int i = 0; i < shaderResourceViews.Length; i++) {
-                shaderResourceViews[i] = null;
-            }
-            ImmediateContext.PixelShader.SetShaderResources(shaderResourceViews, 0, 16);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
             _lastMousePos = mouseEventArgs.Location;
@@ -327,19 +320,11 @@ namespace ShadowsDemo {
 
                 Effects.BuildShadowMapFX.SetEyePosW(_camera.Position);
                 Effects.BuildShadowMapFX.SetViewProj(viewProj);
-
-                Effects.BuildShadowMapFX.SetHeightScale(0.07f);
-                Effects.BuildShadowMapFX.SetMaxTessDistance(1.0f);
-                Effects.BuildShadowMapFX.SetMinTessDistance(25.0f);
-                Effects.BuildShadowMapFX.SetMinTessFactor(1.0f);
-                Effects.BuildShadowMapFX.SetMaxTessFactor(5.0f);
-
+                
                 ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 var smapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
-                var tessSmapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
-
-
-                const int offset = 0;
+                
+                const int Offset = 0;
 
                 ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
 
@@ -347,8 +332,8 @@ namespace ShadowsDemo {
                     ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
                 }
 
-                for (int p = 0; p < tessSmapTech.Description.PassCount; p++) {
-                    var pass = tessSmapTech.GetPassByIndex(p);
+                for (int p = 0; p < smapTech.Description.PassCount; p++) {
+                    var pass = smapTech.GetPassByIndex(p);
                     _grid.DrawShadow(ImmediateContext, pass, viewProj);
 
                     _box.DrawShadow(ImmediateContext, pass, viewProj);
@@ -372,7 +357,7 @@ namespace ShadowsDemo {
                 ImmediateContext.Rasterizer.State = null;
 
                 ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, offset));
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
                 ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
                 for (var p = 0; p < smapTech.Description.PassCount; p++) {
@@ -395,11 +380,11 @@ namespace ShadowsDemo {
 
         private void DrawScreenQuad() {
             var stride = Basic32.Stride;
-            const int offset = 0;
+            const int Offset = 0;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
@@ -425,15 +410,15 @@ namespace ShadowsDemo {
             var sphereCenterLS = Vector3.TransformCoordinate(targetPos, v);
 
             var l = sphereCenterLS.X - _sceneBounds.Radius;
-            var b = sphereCenterLS.Y = _sceneBounds.Radius;
+            var b = sphereCenterLS.Y - _sceneBounds.Radius;
             var n = sphereCenterLS.Z - _sceneBounds.Radius;
             var r = sphereCenterLS.X + _sceneBounds.Radius;
             var t = sphereCenterLS.Y + _sceneBounds.Radius;
             var f = sphereCenterLS.Z + _sceneBounds.Radius;
 
 
-            var p = Matrix.OrthoLH(r - l, t - b+5, n, f);
-            //var p = Matrix.OrthoOffCenterLH(l, r, b, t, n, f);
+            //var p = Matrix.OrthoLH(r - l, t - b+5, n, f);
+            var p = Matrix.OrthoOffCenterLH(l, r, b, t, n, f);
             var T = new Matrix {
                 M11 = 0.5f, M22 = -0.5f, M33 = 1.0f, M41 = 0.5f, M42 = 0.5f, M44 = 1.0f
             };
@@ -444,7 +429,6 @@ namespace ShadowsDemo {
             _lightView = v;
             _lightProj = p;
             _shadowTransform = s;
-
         }
 
         private void BuildShapeGeometryBuffers() {

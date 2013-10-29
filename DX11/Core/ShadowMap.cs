@@ -1,6 +1,4 @@
 ﻿namespace Core {
-    using System.Drawing;
-
     using SlimDX.DXGI;
     using SlimDX.Direct3D11;
 
