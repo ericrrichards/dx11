@@ -31,7 +31,7 @@ namespace Core.Model {
             if (!_disposed) {
                 if (disposing) {
                     Util.ReleaseCom(ref _modelMesh);
-                    
+
                 }
                 _disposed = true;
             }
@@ -130,7 +130,7 @@ namespace Core.Model {
             _modelMesh.SetIndices(device, _indices);
         }
 
-        
+
 
         private static BasicModel BuildFromMeshData(Device device, GeometryGenerator.MeshData mesh) {
             var ret = new BasicModel();
@@ -142,7 +142,7 @@ namespace Core.Model {
                 VertexStart = 0
             };
             ret._subsets.Add(subset);
-            
+
             var max = new Vector3(float.MinValue);
             var min = new Vector3(float.MaxValue);
             foreach (var vertex in mesh.Vertices) {
@@ -151,7 +151,7 @@ namespace Core.Model {
             }
 
             ret.BoundingBox = new BoundingBox(min, max);
-            
+
             ret._vertices.AddRange(mesh.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
             ret._indices.AddRange(mesh.Indices.Select(i => (short)i));
 
@@ -166,7 +166,7 @@ namespace Core.Model {
             return ret;
         }
 
-        
+
         public static BasicModel CreateBox(Device device, float width, float height, float depth) {
             var box = GeometryGenerator.CreateBox(width, height, depth);
             return BuildFromMeshData(device, box);
@@ -182,6 +182,98 @@ namespace Core.Model {
         public static BasicModel CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
             var grid = GeometryGenerator.CreateGrid(width, depth, xVerts, zVerts);
             return BuildFromMeshData(device, grid);
+        }
+
+        public static BasicModel LoadFromTxtFile(Device device, string filename) {
+
+            var vertices = new List<Basic32>();
+            var indices = new List<int>();
+            var vcount = 0;
+            var tcount = 0;
+            using (var reader = new StreamReader(filename)) {
+
+
+                var input = reader.ReadLine();
+                if (input != null)
+                    // VertexCount: X
+                    vcount = Convert.ToInt32(input.Split(new[] { ':' })[1].Trim());
+
+                input = reader.ReadLine();
+                if (input != null)
+                    //TriangleCount: X
+                    tcount = Convert.ToInt32(input.Split(new[] { ':' })[1].Trim());
+
+                // skip ahead to the vertex data
+                do {
+                    input = reader.ReadLine();
+                } while (input != null && !input.StartsWith("{"));
+                // Get the vertices  
+                for (int i = 0; i < vcount; i++) {
+                    input = reader.ReadLine();
+                    if (input != null) {
+                        var vals = input.Split(new[] { ' ' });
+                        vertices.Add(
+                                     new Basic32(
+                                         new Vector3(
+                                             Convert.ToSingle(vals[0].Trim()),
+                                             Convert.ToSingle(vals[1].Trim()),
+                                             Convert.ToSingle(vals[2].Trim())),
+                                         new Vector3(
+                                             Convert.ToSingle(vals[3].Trim()),
+                                             Convert.ToSingle(vals[4].Trim()),
+                                             Convert.ToSingle(vals[5].Trim())),
+                                         new Vector2()
+                                         )
+                            );
+                    }
+                }
+                // skip ahead to the index data
+                do {
+                    input = reader.ReadLine();
+                } while (input != null && !input.StartsWith("{"));
+                // Get the indices
+
+                for (var i = 0; i < tcount; i++) {
+                    input = reader.ReadLine();
+                    if (input == null) {
+                        break;
+                    }
+                    var m = input.Trim().Split(new[] { ' ' });
+                    indices.Add(Convert.ToInt32(m[0].Trim()));
+                    indices.Add(Convert.ToInt32(m[1].Trim()));
+                    indices.Add(Convert.ToInt32(m[2].Trim()));
+                }
+            }
+            var ret = new BasicModel();
+
+            var subset = new MeshGeometry.Subset {
+                FaceCount = indices.Count / 3,
+                FaceStart = 0,
+                VertexCount = vertices.Count,
+                VertexStart = 0
+            };
+            ret._subsets.Add(subset);
+            var max = new Vector3(float.MinValue);
+            var min = new Vector3(float.MaxValue);
+            foreach (var vertex in vertices) {
+                max = Vector3.Maximize(max, vertex.Position);
+                min = Vector3.Minimize(min, vertex.Position);
+            }
+            ret.BoundingBox = new BoundingBox(min, max);
+
+            ret._vertices.AddRange(vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.Tex, new Vector3(1, 0, 0))).ToList());
+            ret._indices.AddRange(indices.Select(i => (short)i));
+
+            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
+            ret.DiffuseMapSRV.Add(null);
+            ret.NormalMapSRV.Add(null);
+
+            ret._modelMesh.SetSubsetTable(ret._subsets);
+            ret._modelMesh.SetVertices(device, ret._vertices);
+            ret._modelMesh.SetIndices(device, ret._indices);
+
+            return ret;
+
         }
     }
 }

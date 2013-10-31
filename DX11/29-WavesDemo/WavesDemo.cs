@@ -1,35 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Windows.Forms;
 using Core;
 using Core.Camera;
 using Core.FX;
 using Core.Model;
-using Core.Vertex;
 using SlimDX;
 using SlimDX.Direct3D11;
 using SlimDX.DXGI;
-using Buffer = SlimDX.Direct3D11.Buffer;
 using Waves = Core.Model.Waves;
 
 namespace _29_WavesDemo {
     class WavesDemo : D3DApp {
         private Sky _sky;
-        private Buffer _skullVB;
-        private Buffer _skullIB;
 
         private readonly DirectionalLight[] _dirLights;
         private TextureManager _texMgr;
 
         private Waves _waves;
-        
 
-        private readonly Material _skullMat;
-        private readonly Matrix _skullWorld;
-        private int _skullIndexCount;
 
         private readonly FpsCamera _camera;
         private Point _lastMousePos;
@@ -37,12 +27,14 @@ namespace _29_WavesDemo {
         private BasicModel _boxModel;
         private BasicModel _sphereModel;
         private BasicModel _cylinderModel;
+        private BasicModel _skullModel;
         
 
         private BasicModelInstance _box;
         private readonly BasicModelInstance[] _spheres = new BasicModelInstance[10];
         private readonly BasicModelInstance[] _cylinders = new BasicModelInstance[10];
-        
+        private BasicModelInstance _skull;
+
         private bool _disposed;
 
         protected WavesDemo(IntPtr hInstance) : base(hInstance) {
@@ -54,14 +46,8 @@ namespace _29_WavesDemo {
 
             _camera = new FpsCamera {Position = new Vector3(0, 2, -15)};
 
-            _skullWorld = Matrix.Scaling(0.5f, 0.5f, 0.5f) * Matrix.Translation(0, 1.0f, 0);
 
-            _skullMat = new Material {
-                Ambient = new Color4(0.2f, 0.2f, 0.2f),
-                Diffuse = new Color4(0.2f, 0.2f, 0.2f),
-                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
-                Reflect = new Color4(0.5f, 0.5f, 0.5f)
-            };
+            
             _dirLights = new[] {
                 new DirectionalLight {
                     Ambient = new Color4(0.2f, 0.2f, 0.2f),
@@ -88,16 +74,14 @@ namespace _29_WavesDemo {
             if (!_disposed) {
                 if (disposing) {
                     Util.ReleaseCom(ref _sky);
-
-                    Util.ReleaseCom(ref _skullVB);
-                    Util.ReleaseCom(ref _skullIB);
-
+                    
                     Util.ReleaseCom(ref _texMgr);
 
                     Util.ReleaseCom(ref _boxModel);
                     Util.ReleaseCom(ref _sphereModel);
                     Util.ReleaseCom(ref _cylinderModel);
                     Util.ReleaseCom(ref _waves);
+                    Util.ReleaseCom(ref _skullModel);
 
 
                     Effects.DestroyAll();
@@ -233,27 +217,11 @@ namespace _29_WavesDemo {
                 }
 
             }
-            var stride = Basic32.Stride;
-            const int offset = 0;
 
             ImmediateContext.Rasterizer.State = null;
-
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
-
-            for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
-                var world = _skullWorld;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world * viewProj;
-
-                Effects.BasicFX.SetWorld(world);
-                Effects.BasicFX.SetWorldInvTranspose(wit);
-                Effects.BasicFX.SetWorldViewProj(wvp);
-                Effects.BasicFX.SetMaterial(_skullMat);
-
-                activeSkullTech.GetPassByIndex(p).Apply(ImmediateContext);
-                ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
+            
+            for (var p = 0; p < activeSkullTech.Description.PassCount; p++) {
+                _skull.DrawBasic(ImmediateContext, activeSkullTech.GetPassByIndex(p), viewProj);
 
             }
 
@@ -287,78 +255,19 @@ namespace _29_WavesDemo {
             _lastMousePos = e.Location;
         }
         private void BuildSkullGeometryBuffers() {
-            try {
-                var vertices = new List<Basic32>();
-                var indices = new List<int>();
-                var vcount = 0;
-                var tcount = 0;
-                using (var reader = new StreamReader("Models\\skull.txt")) {
+            _skullModel = BasicModel.LoadFromTxtFile(Device, "Models/skull.txt");
+            _skullModel.Materials[0] = new Material {
+                Ambient = new Color4(0.2f, 0.2f, 0.2f),
+                Diffuse = new Color4(0.2f, 0.2f, 0.2f),
+                Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
+                Reflect = new Color4(0.5f, 0.5f, 0.5f)
+            };
+            
 
-
-                    var input = reader.ReadLine();
-                    if (input != null)
-                        // VertexCount: X
-                        vcount = Convert.ToInt32(input.Split(new[] { ':' })[1].Trim());
-
-                    input = reader.ReadLine();
-                    if (input != null)
-                        //TriangleCount: X
-                        tcount = Convert.ToInt32(input.Split(new[] { ':' })[1].Trim());
-
-                    // skip ahead to the vertex data
-                    do {
-                        input = reader.ReadLine();
-                    } while (input != null && !input.StartsWith("{"));
-                    // Get the vertices  
-                    for (int i = 0; i < vcount; i++) {
-                        input = reader.ReadLine();
-                        if (input != null) {
-                            var vals = input.Split(new[] { ' ' });
-                            vertices.Add(
-                                         new Basic32(
-                                             new Vector3(
-                                                 Convert.ToSingle(vals[0].Trim()),
-                                                 Convert.ToSingle(vals[1].Trim()),
-                                                 Convert.ToSingle(vals[2].Trim())),
-                                             new Vector3(
-                                                 Convert.ToSingle(vals[3].Trim()),
-                                                 Convert.ToSingle(vals[4].Trim()),
-                                                 Convert.ToSingle(vals[5].Trim())),
-                                             new Vector2()
-                                             )
-                                );
-                        }
-                    }
-                    // skip ahead to the index data
-                    do {
-                        input = reader.ReadLine();
-                    } while (input != null && !input.StartsWith("{"));
-                    // Get the indices
-                    _skullIndexCount = 3 * tcount;
-                    for (var i = 0; i < tcount; i++) {
-                        input = reader.ReadLine();
-                        if (input == null) {
-                            break;
-                        }
-                        var m = input.Trim().Split(new[] { ' ' });
-                        indices.Add(Convert.ToInt32(m[0].Trim()));
-                        indices.Add(Convert.ToInt32(m[1].Trim()));
-                        indices.Add(Convert.ToInt32(m[2].Trim()));
-                    }
-                }
-
-                var vbd = new BufferDescription(VertexPN.Stride * vcount, ResourceUsage.Immutable,
-                    BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-                _skullVB = new Buffer(Device, new DataStream(vertices.ToArray(), false, false), vbd);
-
-                var ibd = new BufferDescription(sizeof(int) * _skullIndexCount, ResourceUsage.Immutable,
-                    BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-                _skullIB = new Buffer(Device, new DataStream(indices.ToArray(), false, false), ibd);
-
-
-            } catch (Exception ex) {
-                MessageBox.Show(ex.Message);
-            }
+            _skull = new BasicModelInstance {
+                Model = _skullModel,
+                World = Matrix.Scaling(0.5f, 0.5f, 0.5f) * Matrix.Translation(0, 1.0f, 0)
+            };
         }
         private void BuildShapeGeometryBuffers() {
             
