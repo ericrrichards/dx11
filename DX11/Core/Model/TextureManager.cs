@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using SlimDX.Direct3D11;
 
 namespace Core.Model {
@@ -14,9 +15,13 @@ namespace Core.Model {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    foreach (var key in _textureSRVs.Keys) {
-                        var shaderResourceView = _textureSRVs[key];
-                        Util.ReleaseCom(ref shaderResourceView);
+                    
+                    for (int i = 0; i < _textureSRVs.Keys.Count; i++) {
+                        var key = _textureSRVs.Keys.ElementAt(i);
+                        if (_textureSRVs[key] == null) continue;
+                        _textureSRVs[key].Resource.Dispose();
+                        _textureSRVs[key].Dispose();
+                        _textureSRVs[key] = null;
                     }
                     _textureSRVs.Clear();
                 }

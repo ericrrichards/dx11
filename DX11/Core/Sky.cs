@@ -52,6 +52,9 @@ namespace Core {
                 if (disposing) {
                     Util.ReleaseCom(ref _vb);
                     Util.ReleaseCom(ref _ib);
+                    if (_cubeMapSRV != null) {
+                        _cubeMapSRV.Resource.Dispose();
+                    }
                     Util.ReleaseCom(ref _cubeMapSRV);
                 }
                 _disposed = true;

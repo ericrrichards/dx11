@@ -96,6 +96,7 @@
     <Compile Include="Model\SkinnedModel.cs" />
     <Compile Include="Model\SkinnedModelInstance.cs" />
     <Compile Include="Model\TextureManager.cs" />
+    <Compile Include="Model\Waves.cs" />
     <Compile Include="ParticleSystem.cs" />
     <Compile Include="ProgressUpdate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

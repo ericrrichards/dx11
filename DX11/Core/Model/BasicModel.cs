@@ -31,6 +31,7 @@ namespace Core.Model {
             if (!_disposed) {
                 if (disposing) {
                     Util.ReleaseCom(ref _modelMesh);
+                    
                 }
                 _disposed = true;
             }

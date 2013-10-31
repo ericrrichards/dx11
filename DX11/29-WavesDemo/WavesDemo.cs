@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Core;
 using Core.Camera;
@@ -16,6 +13,7 @@ using SlimDX;
 using SlimDX.Direct3D11;
 using SlimDX.DXGI;
 using Buffer = SlimDX.Direct3D11.Buffer;
+using Waves = Core.Model.Waves;
 
 namespace _29_WavesDemo {
     class WavesDemo : D3DApp {
@@ -26,20 +24,8 @@ namespace _29_WavesDemo {
         private readonly DirectionalLight[] _dirLights;
         private TextureManager _texMgr;
 
-
-        private Vector2 _wavesDispOffset0;
-        private Vector2 _wavesDispOffset1;
-
-        private Vector2 _wavesNormalOffset0;
-        private Vector2 _wavesNormalOffset1;
-
-        private Matrix _wavesDispTexTransform0;
-        private Matrix _wavesDispTexTransform1;
-        private Matrix _wavesNormalTexTransform0;
-        private Matrix _wavesNormalTexTransform1;
-
-        private ShaderResourceView _wavesNormalTexSRV0;
-        private ShaderResourceView _wavesNormalTexSRV1;
+        private Waves _waves;
+        
 
         private readonly Material _skullMat;
         private readonly Matrix _skullWorld;
@@ -51,19 +37,16 @@ namespace _29_WavesDemo {
         private BasicModel _boxModel;
         private BasicModel _sphereModel;
         private BasicModel _cylinderModel;
-        private BasicModel _gridModel;
+        
 
         private BasicModelInstance _box;
         private readonly BasicModelInstance[] _spheres = new BasicModelInstance[10];
         private readonly BasicModelInstance[] _cylinders = new BasicModelInstance[10];
-        private BasicModelInstance _grid;
+        
         private bool _disposed;
 
         protected WavesDemo(IntPtr hInstance) : base(hInstance) {
-            _wavesDispOffset0 = new Vector2();
-            _wavesDispOffset1 = new Vector2();
-            _wavesNormalOffset0 = new Vector2();
-            _wavesNormalOffset1 = new Vector2();
+            
 
             MainWindowCaption = "Waves Demo";
 
@@ -114,7 +97,7 @@ namespace _29_WavesDemo {
                     Util.ReleaseCom(ref _boxModel);
                     Util.ReleaseCom(ref _sphereModel);
                     Util.ReleaseCom(ref _cylinderModel);
-
+                    Util.ReleaseCom(ref _waves);
 
 
                     Effects.DestroyAll();
@@ -136,8 +119,8 @@ namespace _29_WavesDemo {
             _texMgr = new TextureManager();
             _texMgr.Init(Device);
 
-            _wavesNormalTexSRV0 = _texMgr.CreateTexture("Textures/waves0.dds");
-            _wavesNormalTexSRV1 = _texMgr.CreateTexture("textures/waves1.dds");
+            _waves = new Waves();
+            _waves.Init(Device, _texMgr, 40, 60);
 
 
             BuildShapeGeometryBuffers();
@@ -171,30 +154,7 @@ namespace _29_WavesDemo {
                 _camera.Zoom(+dt);
             }
 
-            _wavesDispOffset0.X += 0.01f*dt;
-            _wavesDispOffset0.Y += 0.03f*dt;
-
-            _wavesDispOffset1.X += 0.01f * dt;
-            _wavesDispOffset1.Y += 0.03f * dt;
-
-            _wavesDispTexTransform0 = Matrix.Scaling(2.0f, 2.0f, 1.0f)*
-                                      Matrix.Translation(_wavesDispOffset0.X, _wavesDispOffset0.Y, 0);
-
-            _wavesDispTexTransform1 = Matrix.Scaling(1.0f, 1.0f, 1.0f) *
-                                      Matrix.Translation(_wavesDispOffset1.X, _wavesDispOffset1.Y, 0);
-
-            _wavesNormalOffset0.X += 0.05f*dt;
-            _wavesNormalOffset0.Y += 0.2f * dt;
-
-            _wavesNormalOffset1.X += 0.02f * dt;
-            _wavesNormalOffset1.Y += 0.05f * dt;
-
-            _wavesNormalTexTransform0 = Matrix.Scaling(22, 22, 1)*
-                                        Matrix.Translation(_wavesNormalOffset0.X, _wavesNormalOffset0.Y, 0);
-            _wavesNormalTexTransform1 = Matrix.Scaling(16, 16, 1) *
-                                        Matrix.Translation(_wavesNormalOffset1.X, _wavesNormalOffset1.Y, 0);
-
-
+            _waves.Update(dt);
             _camera.UpdateViewMatrix();
 
         }
@@ -203,8 +163,6 @@ namespace _29_WavesDemo {
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0 );
 
-            var view = _camera.View;
-            var proj = _camera.Proj;
             var viewProj = _camera.ViewProj;
 
             Effects.BasicFX.SetDirLights(_dirLights);
@@ -248,28 +206,7 @@ namespace _29_WavesDemo {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
 
-            for (int p = 0; p < waveTech.Description.PassCount; p++) {
-                var world = _grid.World;
-                var wit = MathF.InverseTranspose(world);
-                var wvp = world*viewProj;
-
-                Effects.WavesFX.SetWorld(world);
-                Effects.WavesFX.SetWorldInvTranspose(wit);
-                Effects.WavesFX.SetViewProj(viewProj);
-                Effects.WavesFX.SetWorldViewProj(wvp);
-                Effects.WavesFX.SetTexTransform(Matrix.Identity);
-                Effects.WavesFX.SetWaveDispTexTransform0(_wavesDispTexTransform0);
-                Effects.WavesFX.SetWaveDispTexTransform1(_wavesDispTexTransform1);
-                Effects.WavesFX.SetWaveNormalTexTransform0(_wavesNormalTexTransform0);
-                Effects.WavesFX.SetWaveNormalTexTransform1(_wavesNormalTexTransform1);
-                Effects.WavesFX.SetMaterial(_grid.Model.Materials[0]);
-                Effects.WavesFX.SetDiffuseMap(_grid.Model.DiffuseMapSRV[0]);
-                Effects.WavesFX.SetNormalMap0(_wavesNormalTexSRV0);
-                Effects.WavesFX.SetNormalMap1(_wavesNormalTexSRV1);
-
-                waveTech.GetPassByIndex(p).Apply(ImmediateContext);
-                _grid.Model.ModelMesh.Draw(ImmediateContext, 0);
-            }
+            _waves.Draw(ImmediateContext, waveTech, viewProj);
             
             for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
@@ -435,15 +372,7 @@ namespace _29_WavesDemo {
             _boxModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/bricks.dds");
             _boxModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
 
-            _gridModel = BasicModel.CreateGrid(Device, 20, 30, 50, 40);
-            _gridModel.Materials[0] = new Material {
-                Ambient = new Color4(0.1f, 0.1f, 0.3f),
-                Diffuse = new Color4(0.4f, 0.4f, 0.7f),
-                Specular = new Color4(128f, 0.8f, 0.8f, 0.8f),
-                Reflect = new Color4(0.4f, 0.4f, 0.4f)
-            };
-            _gridModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/floor.dds");
-            _gridModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/floor_nmap.dds");
+            
 
             _sphereModel = BasicModel.CreateSphere(Device, 0.5f, 20, 20);
             _sphereModel.Materials[0] = new Material {
@@ -489,11 +418,7 @@ namespace _29_WavesDemo {
                 TexTransform = Matrix.Scaling(2, 1, 1),
                 World = Matrix.Scaling(3.0f, 1.0f, 3.0f) * Matrix.Translation(0, 0.5f, 0)
             };
-            _grid = new BasicModelInstance {
-                Model = _gridModel,
-                TexTransform = Matrix.Scaling(8, 10, 1),
-                World = Matrix.Translation(0, -0.2f, 0)
-            };
+            
 
 
         }
