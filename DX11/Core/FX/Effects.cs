@@ -92,6 +92,11 @@
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+            try {
+                WavesFX = new WavesEffect(device, "FX/Waves.fxo");
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
 
         }
         public static void DestroyAll() {
@@ -114,6 +119,8 @@
             Util.ReleaseCom(ref SsaoFX);
             Util.ReleaseCom(ref SsaoBlurFX);
             Util.ReleaseCom(ref SsaoNormalDepthFX);
+
+            Util.ReleaseCom(ref WavesFX);
         }
 
         public static BasicEffect BasicFX;
@@ -135,5 +142,7 @@
         public static SsaoEffect SsaoFX;
         public static SsaoBlurEffect SsaoBlurFX;
         public static SsaoNormalDepthEffect SsaoNormalDepthFX;
+
+        public static WavesEffect WavesFX;
     }
 }

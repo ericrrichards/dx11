@@ -6,7 +6,7 @@
 
     public class BasicModelInstance {
         public BasicModel Model;
-        public Matrix World;
+        public Matrix World = Matrix.Identity;
         public Matrix TexTransform = Matrix.Identity;
         public Matrix ShadowTransform = Matrix.Identity;
         public Matrix ToTexSpace = Matrix.Identity;
@@ -93,6 +93,29 @@
 
             for (int i = 0; i < Model.SubsetCount; i++) {
                 effectPass.Apply(dc);
+                Model.ModelMesh.Draw(dc, i);
+            }
+        }
+
+        public void DrawDisplaced(DeviceContext dc, EffectPass pass, Matrix viewProj) {
+            var world = World;
+            var wit = MathF.InverseTranspose(world);
+            var wvp = world * viewProj;
+
+            Effects.DisplacementMapFX.SetWorld(world);
+            Effects.DisplacementMapFX.SetWorldInvTranspose(wit);
+            Effects.DisplacementMapFX.SetWorldViewProj(wvp);
+            Effects.DisplacementMapFX.SetViewProj(viewProj);
+            Effects.DisplacementMapFX.SetWorldViewProjTex(wvp * ToTexSpace);
+            Effects.DisplacementMapFX.SetShadowTransform(world * ShadowTransform);
+            Effects.DisplacementMapFX.SetTexTransform(TexTransform);
+
+            for (int i = 0; i < Model.SubsetCount; i++) {
+                Effects.DisplacementMapFX.SetMaterial(Model.Materials[i]);
+                Effects.DisplacementMapFX.SetDiffuseMap(Model.DiffuseMapSRV[i]);
+                Effects.DisplacementMapFX.SetNormalMap(Model.NormalMapSRV[i]);
+
+                pass.Apply(dc);
                 Model.ModelMesh.Draw(dc, i);
             }
         }
