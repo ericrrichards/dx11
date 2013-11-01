@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+
 using Core.Camera;
 using Core.FX;
 using Core.Vertex;
 using SlimDX;
 using SlimDX.Direct3D11;
-using SlimDX.Direct3D9;
 using SlimDX.DXGI;
 using Buffer = SlimDX.Direct3D11.Buffer;
 using Device = SlimDX.Direct3D11.Device;
@@ -19,7 +14,7 @@ using MapFlags = SlimDX.Direct3D11.MapFlags;
 using Viewport = SlimDX.Direct3D11.Viewport;
 
 namespace Core {
-    public class SSAO : DisposableClass {
+    public class Ssao : DisposableClass {
         #region private members
         private readonly Device _device;
         private readonly DeviceContext _dc;
@@ -56,7 +51,7 @@ namespace Core {
         public ShaderResourceView AmbientSRV {
             get { return _ambientSRV0; }
         }
-        public SSAO(Device device, DeviceContext dc, int width, int height, float fovY, float farZ) {
+        public Ssao(Device device, DeviceContext dc, int width, int height, float fovY, float farZ) {
             _device = device;
             _dc = dc;
             OnSize(width, height, fovY, farZ);
@@ -116,11 +111,11 @@ namespace Core {
             Effects.SsaoFX.SetRandomVecMap(_randomVectorSRV);
 
             var stride = Basic32.Stride;
-            const int offset = 0;
+            const int Offset = 0;
 
             _dc.InputAssembler.InputLayout = InputLayouts.Basic32;
             _dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            _dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
+            _dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
             _dc.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R16_UInt, 0);
 
             var tech = Effects.SsaoFX.SsaoTech;
@@ -152,11 +147,11 @@ namespace Core {
             var tech = horzBlur ? Effects.SsaoBlurFX.HorzBlurTech : Effects.SsaoBlurFX.VertBlurTech;
 
             var stride = Basic32.Stride;
-            const int offset = 0;
+            const int Offset = 0;
 
             _dc.InputAssembler.InputLayout = InputLayouts.Basic32;
             _dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            _dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
+            _dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
             _dc.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R16_UInt, 0);
 
             for (var p = 0; p < tech.Description.PassCount; p++) {
@@ -203,7 +198,7 @@ namespace Core {
         private void BuildTextureViews() {
             ReleaseTextureViews();
 
-            var texDesc = new Texture2DDescription() {
+            var texDesc = new Texture2DDescription {
                 Width = _renderTargetWidth,
                 Height = _renderTargetHeight,
                 MipLevels = 1,
@@ -215,8 +210,7 @@ namespace Core {
                 CpuAccessFlags = CpuAccessFlags.None,
                 OptionFlags = ResourceOptionFlags.None
             };
-            var normalDepthTex = new Texture2D(_device, texDesc);
-            normalDepthTex.DebugName = "normalDepthTex";
+            var normalDepthTex = new Texture2D(_device, texDesc) { DebugName = "normalDepthTex" };
             _normalDepthSRV = new ShaderResourceView(_device, normalDepthTex);
             _normalDepthRTV = new RenderTargetView(_device, normalDepthTex);
 
@@ -226,14 +220,12 @@ namespace Core {
             texDesc.Height = _renderTargetHeight / 2;
             texDesc.Format = Format.R16_Float;
 
-            var ambientTex0 = new Texture2D(_device, texDesc);
-            ambientTex0.DebugName = "ambientTex0";
+            var ambientTex0 = new Texture2D(_device, texDesc) { DebugName = "ambientTex0" };
             _ambientSRV0 = new ShaderResourceView(_device, ambientTex0);
             _ambientRTV0 = new RenderTargetView(_device, ambientTex0);
 
 
-            var ambientTex1 = new Texture2D(_device, texDesc);
-            ambientTex1.DebugName = "ambientTex1";
+            var ambientTex1 = new Texture2D(_device, texDesc) { DebugName = "ambientTex1" };
             _ambientSRV1 = new ShaderResourceView(_device, ambientTex1);
             _ambientRTV1 = new RenderTargetView(_device, ambientTex1);
 
@@ -254,7 +246,7 @@ namespace Core {
         }
 
         private void BuildRandomVectorTexture() {
-            var texDesc = new Texture2DDescription() {
+            var texDesc = new Texture2DDescription {
                 Width = 256,
                 Height = 256,
                 MipLevels = 1,
@@ -267,8 +259,8 @@ namespace Core {
                 OptionFlags = ResourceOptionFlags.None
             };
             var color = new List<Color4>();
-            for (int i = 0; i < 256; i++) {
-                for (int j = 0; j < 256; j++) {
+            for (var i = 0; i < 256; i++) {
+                for (var j = 0; j < 256; j++) {
                     var v = new Vector3(MathF.Rand(0, 1), MathF.Rand(0, 1), MathF.Rand(0, 1));
                     color.Add(new Color4(0, v.X, v.Y, v.Z));
                 }
@@ -321,8 +313,7 @@ namespace Core {
                 _offsets[i] = v;
             }
         }
-        // no definition provided in Luna's code?
-        private void DrawFullScreenQuad() { }
+
         #endregion
     }
 }

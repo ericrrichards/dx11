@@ -35,7 +35,7 @@ namespace _28_SsaoDemo {
         private Matrix _lightProj;
         private Matrix _shadowTransform;
 
-        private SSAO _ssao;
+        private Ssao _ssao;
 
         private float _lightRotationAngle;
         private readonly Vector3[] _originalLightDirs;
@@ -60,7 +60,7 @@ namespace _28_SsaoDemo {
 
         private bool _disposed;
 
-        protected SsaoDemo(IntPtr hInstance) : base(hInstance) {
+        private SsaoDemo(IntPtr hInstance) : base(hInstance) {
             _lightRotationAngle = 0.0f;
 
             MainWindowCaption = "SSAO Demo";
@@ -146,7 +146,7 @@ namespace _28_SsaoDemo {
             _sMap = new ShadowMap(Device, SMapSize, SMapSize);
 
             _camera.SetLens(0.25f *MathF.PI, AspectRatio, 1.0f, 1000.0f);
-            _ssao = new SSAO(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
+            _ssao = new Ssao(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
 
 
             BuildShapeGeometryBuffers();
@@ -492,12 +492,12 @@ namespace _28_SsaoDemo {
 
             }
             var stride = Basic32.Stride;
-            const int offset = 0;
+            const int Offset = 0;
 
             ImmediateContext.Rasterizer.State = null;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
             for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
@@ -559,9 +559,9 @@ namespace _28_SsaoDemo {
             }
             ImmediateContext.Rasterizer.State = null;
             var stride = Basic32.Stride;
-            const int offset = 0;
+            const int Offset = 0;
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
             for (int p = 0; p < tech.Description.PassCount; p++) {
@@ -594,7 +594,7 @@ namespace _28_SsaoDemo {
                 ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 var smapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
 
-                const int offset = 0;
+                const int Offset = 0;
 
                 ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
 
@@ -627,7 +627,7 @@ namespace _28_SsaoDemo {
                 ImmediateContext.Rasterizer.State = null;
 
                 ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, offset));
+                ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
                 ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
                 for (var p = 0; p < smapTech.Description.PassCount; p++) {
@@ -649,11 +649,11 @@ namespace _28_SsaoDemo {
         }
         private void DrawScreenQuad(ShaderResourceView srv) {
             var stride = Basic32.Stride;
-            const int offset = 0;
+            const int Offset = 0;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {

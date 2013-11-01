@@ -23,7 +23,7 @@ namespace SSAODemo2 {
 
         private Sky _sky;
 
-        private SSAO _ssao;
+        private Ssao _ssao;
 
         private Buffer _screenQuadVB;
         private Buffer _screenQuadIB;
@@ -52,7 +52,7 @@ namespace SSAODemo2 {
         private SsaoDemo(IntPtr hInstance) : base(hInstance) {
 
             MainWindowCaption = "SSAO Demo";
-
+            
             _lastMousePos = new Point();
 
             _camera = new FpsCamera { Position = new Vector3(0, 2, -15) };
@@ -117,7 +117,7 @@ namespace SSAODemo2 {
             _sky = new Sky(Device, "Textures/desertcube1024.dds", 5000.0f);
 
             _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
-            _ssao = new SSAO(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
+            _ssao = new Ssao(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
 
 
             BuildShapeGeometryBuffers();
@@ -260,7 +260,7 @@ namespace SSAODemo2 {
             
 
             DrawScreenQuad(_ssao.AmbientSRV);
-            //DrawScreenQuad2(_ssao.NormalDepthSRV);
+            DrawScreenQuad2(_ssao.NormalDepthSRV);
 
             _sky.Draw(ImmediateContext, _camera);
 
@@ -318,11 +318,11 @@ namespace SSAODemo2 {
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
-                M11 = 0.5f,
-                M22 = 0.5f,
+                M11 = 0.25f,
+                M22 = 0.25f,
                 M33 = 1.0f,
-                M41 = 0.5f,
-                M42 = -0.5f,
+                M41 = 0.75f,
+                M42 = -0.75f,
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewRedTech;
@@ -343,11 +343,11 @@ namespace SSAODemo2 {
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
-                M11 = 0.5f,
-                M22 = 0.5f,
+                M11 = 0.25f,
+                M22 = 0.25f,
                 M33 = 1.0f,
-                M41 = -0.5f,
-                M42 = -0.5f,
+                M41 = -0.75f,
+                M42 = -0.75f,
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewArgbTech;
