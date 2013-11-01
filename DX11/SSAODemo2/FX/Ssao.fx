@@ -194,9 +194,9 @@ technique11 Ssao
 {
     pass P0
     {
-		SetVertexShader( CompileShader( vs_5_0, VS() ) );
+		SetVertexShader( CompileShader( vs_4_0, VS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS(14) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(14) ) );
     }
 }
  

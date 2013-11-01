@@ -127,7 +127,7 @@ technique11 HorzBlur
     {
 		SetVertexShader( NULL );
         SetPixelShader( NULL );
-		SetComputeShader( CompileShader( cs_5_0, HorzBlurCS() ) );
+		SetComputeShader( CompileShader( cs_4_0, HorzBlurCS() ) );
     }
 }
 
@@ -137,6 +137,6 @@ technique11 VertBlur
     {
 		SetVertexShader( NULL );
         SetPixelShader( NULL );
-		SetComputeShader( CompileShader( cs_5_0, VertBlurCS() ) );
+		SetComputeShader( CompileShader( cs_4_0, VertBlurCS() ) );
     }
 }

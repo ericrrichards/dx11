@@ -131,9 +131,9 @@ technique11 HorzBlur
 {
     pass P0
     {
-		SetVertexShader( CompileShader( vs_5_0, VS() ) );
+		SetVertexShader( CompileShader( vs_4_0, VS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS(true) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(true) ) );
     }
 }
 
@@ -141,9 +141,9 @@ technique11 VertBlur
 {
     pass P0
     {
-		SetVertexShader( CompileShader( vs_5_0, VS() ) );
+		SetVertexShader( CompileShader( vs_4_0, VS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_5_0, PS(false) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(false) ) );
     }
 }
  
