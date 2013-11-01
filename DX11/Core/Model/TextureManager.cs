@@ -15,13 +15,10 @@ namespace Core.Model {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    
-                    for (int i = 0; i < _textureSRVs.Keys.Count; i++) {
-                        var key = _textureSRVs.Keys.ElementAt(i);
-                        if (_textureSRVs[key] == null) continue;
-                        _textureSRVs[key].Resource.Dispose();
-                        _textureSRVs[key].Dispose();
-                        _textureSRVs[key] = null;
+
+                    foreach (var shaderResourceView in _textureSRVs) {
+                        var resourceView = shaderResourceView.Value;
+                        Util.ReleaseCom(ref resourceView);
                     }
                     _textureSRVs.Clear();
                 }
@@ -37,7 +34,9 @@ namespace Core.Model {
             if (!_textureSRVs.ContainsKey(path)) {
                 if (File.Exists(path)) {
                     _textureSRVs[path] = ShaderResourceView.FromFile(_device, path);
-                    _textureSRVs[path].Resource.DebugName = path;
+                    using (var r = _textureSRVs[path].Resource) {
+                        r.DebugName = path;
+                    }
                 } else {
                     return null;
                 }

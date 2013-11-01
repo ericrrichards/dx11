@@ -22,7 +22,10 @@ namespace Core {
 
         public Sky(Device device, string filename, float skySphereRadius) {
             CubeMapSRV = ShaderResourceView.FromFile(device, filename);
-            CubeMapSRV.Resource.DebugName = "sky cubemap";
+            using (var r = CubeMapSRV.Resource) {
+                r.DebugName = "sky cubemap";
+            }
+            
             var sphere = GeometryGenerator.CreateSphere(skySphereRadius, 30, 30);
             var vertices = sphere.Vertices.Select(v => v.Position).ToArray();
             var vbd = new BufferDescription(
@@ -52,9 +55,6 @@ namespace Core {
                 if (disposing) {
                     Util.ReleaseCom(ref _vb);
                     Util.ReleaseCom(ref _ib);
-                    if (_cubeMapSRV != null) {
-                        _cubeMapSRV.Resource.Dispose();
-                    }
                     Util.ReleaseCom(ref _cubeMapSRV);
                 }
                 _disposed = true;
