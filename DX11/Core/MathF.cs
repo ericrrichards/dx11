@@ -40,7 +40,12 @@ namespace Core {
         }
 
         public static Matrix InverseTranspose(Matrix m) {
-            return Matrix.Transpose(Matrix.Invert(m));
+
+            var a = m;
+            a.M41 = a.M42 = a.M43 = 0;
+            a.M44 = 1;
+
+            return Matrix.Transpose(Matrix.Invert(a));
         }
 
         public static float Tan(float a) {

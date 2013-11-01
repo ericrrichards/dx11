@@ -92,11 +92,11 @@ namespace Core {
 
         public void SetNormalDepthRenderTarget(DepthStencilView dsv) {
             _dc.OutputMerger.SetTargets(dsv, _normalDepthRTV);
-            var clearColor = new Color4(1e5f, 0, 0, -1);
+            var clearColor = new Color4(1e5f, 0.0f, 0.0f, -1.0f);
             _dc.ClearRenderTargetView(_normalDepthRTV, clearColor);
         }
         public void ComputeSsao(CameraBase camera) {
-            _dc.OutputMerger.SetTargets(_ambientRTV0);
+            _dc.OutputMerger.SetTargets((DepthStencilView)null,_ambientRTV0);
             _dc.ClearRenderTargetView(_ambientRTV0, Color.Black);
             _dc.Rasterizer.SetViewports(_ambientMapViewport);
 
@@ -269,14 +269,18 @@ namespace Core {
             var color = new List<Color4>();
             for (int i = 0; i < 256; i++) {
                 for (int j = 0; j < 256; j++) {
-                    color.Add(new Color4(MathF.Rand(0,1), MathF.Rand(0,1), MathF.Rand(0,1), 0));
+                    var v = new Vector3(MathF.Rand(0, 1), MathF.Rand(0, 1), MathF.Rand(0, 1));
+                    color.Add(new Color4(0, v.X, v.Y, v.Z));
                 }
             }
             var tex = new Texture2D(_device, texDesc);
 
             var box = _dc.MapSubresource(tex, 0, MapMode.WriteDiscard, MapFlags.None);
             foreach (var color4 in color) {
-                box.Data.Write(color4.ToArgb());
+                box.Data.Write((byte)(color4.Red*255));
+                box.Data.Write((byte)(color4.Green * 255));
+                box.Data.Write((byte)(color4.Blue * 255));
+                box.Data.Write((byte)(0));
             }
             _dc.UnmapSubresource(tex, 0);
 
@@ -290,26 +294,26 @@ namespace Core {
         private void BuildOffsetVectors() {
             // cube corners
             _offsets[0] = new Vector4(+1, +1, +1, 0);
-            _offsets[0] = new Vector4(-1, -1, -1, 0);
+            _offsets[1] = new Vector4(-1, -1, -1, 0);
 
-            _offsets[0] = new Vector4(-1, +1, +1, 0);
-            _offsets[0] = new Vector4(+1, -1, -1, 0);
+            _offsets[2] = new Vector4(-1, +1, +1, 0);
+            _offsets[3] = new Vector4(+1, -1, -1, 0);
 
-            _offsets[0] = new Vector4(+1, +1, -1, 0);
-            _offsets[0] = new Vector4(-1, -1, +1, 0);
+            _offsets[4] = new Vector4(+1, +1, -1, 0);
+            _offsets[5] = new Vector4(-1, -1, +1, 0);
 
-            _offsets[0] = new Vector4(-1, +1, -1, 0);
-            _offsets[0] = new Vector4(+1, -1, +1, 0);
+            _offsets[6] = new Vector4(-1, +1, -1, 0);
+            _offsets[7] = new Vector4(+1, -1, +1, 0);
 
             // cube face centers
-            _offsets[0] = new Vector4(-1, 0, 0, 0);
-            _offsets[0] = new Vector4(+1, 0, 0, 0);
+            _offsets[8] = new Vector4(-1, 0, 0, 0);
+            _offsets[9] = new Vector4(+1, 0, 0, 0);
 
-            _offsets[0] = new Vector4(0, -1, 0, 0);
-            _offsets[0] = new Vector4(0, +1, 0, 0);
+            _offsets[10] = new Vector4(0, -1, 0, 0);
+            _offsets[11] = new Vector4(0, +1, 0, 0);
 
-            _offsets[0] = new Vector4(0, 0, -1, 0);
-            _offsets[0] = new Vector4(0, 0, +1, 0);
+            _offsets[12] = new Vector4(0, 0, -1, 0);
+            _offsets[13] = new Vector4(0, 0, +1, 0);
 
             for (var i = 0; i < 14; i++) {
                 var s = MathF.Rand(0.25f, 1.0f);

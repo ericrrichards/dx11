@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
-MinimumVisualStudioVersion = 10.0.40219.1
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{41ACBEF1-B159-4C49-A0F9-A07911617B52}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{79E45F9D-B161-4C12-AB0D-306B0051717E}"
@@ -75,6 +73,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "28-SsaoDemo", "28-SsaoDemo\28-SsaoDemo.csproj", "{22940EB3-6BEE-478C-A761-598E866155A5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "29-GPUWavesDemo", "29-WavesDemo\29-GPUWavesDemo.csproj", "{32C46BD2-2B9E-4D0E-B23A-1B64A504CF43}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSAODemo2", "SSAODemo2\SSAODemo2.csproj", "{F7BB5540-B30F-49F2-9547-52FE3A9579E7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -210,6 +210,10 @@ Global
 		{32C46BD2-2B9E-4D0E-B23A-1B64A504CF43}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32C46BD2-2B9E-4D0E-B23A-1B64A504CF43}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32C46BD2-2B9E-4D0E-B23A-1B64A504CF43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7BB5540-B30F-49F2-9547-52FE3A9579E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7BB5540-B30F-49F2-9547-52FE3A9579E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7BB5540-B30F-49F2-9547-52FE3A9579E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7BB5540-B30F-49F2-9547-52FE3A9579E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -245,5 +249,6 @@ Global
 		{8FC5055E-ABB1-451E-9BC7-09030ED3E538} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{22940EB3-6BEE-478C-A761-598E866155A5} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{32C46BD2-2B9E-4D0E-B23A-1B64A504CF43} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+		{F7BB5540-B30F-49F2-9547-52FE3A9579E7} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 	EndGlobalSection
 EndGlobal
