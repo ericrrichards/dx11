@@ -61,20 +61,20 @@ namespace SSAODemo2 {
             _dirLights = new[] {
                 new DirectionalLight {
                     Ambient = new Color4(1f, 1f, 1f),
-                    Diffuse = new Color4(0.5f, 0.5f, 0.4f),
-                    Specular = new Color4(0.8f, 0.8f, 0.7f),
+                    Diffuse = new Color4(0.0f, 0.0f, 0.0f),
+                    Specular = new Color4(0.0f, 0.0f, 0.0f),
                     Direction = new Vector3(-0.57735f, -0.57735f, 0.57735f)
                 },
                 new DirectionalLight {
                     Ambient = new Color4(0,0,0),
-                    Diffuse = new Color4( 0.4f, 0.4f, 0.4f),
-                    Specular = new Color4( 0.2f, 0.2f, 0.2f),
+                    Diffuse = new Color4( 0.0f, 0.0f, 0.0f),
+                    Specular = new Color4( 0.0f, 0.0f, 0.0f),
                     Direction = new Vector3(0.707f, -0.707f, 0)
                 },
                 new DirectionalLight {
                     Ambient = new Color4(0,0,0),
-                    Diffuse = new Color4(0.2f, 0.2f, 0.2f),
-                    Specular = new Color4(0.2f,0.2f,0.2f),
+                    Diffuse = new Color4(0.0f, 0.0f, 0.0f),
+                    Specular = new Color4(0.0f,0.0f,0.0f),
                     Direction = new Vector3(0, 0, -1)
                 }
             };
@@ -96,6 +96,7 @@ namespace SSAODemo2 {
                     Util.ReleaseCom(ref _boxModel);
                     Util.ReleaseCom(ref _sphereModel);
                     Util.ReleaseCom(ref _cylinderModel);
+                    Util.ReleaseCom( ref _skullModel);
 
 
 
@@ -187,12 +188,12 @@ namespace SSAODemo2 {
 
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetEyePosW(_camera.Position);
-            Effects.BasicFX.SetCubeMap(_sky.CubeMapSRV);
+            //Effects.BasicFX.SetCubeMap(_sky.CubeMapSRV);
             
 
             Effects.NormalMapFX.SetDirLights(_dirLights);
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
-            Effects.NormalMapFX.SetCubeMap(_sky.CubeMapSRV);
+            //Effects.NormalMapFX.SetCubeMap(_sky.CubeMapSRV);
 
             if (!Util.IsKeyDown(Keys.S)) {
                 Effects.BasicFX.SetSsaoMap(_ssao.AmbientSRV);
