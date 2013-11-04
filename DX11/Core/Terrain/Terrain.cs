@@ -13,6 +13,8 @@ using Device = SlimDX.Direct3D11.Device;
 namespace Core.Terrain {
     using System.Runtime.InteropServices;
 
+    using Core.Camera;
+
     public struct InitInfo {
         // RAW heightmap image file or null for random terrain
         public string HeightMapFilename;
@@ -277,6 +279,53 @@ namespace Core.Terrain {
                 }
             }
         }
+        public void DrawNormalDepth(DeviceContext dc, CameraBase cam, DirectionalLight[] lights) {
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+
+            var stride = Vertex.TerrainCP.Stride;
+            const int Offset = 0;
+
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
+            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+
+            var viewProj = cam.ViewProj;
+            var planes = cam.FrustumPlanes;
+            var toTexSpace = Matrix.Scaling(0.5f, -0.5f, 1.0f) * Matrix.Translation(0.5f, 0.5f, 0);
+
+            Effects.TerrainFX.SetViewProj(viewProj);
+            Effects.TerrainFX.SetEyePosW(cam.Position);
+            Effects.TerrainFX.SetDirLights(lights);
+            Effects.TerrainFX.SetFogColor(Color.Silver);
+            Effects.TerrainFX.SetFogStart(15.0f);
+            Effects.TerrainFX.SetFogRange(175.0f);
+            Effects.TerrainFX.SetMinDist(MinDist);
+            Effects.TerrainFX.SetMaxDist(MaxDist);
+            Effects.TerrainFX.SetMinTess(MinTess);
+            Effects.TerrainFX.SetMaxTess(MaxTess);
+            Effects.TerrainFX.SetTexelCellSpaceU(1.0f / Info.HeightMapWidth);
+            Effects.TerrainFX.SetTexelCellSpaceV(1.0f / Info.HeightMapHeight);
+            Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
+            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+            Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+            Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+            Effects.TerrainFX.SetMaterial(_material);
+            Effects.TerrainFX.SetViewProjTex(viewProj * toTexSpace);
+
+            Effects.TerrainFX.SetView(cam.View);
+
+            var tech = Effects.TerrainFX.NormalDepthTech;
+            for (int p = 0; p < tech.Description.PassCount; p++) {
+                var pass = tech.GetPassByIndex(p);
+                pass.Apply(dc);
+                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
+            }
+            dc.HullShader.Set(null);
+            dc.DomainShader.Set(null);
+        }
+
+
         public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
             if (_useTessellation) {
 
@@ -482,5 +531,7 @@ namespace Core.Terrain {
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f + 0.1f * ((float)z / (NumPatchVertRows-2)), "Building terrain patches");
             }
         }
+
+        
     }
 }

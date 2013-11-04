@@ -20,6 +20,7 @@ namespace Core.FX {
         public EffectTechnique Light1FogTechNT { get; private set; }
         public EffectTechnique Light2FogTechNT { get; private set; }
         public EffectTechnique Light3FogTechNT { get; private set; }
+        public EffectTechnique NormalDepthTech { get; private set; }
 
         private readonly EffectMatrixVariable _viewProj;
         private readonly EffectVectorVariable _eyePosW;
@@ -40,8 +41,10 @@ namespace Core.FX {
         private readonly EffectResourceVariable _layerMapArray;
         private readonly EffectResourceVariable _blendMap;
         private readonly EffectResourceVariable _heightMap;
-        
 
+        private readonly EffectMatrixVariable _view;
+        private readonly EffectResourceVariable _ambientMap;
+        private EffectMatrixVariable _ViewProjTex;
 
         public TerrainEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -57,6 +60,8 @@ namespace Core.FX {
             Light1FogTechNT = FX.GetTechniqueByName("Light1FogNT");
             Light2FogTechNT = FX.GetTechniqueByName("Light2FogNT");
             Light3FogTechNT = FX.GetTechniqueByName("Light3FogNT");
+
+            NormalDepthTech = FX.GetTechniqueByName("NormalDepth");
 
             _viewProj = FX.GetVariableByName("gViewProj").AsMatrix();
             _eyePosW = FX.GetVariableByName("gEyePosW").AsVector();
@@ -80,7 +85,15 @@ namespace Core.FX {
             _layerMapArray = FX.GetVariableByName("gLayerMapArray").AsResource();
             _blendMap = FX.GetVariableByName("gBlendMap").AsResource();
             _heightMap = FX.GetVariableByName("gHeightMap").AsResource();
+
+            _view = FX.GetVariableByName("gView").AsMatrix();
+            _ambientMap = FX.GetVariableByName("gSsaoMap").AsResource();
+            _ViewProjTex = FX.GetVariableByName("gViewProjTex").AsMatrix();
         }
+        public void SetView(Matrix m) {
+            _view.SetMatrix(m);
+        }
+
         public void SetViewProj(Matrix m) {
             _viewProj.SetMatrix(m);
         }
@@ -147,6 +160,12 @@ namespace Core.FX {
             _heightMap.SetResource(tex);
         }
 
+        public void SetSsaoMap(ShaderResourceView srv) {
+            _ambientMap.SetResource(srv);
+        }
 
+        public void SetViewProjTex(Matrix matrix) {
+            _ViewProjTex.SetMatrix(matrix);
+        }
     }
 }
