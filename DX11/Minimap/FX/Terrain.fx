@@ -38,6 +38,7 @@ cbuffer cbPerObject
 	float4x4 gViewProj;
 	Material gMaterial;
 	float4x4 gView;
+	float4x4 gShadowTransform; 
 	
 };
 
@@ -46,6 +47,7 @@ Texture2DArray gLayerMapArray;
 Texture2D gBlendMap;
 Texture2D gHeightMap;
 Texture2D gSsaoMap;
+Texture2D gShadowMap;
 
 SamplerState samLinear
 {
@@ -61,6 +63,16 @@ SamplerState samHeightmap
 
 	AddressU = CLAMP;
 	AddressV = CLAMP;
+};
+SamplerComparisonState samShadow
+{
+	Filter   = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+	AddressU = BORDER;
+	AddressV = BORDER;
+	AddressW = BORDER;
+	BorderColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    ComparisonFunc = LESS;
 };
 
 struct VertexIn
@@ -238,6 +250,7 @@ struct DomainOut
 	float2 Tex      : TEXCOORD0;
 	float2 TiledTex : TEXCOORD1;
 	float4 SsaoPosH   : TEXCOORD2;
+	float4 ShadowPosH : TEXCOORD3;
 };
 
 // The domain shader is called for every vertex created by the tessellator.  
@@ -274,6 +287,7 @@ DomainOut DS(PatchTess patchTess,
 	// Project to homogeneous clip space.
 	dout.PosH    = mul(float4(dout.PosW, 1.0f), gViewProj);
 	dout.SsaoPosH = mul(float4(dout.PosW, 1.0f), gViewProjTex);
+	dout.ShadowPosH = mul(float4(dout.PosW, 1.0f), gShadowTransform);
 	return dout;
 }
 
@@ -347,6 +361,9 @@ float4 PS(DomainOut pin,
 	//
 	// Lighting.
 	//
+	// Only the first light casts a shadow.
+	float3 shadow = float3(1.0f, 1.0f, 1.0f);
+	shadow[0] = CalcShadowFactor(samShadow, gShadowMap, pin.ShadowPosH);
 
 	pin.SsaoPosH /= pin.SsaoPosH.w;
 	float ambientAccess = gSsaoMap.SampleLevel(samLinear, pin.SsaoPosH.xy, 0.0f).r;
@@ -368,8 +385,8 @@ float4 PS(DomainOut pin,
 				A, D, S);
 
 			ambient += ambientAccess*A;;
-			diffuse += D;
-			spec    += S;
+			diffuse += shadow[i]*D;
+			spec    += shadow[i]*S;
 		}
 
 		litColor = texColor*(ambient + diffuse) + spec;
@@ -616,9 +633,44 @@ technique11 Light3FogNT
 technique11 NormalDepth {
 	pass P0{
 		SetVertexShader( CompileShader( vs_4_0, VS() ) );
-        SetHullShader( CompileShader( hs_5_0, NormDepthHS() ) );
+        SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
 		SetPixelShader( CompileShader( ps_4_0, NormDepthPS()));
 	}
+}
+
+RasterizerState Depth
+{
+	// [From MSDN]
+	// If the depth buffer currently bound to the output-merger stage has a UNORM format or
+	// no depth buffer is bound the bias value is calculated like this: 
+	//
+	// Bias = (float)DepthBias * r + SlopeScaledDepthBias * MaxDepthSlope;
+	//
+	// where r is the minimum representable value > 0 in the depth-buffer format converted to float32.
+	// [/End MSDN]
+	// 
+	// For a 24-bit depth buffer, r = 1 / 2^24.
+	//
+	// Example: DepthBias = 100000 ==> Actual DepthBias = 100000/2^24 = .006
+
+	// You need to experiment with these values for your scene.
+	DepthBias = 100000;
+    DepthBiasClamp = 0.0f;
+	SlopeScaledDepthBias = 1.0f;
+};
+
+technique11 TessBuildShadowMapTech
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS() ) );
+        SetHullShader( CompileShader( hs_5_0, NormDepthHS() ) );
+        SetDomainShader( CompileShader( ds_5_0, DS() ) );
+		SetGeometryShader( NULL );
+        SetPixelShader( NULL );
+
+		SetRasterizerState(Depth);
+    }
 }

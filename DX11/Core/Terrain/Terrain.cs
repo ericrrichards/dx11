@@ -325,6 +325,45 @@ namespace Core.Terrain {
             dc.DomainShader.Set(null);
         }
 
+        public void DrawToShadowMap(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights, Matrix viewProj) {
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+
+            var stride = Vertex.TerrainCP.Stride;
+            const int offset = 0;
+
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
+            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+
+
+            var frustum = Frustum.FromViewProj(viewProj);
+            var planes = frustum.Planes;
+
+            Effects.TerrainFX.SetViewProj(viewProj);
+            Effects.TerrainFX.SetEyePosW(new Vector3(viewProj.M41, viewProj.M42, viewProj.M43));
+            Effects.TerrainFX.SetDirLights(lights);
+            Effects.TerrainFX.SetMinDist(MinDist);
+            Effects.TerrainFX.SetMaxDist(MaxDist);
+            Effects.TerrainFX.SetMinTess(MinTess);
+            Effects.TerrainFX.SetMaxTess(MaxTess);
+            Effects.TerrainFX.SetTexelCellSpaceU(1.0f / Info.HeightMapWidth);
+            Effects.TerrainFX.SetTexelCellSpaceV(1.0f / Info.HeightMapHeight);
+            Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
+            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+            Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
+            Effects.TerrainFX.SetBlendMap(_blendMapSRV);
+            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+            Effects.TerrainFX.SetMaterial(_material);
+
+            var tech = Effects.TerrainFX.TessBuildShadowMapTech;
+            for (int p = 0; p < tech.Description.PassCount; p++) {
+                var pass = tech.GetPassByIndex(p);
+                pass.Apply(dc);
+                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
+            }
+            dc.HullShader.Set(null);
+            dc.DomainShader.Set(null);
+        }
 
         public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
             if (_useTessellation) {
@@ -359,7 +398,7 @@ namespace Core.Terrain {
                 Effects.TerrainFX.SetBlendMap(_blendMapSRV);
                 Effects.TerrainFX.SetHeightMap(_heightMapSRV);
                 Effects.TerrainFX.SetMaterial(_material);
-
+                
                 var tech = Effects.TerrainFX.Light1Tech;
                 for (int p = 0; p < tech.Description.PassCount; p++) {
                     var pass = tech.GetPassByIndex(p);

@@ -21,6 +21,7 @@ namespace Core.FX {
         public EffectTechnique Light2FogTechNT { get; private set; }
         public EffectTechnique Light3FogTechNT { get; private set; }
         public EffectTechnique NormalDepthTech { get; private set; }
+        public EffectTechnique TessBuildShadowMapTech { get; private set; }
 
         private readonly EffectMatrixVariable _viewProj;
         private readonly EffectVectorVariable _eyePosW;
@@ -44,7 +45,9 @@ namespace Core.FX {
 
         private readonly EffectMatrixVariable _view;
         private readonly EffectResourceVariable _ambientMap;
-        private EffectMatrixVariable _ViewProjTex;
+        private readonly EffectMatrixVariable _ViewProjTex;
+        private readonly EffectMatrixVariable _shadowTransform;
+        private readonly EffectResourceVariable _shadowMap;
 
         public TerrainEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -62,6 +65,7 @@ namespace Core.FX {
             Light3FogTechNT = FX.GetTechniqueByName("Light3FogNT");
 
             NormalDepthTech = FX.GetTechniqueByName("NormalDepth");
+            TessBuildShadowMapTech = FX.GetTechniqueByName("TessBuildShadowMapTech");
 
             _viewProj = FX.GetVariableByName("gViewProj").AsMatrix();
             _eyePosW = FX.GetVariableByName("gEyePosW").AsVector();
@@ -89,6 +93,8 @@ namespace Core.FX {
             _view = FX.GetVariableByName("gView").AsMatrix();
             _ambientMap = FX.GetVariableByName("gSsaoMap").AsResource();
             _ViewProjTex = FX.GetVariableByName("gViewProjTex").AsMatrix();
+            _shadowTransform = FX.GetVariableByName("gShadowTransform").AsMatrix();
+            _shadowMap = FX.GetVariableByName("gShadowMap").AsResource();
         }
         public void SetView(Matrix m) {
             _view.SetMatrix(m);
@@ -109,6 +115,14 @@ namespace Core.FX {
         public void SetFogRange(float f) {
             _fogRange.Set(f);
         }
+        public void SetShadowTransform(Matrix matrix) {
+            if (_shadowTransform != null)
+                _shadowTransform.SetMatrix(matrix);
+        }
+        public void SetShadowMap(ShaderResourceView tex) {
+            _shadowMap.SetResource(tex);
+        }
+
         public void SetDirLights(DirectionalLight[] lights) {
             Debug.Assert(lights.Length <= 3, "TerrainEffect only supports up to 3 lights");
             var array = new List<byte>();

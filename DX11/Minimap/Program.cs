@@ -56,6 +56,16 @@ namespace Minimap {
         private Buffer _screenQuadVB;
         private Buffer _screenQuadIB;
 
+        private BoundingSphere _sceneBounds;
+
+        private const int SMapSize = 4096;
+        private ShadowMap _sMap;
+        private Matrix _lightView;
+        private Matrix _lightProj;
+        private Matrix _shadowTransform;
+        private readonly Vector3[] _originalLightDirs;
+        private float _lightRotationAngle;
+
         private RandomTerrainDemo(IntPtr hInstance)
             : base(hInstance) {
             MainWindowCaption = "Random Terrain Demo";
@@ -68,23 +78,24 @@ namespace Minimap {
             _dirLights = new[] {
                 new DirectionalLight {
                     Ambient = new Color4(1.0f, 1.0f, 1.0f),
-                    Diffuse = new Color4(0.5f, 0.5f, 0.4f),
+                    Diffuse = new Color4(0.6f, 0.6f, 0.5f),
                     Specular = new Color4(0.8f, 0.8f, 0.7f),
-                    Direction = new Vector3(.707f, -0.707f, 0.0f)
+                    Direction = new Vector3(-0.57735f, -0.57735f, 0.57735f)
                 },
                 new DirectionalLight {
-                    Ambient = new Color4(0, 0, 0),
-                    Diffuse = new Color4(1.0f, 0.2f, 0.2f, 0.2f),
-                    Specular = new Color4(1.0f, 0.2f, 0.2f, 0.2f),
-                    Direction = new Vector3(0.57735f, -0.57735f, 0.57735f)
+                    Ambient = new Color4(0,0,0),
+                    Diffuse = new Color4( 0.4f, 0.4f, 0.4f),
+                    Specular = new Color4( 0.2f, 0.2f, 0.2f),
+                    Direction = new Vector3(0.707f, -0.707f, 0)
                 },
                 new DirectionalLight {
-                    Ambient = new Color4(0, 0, 0),
+                    Ambient = new Color4(0,0,0),
                     Diffuse = new Color4(0.2f, 0.2f, 0.2f),
-                    Specular = new Color4(0.2f, 0.2f, 0.2f),
-                    Direction = new Vector3(-0.57735f, -0.57735f, -0.57735f)
+                    Specular = new Color4(0.2f,0.2f,0.2f),
+                    Direction = new Vector3(0, 0, -1)
                 }
             };
+            _originalLightDirs = _dirLights.Select(l => l.Direction).ToArray();
         }
 
         protected override void Dispose(bool disposing) {
@@ -134,7 +145,9 @@ namespace Minimap {
                 Octaves1 = 7,
                 NoiseSize2 = 2.5f,
                 Persistence2 = 0.8f,
-                Octaves2 = 3
+                Octaves2 = 3,
+
+                
             };
             _terrain = new Terrain();
             _terrain.Init(Device, ImmediateContext, tii);
@@ -148,6 +161,11 @@ namespace Minimap {
 
             _whiteTex = ShaderResourceView.FromFile(Device, "Textures/white.dds");
             BuildScreenQuadGeometryBuffers();
+
+            _sMap = new ShadowMap(Device, SMapSize, SMapSize);
+
+            _sceneBounds = new BoundingSphere(new Vector3(), MathF.Sqrt(_terrain.Width*_terrain.Width + _terrain.Depth*_terrain.Depth)/2 );
+
             return true;
         }
         private void BuildScreenQuadGeometryBuffers() {
@@ -349,6 +367,9 @@ namespace Minimap {
         public override void OnResize() {
             base.OnResize();
             _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
+            if (_ssao != null) {
+                _ssao.OnSize(ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
+            }
         }
 
         public override void UpdateScene(float dt) {
@@ -383,7 +404,56 @@ namespace Minimap {
                 _camera.Target = new Vector3(camPos.X, y, camPos.Z);
 
             }
+
+            _lightRotationAngle += 0.1f * dt;
+
+            var r = Matrix.RotationY(_lightRotationAngle);
+            for (int i = 0; i < 3; i++) {
+                var lightDir = _originalLightDirs[i];
+                lightDir = Vector3.TransformNormal(lightDir, r);
+                _dirLights[i].Direction = lightDir;
+            }
+
+            BuildShadowTransform();
+
             _camera.UpdateViewMatrix();
+        }
+
+        private void BuildShadowTransform() {
+            var lightDir = _dirLights[0].Direction;
+            var lightPos = -2.0f * _sceneBounds.Radius * lightDir;
+            var targetPos = _sceneBounds.Center;
+            var up = new Vector3(0, 1, 0);
+
+            var v = Matrix.LookAtLH(lightPos, targetPos, up);
+
+            var sphereCenterLS = Vector3.TransformCoordinate(targetPos, v);
+
+            var l = sphereCenterLS.X - _sceneBounds.Radius;
+            var b = sphereCenterLS.Y - _sceneBounds.Radius;
+            var n = sphereCenterLS.Z - _sceneBounds.Radius;
+            var r = sphereCenterLS.X + _sceneBounds.Radius;
+            var t = sphereCenterLS.Y + _sceneBounds.Radius;
+            var f = sphereCenterLS.Z + _sceneBounds.Radius;
+
+
+            //var p = Matrix.OrthoLH(r - l, t - b+5, n, f);
+            var p = Matrix.OrthoOffCenterLH(l, r, b, t, n, f);
+            var T = new Matrix {
+                M11 = 0.5f,
+                M22 = -0.5f,
+                M33 = 1.0f,
+                M41 = 0.5f,
+                M42 = 0.5f,
+                M44 = 1.0f
+            };
+
+
+
+            var s = v * p * T;
+            _lightView = v;
+            _lightProj = p;
+            _shadowTransform = s;
         }
 
         private void DrawSceneToSsaoNormalDepthMap() {
@@ -393,6 +463,11 @@ namespace Minimap {
         }
 
         public override void DrawScene() {
+
+            _sMap.BindDsvAndSetNullRenderTarget(ImmediateContext);
+
+            DrawSceneToShadowMap();
+
             ImmediateContext.Rasterizer.State = null;
 
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
@@ -402,8 +477,9 @@ namespace Minimap {
 
             DrawSceneToSsaoNormalDepthMap();
 
+            //Effects.SsaoFX.SetOcclusionRadius(0.1f);
             _ssao.ComputeSsao(_camera);
-            _ssao.BlurAmbientMap(6);
+            _ssao.BlurAmbientMap(4);
 
 
             ImmediateContext.OutputMerger.SetTargets(DepthStencilView, RenderTargetView);
@@ -424,6 +500,13 @@ namespace Minimap {
 
                 Effects.TerrainFX.SetSsaoMap(_ssao.AmbientSRV);
             }
+            if (!Util.IsKeyDown(Keys.A)) {
+                Effects.TerrainFX.SetShadowMap(_sMap.DepthMapSRV);
+                Effects.TerrainFX.SetShadowTransform(_shadowTransform);
+            } else {
+                Effects.TerrainFX.SetShadowMap(_whiteTex);
+            }
+
             _terrain.Draw(ImmediateContext, _camera, _dirLights);
 
             ImmediateContext.Rasterizer.State = null;
@@ -439,10 +522,19 @@ namespace Minimap {
 
             DrawScreenQuad(_ssao.AmbientSRV);
             DrawScreenQuad2(_ssao.NormalDepthSRV);
-
+            DrawScreenQuad3(_sMap.DepthMapSRV);
+            DrawScreenQuad4(_ssao.NormalDepthSRV);
             SwapChain.Present(0, PresentFlags.None);
 
 
+        }
+
+        private void DrawSceneToShadowMap() {
+            var view = _lightView;
+            var proj = _lightProj;
+            var viewProj = view * proj;
+
+            _terrain.DrawToShadowMap(ImmediateContext, _camera, _dirLights, viewProj);
         }
 
         private void DrawScreenQuad(ShaderResourceView srv) {
@@ -488,6 +580,56 @@ namespace Minimap {
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewArgbTech;
+            for (int p = 0; p < tech.Description.PassCount; p++) {
+                Effects.DebugTexFX.SetWorldViewProj(world);
+                Effects.DebugTexFX.SetTexture(srv);
+                tech.GetPassByIndex(p).Apply(ImmediateContext);
+                ImmediateContext.DrawIndexed(6, 0, 0);
+            }
+        }
+        private void DrawScreenQuad4(ShaderResourceView srv) {
+            var stride = Basic32.Stride;
+            const int Offset = 0;
+
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
+            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
+
+            var world = new Matrix {
+                M11 = 0.25f,
+                M22 = 0.25f,
+                M33 = 1.0f,
+                M41 = -0.25f,
+                M42 = -0.75f,
+                M44 = 1.0f
+            };
+            var tech = Effects.DebugTexFX.ViewAlphaTech;
+            for (int p = 0; p < tech.Description.PassCount; p++) {
+                Effects.DebugTexFX.SetWorldViewProj(world);
+                Effects.DebugTexFX.SetTexture(srv);
+                tech.GetPassByIndex(p).Apply(ImmediateContext);
+                ImmediateContext.DrawIndexed(6, 0, 0);
+            }
+        }
+        private void DrawScreenQuad3(ShaderResourceView srv) {
+            var stride = Basic32.Stride;
+            const int Offset = 0;
+
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
+            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
+
+            var world = new Matrix {
+                M11 = 0.25f,
+                M22 = 0.25f,
+                M33 = 1.0f,
+                M41 = 0.25f,
+                M42 = -0.75f,
+                M44 = 1.0f
+            };
+            var tech = Effects.DebugTexFX.ViewRedTech;
             for (int p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(srv);

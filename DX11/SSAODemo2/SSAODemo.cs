@@ -30,7 +30,7 @@ namespace SSAODemo2 {
 
         private TextureManager _texMgr;
 
-        private readonly FpsCamera _camera;
+        private readonly LookAtCamera _camera;
         private Point _lastMousePos;
 
         private BasicModel _boxModel;
@@ -55,7 +55,7 @@ namespace SSAODemo2 {
             
             _lastMousePos = new Point();
 
-            _camera = new FpsCamera { Position = new Vector3(0, 2, -15) };
+            _camera = new LookAtCamera { Position = new Vector3(0, 2, -15) };
 
 
             _dirLights = new[] {

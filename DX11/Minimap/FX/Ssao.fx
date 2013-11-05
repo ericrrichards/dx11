@@ -119,6 +119,10 @@ float4 PS(VertexOut pin, uniform int gSampleCount) : SV_Target
 	float3 n = normalDepth.xyz;
 	float pz = normalDepth.w;
 
+	if (pz/pin.ToFarPlane.z > 0.75f) {
+		return float4(1.0f,1.0f,1.0f,1.0f);
+	}
+
 	//
 	// Reconstruct full view space position (x,y,z).
 	// Find t such that p = t*pin.ToFarPlane.

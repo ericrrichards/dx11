@@ -203,7 +203,7 @@ namespace Core {
                 Height = _renderTargetHeight,
                 MipLevels = 1,
                 ArraySize = 1,
-                Format = Format.R16G16B16A16_Float,
+                Format = Format.R32G32B32A32_Float,
                 SampleDescription = new SampleDescription(1, 0),
                 Usage = ResourceUsage.Default,
                 BindFlags = BindFlags.ShaderResource | BindFlags.RenderTarget,
