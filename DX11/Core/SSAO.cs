@@ -19,38 +19,42 @@ namespace Core {
         private readonly Device _device;
         private readonly DeviceContext _dc;
 
+        // full screen quad used for computing SSAO from normal/depth map
         private Buffer _screenQuadVB;
         private Buffer _screenQuadIB;
 
+        // texture containing random vectors for use in random sampling
         private ShaderResourceView _randomVectorSRV;
 
+        // scene normal/depth texture views
         private RenderTargetView _normalDepthRTV;
         private ShaderResourceView _normalDepthSRV;
 
+        // occlusions maps
+        // need two, because we will ping-pong them to do a bilinear blur
         private RenderTargetView _ambientRTV0;
         private ShaderResourceView _ambientSRV0;
-
         private RenderTargetView _ambientRTV1;
         private ShaderResourceView _ambientSRV1;
 
+        // dimensions of the full screen quad
         private int _renderTargetWidth;
         private int _renderTargetHeight;
 
+        // far-plane corners of the view frustum, used to reconstruct position from depth
         private readonly Vector4[] _frustumFarCorners = new Vector4[4];
+        // uniformly distributed vectors that will be randomized to sample occlusion
         readonly Vector4[] _offsets = new Vector4[14];
-
+        // half-size viewport for rendering the occlusion maps
         private Viewport _ambientMapViewport;
 
         private bool _disposed;
         #endregion
         #region public methods
-        public ShaderResourceView NormalDepthSRV {
-            get { return _normalDepthSRV; }
-        }
+        // readonly properties to access the normal/depth and occlusion maps
+        public ShaderResourceView NormalDepthSRV {get { return _normalDepthSRV; }}
+        public ShaderResourceView AmbientSRV {get { return _ambientSRV0; }}
 
-        public ShaderResourceView AmbientSRV {
-            get { return _ambientSRV0; }
-        }
         public Ssao(Device device, DeviceContext dc, int width, int height, float fovY, float farZ) {
             _device = device;
             _dc = dc;
