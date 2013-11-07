@@ -129,12 +129,12 @@ namespace Core {
             }
         }
 
-        public void BlurAmbientMap(int blurCount) {
-            for (int i = 0; i < blurCount; i++) {
-                BlurAmbientMap(_ambientSRV0, _ambientRTV1, true);
-                BlurAmbientMap(_ambientSRV1, _ambientRTV0, false);
-            }
-        }
+public void BlurAmbientMap(int blurCount) {
+    for (int i = 0; i < blurCount; i++) {
+        BlurAmbientMap(_ambientSRV0, _ambientRTV1, true);
+        BlurAmbientMap(_ambientSRV1, _ambientRTV0, false);
+    }
+}
         #endregion
         #region private methods
 

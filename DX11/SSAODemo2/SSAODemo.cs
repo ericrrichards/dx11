@@ -19,7 +19,7 @@ namespace SSAODemo2 {
 
     using Buffer = SlimDX.Direct3D11.Buffer;
 
-    class SsaoDemo :D3DApp {
+    class SsaoDemo : D3DApp {
 
         private Sky _sky;
 
@@ -49,10 +49,11 @@ namespace SSAODemo2 {
 
         private readonly DirectionalLight[] _dirLights;
 
-        private SsaoDemo(IntPtr hInstance) : base(hInstance) {
+        private SsaoDemo(IntPtr hInstance)
+            : base(hInstance) {
 
             MainWindowCaption = "SSAO Demo";
-            
+
             _lastMousePos = new Point();
 
             _camera = new LookAtCamera { Position = new Vector3(0, 2, -15) };
@@ -96,7 +97,7 @@ namespace SSAODemo2 {
                     Util.ReleaseCom(ref _boxModel);
                     Util.ReleaseCom(ref _sphereModel);
                     Util.ReleaseCom(ref _cylinderModel);
-                    Util.ReleaseCom( ref _skullModel);
+                    Util.ReleaseCom(ref _skullModel);
 
 
 
@@ -117,14 +118,11 @@ namespace SSAODemo2 {
 
             _sky = new Sky(Device, "Textures/desertcube1024.dds", 5000.0f);
 
-            _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
             _ssao = new Ssao(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
-
 
             BuildShapeGeometryBuffers();
             BuildSkullGeometryBuffers();
             BuildScreenQuadGeometryBuffers();
-
 
             return true;
         }
@@ -151,12 +149,12 @@ namespace SSAODemo2 {
                 _camera.Strafe(10.0f * dt);
             }
             if (Util.IsKeyDown(Keys.PageUp)) {
-                _camera.Zoom(-dt);
+                _camera.Zoom(10*-dt);
             }
             if (Util.IsKeyDown(Keys.PageDown)) {
-                _camera.Zoom(+dt);
+                _camera.Zoom(10*+dt);
             }
-            
+
             _camera.UpdateViewMatrix();
 
         }
@@ -164,7 +162,11 @@ namespace SSAODemo2 {
 
             ImmediateContext.Rasterizer.State = null;
 
-            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+            ImmediateContext.ClearDepthStencilView(
+                DepthStencilView,
+                DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil,
+                1.0f, 0
+            );
             ImmediateContext.Rasterizer.SetViewports(Viewport);
 
             _ssao.SetNormalDepthRenderTarget(DepthStencilView);
@@ -179,18 +181,14 @@ namespace SSAODemo2 {
             ImmediateContext.Rasterizer.SetViewports(Viewport);
 
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
             
-
-
             var viewProj = _camera.ViewProj;
 
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetEyePosW(_camera.Position);
             //Effects.BasicFX.SetCubeMap(_sky.CubeMapSRV);
             
-
             Effects.NormalMapFX.SetDirLights(_dirLights);
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
             //Effects.NormalMapFX.SetCubeMap(_sky.CubeMapSRV);
@@ -202,6 +200,7 @@ namespace SSAODemo2 {
                 Effects.BasicFX.SetSsaoMap(_texMgr.CreateTexture("Textures/white.dds"));
                 Effects.NormalMapFX.SetSsaoMap(_texMgr.CreateTexture("Textures/white.dds"));
             }
+            var toTexSpace = Matrix.Scaling(0.5f, -0.5f, 1.0f) * Matrix.Translation(0.5f, 0.5f, 0);
 
             var activeTech = Effects.NormalMapFX.Light3Tech;
             var activeSphereTech = Effects.BasicFX.Light3ReflectTech;
@@ -209,10 +208,7 @@ namespace SSAODemo2 {
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-
-            var toTexSpace = Matrix.Scaling(0.5f, -0.5f, 1.0f) * Matrix.Translation(0.5f, 0.5f, 0);
-
-
+            
             if (Util.IsKeyDown(Keys.W)) {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
@@ -257,9 +253,7 @@ namespace SSAODemo2 {
             }
             ImmediateContext.OutputMerger.DepthStencilState = null;
             ImmediateContext.OutputMerger.DepthStencilReference = 0;
-
             
-
             DrawScreenQuad(_ssao.AmbientSRV);
             DrawScreenQuad2(_ssao.NormalDepthSRV);
 
@@ -281,8 +275,6 @@ namespace SSAODemo2 {
         private void DrawSceneToSsaoNormalDepthMap() {
             var view = _camera.View;
             var proj = _camera.Proj;
-
-            
 
             var tech = Effects.SsaoNormalDepthFX.NormalDepthTech;
 
@@ -318,6 +310,7 @@ namespace SSAODemo2 {
             ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
+
             var world = new Matrix {
                 M11 = 0.25f,
                 M22 = 0.25f,
@@ -326,6 +319,8 @@ namespace SSAODemo2 {
                 M42 = -0.75f,
                 M44 = 1.0f
             };
+
+            //var world = Matrix.Identity;
             var tech = Effects.DebugTexFX.ViewRedTech;
             for (int p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
@@ -351,6 +346,8 @@ namespace SSAODemo2 {
                 M42 = -0.75f,
                 M44 = 1.0f
             };
+
+            //var world = Matrix.Identity;
             var tech = Effects.DebugTexFX.ViewArgbTech;
             for (int p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
