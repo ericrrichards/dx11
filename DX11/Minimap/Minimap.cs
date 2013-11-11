@@ -123,6 +123,7 @@
                         if (Plane.Intersects(edgePlane, org, dirs[i], out hit)) {
                             d = n.Normal.X * hit.X + n.Normal.Y * hit.Y + n.Normal.Z * hit.Z + n.D;
                             if (d >= 0.0f) {
+                                hit *= 2;
                                 ok = true;
                                 break;
                             }
