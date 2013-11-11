@@ -108,6 +108,12 @@ namespace Minimap {
                     ImmediateContext.ClearState();
                     Util.ReleaseCom(ref _sky);
                     Util.ReleaseCom(ref _terrain);
+                    Util.ReleaseCom(ref _minimap);
+                    Util.ReleaseCom(ref _sMap);
+                    Util.ReleaseCom(ref _ssao);
+                    Util.ReleaseCom(ref _whiteTex);
+                    Util.ReleaseCom(ref _screenQuadIB);
+                    Util.ReleaseCom(ref _screenQuadVB);
 
 
                     Effects.DestroyAll();
@@ -224,6 +230,7 @@ namespace Minimap {
                 _terrain.Init(Device, ImmediateContext, tii);
                 _camera.Height = _terrain.Height;
                 _hmImg.Image = _terrain.HeightMapImg;
+                Util.ReleaseCom(ref _minimap);
                 _minimap = new Minimap(Device, ImmediateContext, MinimapSize, MinimapSize, _terrain, _camera);
                 Window.Cursor = Cursors.Default;
             };
@@ -237,7 +244,8 @@ namespace Minimap {
             };
             _txtSeed = new NumericUpDown {
                 Value = 0,
-                AutoSize = true
+                AutoSize = true,
+                Maximum = int.MaxValue
             };
 
             _lblNoise1 = new Label {
