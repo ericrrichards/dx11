@@ -3,12 +3,6 @@ using SlimDX;
 
 namespace Core {
     public class Waves {
-        private int _vertexCount;
-        private int _triangleCount;
-
-        private int _rowCount;
-        private int _columnCount;
-
         private float _k1;
         private float _k2;
         private float _k3;
@@ -21,12 +15,12 @@ namespace Core {
         private Vector3[] _normals;
         private Vector3[] _tangentX;
 
-        public int VertexCount {get { return _vertexCount; }}
-        public int RowCount {get { return _rowCount; }}
-        public int ColumnCount {get { return _columnCount; }}
-        public int TriangleCount {get { return _triangleCount; }}
-        public float Width { get { return _columnCount*_spatialStep; } }
-        public float Depth { get { return _rowCount*_spatialStep; } }
+        public int VertexCount { get; private set; }
+        public int RowCount { get; private set; }
+        public int ColumnCount { get; private set; }
+        public int TriangleCount { get; private set; }
+        public float Width { get { return ColumnCount*_spatialStep; } }
+        public float Depth { get { return RowCount*_spatialStep; } }
 
         public Vector3 Normal(int i) {
             return _normals[i];
@@ -40,10 +34,10 @@ namespace Core {
         }
 
         public void Init(int m, int n, float dx, float dt, float speed, float damping) {
-            _rowCount = m;
-            _columnCount = n;
-            _vertexCount = m * n;
-            _triangleCount = (m - 1) * (n - 1) * 2;
+            RowCount = m;
+            ColumnCount = n;
+            VertexCount = m * n;
+            TriangleCount = (m - 1) * (n - 1) * 2;
 
             _timeStep = dt;
             _spatialStep = dx;
@@ -81,48 +75,48 @@ namespace Core {
             if (!(_t >= _timeStep)) {
                 return;
             }
-            for (int i = 1; i < _rowCount-1; i++) {
-                for (int j = 1; j < _columnCount-1; j++) {
+            for (int i = 1; i < RowCount-1; i++) {
+                for (int j = 1; j < ColumnCount-1; j++) {
                     var n =
-                        _k1 * _prevSolution[i * _columnCount + j].Y +
-                        _k2 * _currentSolution[i * _columnCount + j].Y +
-                        _k3 * (_currentSolution[(i + 1) * _columnCount + j].Y +
-                               _currentSolution[(i - 1) * _columnCount + j].Y +
-                               _currentSolution[i * _columnCount + j + 1].Y +
-                               _currentSolution[i * _columnCount + j - 1].Y);
+                        _k1 * _prevSolution[i * ColumnCount + j].Y +
+                        _k2 * _currentSolution[i * ColumnCount + j].Y +
+                        _k3 * (_currentSolution[(i + 1) * ColumnCount + j].Y +
+                               _currentSolution[(i - 1) * ColumnCount + j].Y +
+                               _currentSolution[i * ColumnCount + j + 1].Y +
+                               _currentSolution[i * ColumnCount + j - 1].Y);
 
-                    _prevSolution[i * _columnCount + j].Y = n;
+                    _prevSolution[i * ColumnCount + j].Y = n;
                 }
             }
             var temp = _prevSolution;
             _prevSolution = _currentSolution;
             _currentSolution = temp;
             _t = 0.0f;
-            for (int i = 1; i < _rowCount - 1; i++) {
-                for (int j = 1; j < _columnCount - 1; j++) {
-                    var l = _currentSolution[i*_columnCount + j - 1].Y;
-                    var r = _currentSolution[i*_columnCount + j + 1].Y;
-                    var t = _currentSolution[(i - 1)*_columnCount + j].Y;
-                    var b = _currentSolution[(i + 1)*_columnCount + j].Y;
-                    _normals[i*_columnCount + j] = Vector3.Normalize(new Vector3(-r+l, 2.0f*_spatialStep, b-t));
+            for (int i = 1; i < RowCount - 1; i++) {
+                for (int j = 1; j < ColumnCount - 1; j++) {
+                    var l = _currentSolution[i*ColumnCount + j - 1].Y;
+                    var r = _currentSolution[i*ColumnCount + j + 1].Y;
+                    var t = _currentSolution[(i - 1)*ColumnCount + j].Y;
+                    var b = _currentSolution[(i + 1)*ColumnCount + j].Y;
+                    _normals[i*ColumnCount + j] = Vector3.Normalize(new Vector3(-r+l, 2.0f*_spatialStep, b-t));
                     
-                    _tangentX[i*_columnCount + j]  = Vector3.Normalize(new Vector3(2.0f*_spatialStep, r-l, 0.0f));
+                    _tangentX[i*ColumnCount + j]  = Vector3.Normalize(new Vector3(2.0f*_spatialStep, r-l, 0.0f));
 
                 }
             }
         }
 
         public void Disturb(int i, int j, float magnitude) {
-            Debug.Assert(i > 1 && i < _rowCount-2);
-            Debug.Assert(j > 1 && j < _columnCount -2);
+            Debug.Assert(i > 1 && i < RowCount-2);
+            Debug.Assert(j > 1 && j < ColumnCount -2);
 
             var m2 = 0.5f * magnitude;
 
-            _currentSolution[i * _columnCount + j].Y += magnitude;
-            _currentSolution[i * _columnCount + j+1].Y += m2;
-            _currentSolution[i * _columnCount + j-1].Y += m2;
-            _currentSolution[(i + 1) * _columnCount + j].Y += m2;
-            _currentSolution[(i - 1) * _columnCount + j].Y += m2;
+            _currentSolution[i * ColumnCount + j].Y += magnitude;
+            _currentSolution[i * ColumnCount + j+1].Y += m2;
+            _currentSolution[i * ColumnCount + j-1].Y += m2;
+            _currentSolution[(i + 1) * ColumnCount + j].Y += m2;
+            _currentSolution[(i - 1) * ColumnCount + j].Y += m2;
         }
     }
 }
