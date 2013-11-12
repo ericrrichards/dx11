@@ -5,6 +5,7 @@ namespace Minimap {
     using System.Diagnostics;
     using System.Drawing;
     using System.Linq;
+    using System.Threading;
 
     using Core;
     using Core.Camera;
@@ -59,12 +60,15 @@ namespace Minimap {
         private BoundingSphere _sceneBounds;
 
         private const int SMapSize = 4096;
+        private const int MinimapSize = 512;
         private ShadowMap _sMap;
         private Matrix _lightView;
         private Matrix _lightProj;
         private Matrix _shadowTransform;
         private readonly Vector3[] _originalLightDirs;
         private float _lightRotationAngle;
+
+        private Minimap _minimap;
 
         private RandomTerrainDemo(IntPtr hInstance)
             : base(hInstance) {
@@ -77,10 +81,10 @@ namespace Minimap {
             };
             _dirLights = new[] {
                 new DirectionalLight {
-                    Ambient = new Color4(1.0f, 1.0f, 1.0f),
+                    Ambient = new Color4(0.8f, 0.8f, 0.8f),
                     Diffuse = new Color4(0.6f, 0.6f, 0.5f),
                     Specular = new Color4(0.8f, 0.8f, 0.7f),
-                    Direction = new Vector3(-0.57735f, -0.57735f, 0.57735f)
+                    Direction = new Vector3(0, 0, 0.707f)
                 },
                 new DirectionalLight {
                     Ambient = new Color4(0,0,0),
@@ -104,6 +108,12 @@ namespace Minimap {
                     ImmediateContext.ClearState();
                     Util.ReleaseCom(ref _sky);
                     Util.ReleaseCom(ref _terrain);
+                    Util.ReleaseCom(ref _minimap);
+                    Util.ReleaseCom(ref _sMap);
+                    Util.ReleaseCom(ref _ssao);
+                    Util.ReleaseCom(ref _whiteTex);
+                    Util.ReleaseCom(ref _screenQuadIB);
+                    Util.ReleaseCom(ref _screenQuadVB);
 
 
                     Effects.DestroyAll();
@@ -166,6 +176,8 @@ namespace Minimap {
 
             _sceneBounds = new BoundingSphere(new Vector3(), MathF.Sqrt(_terrain.Width*_terrain.Width + _terrain.Depth*_terrain.Depth)/2 );
 
+            _minimap = new Minimap(Device, ImmediateContext, MinimapSize,MinimapSize, _terrain, _camera);
+
             return true;
         }
         private void BuildScreenQuadGeometryBuffers() {
@@ -218,6 +230,8 @@ namespace Minimap {
                 _terrain.Init(Device, ImmediateContext, tii);
                 _camera.Height = _terrain.Height;
                 _hmImg.Image = _terrain.HeightMapImg;
+                Util.ReleaseCom(ref _minimap);
+                _minimap = new Minimap(Device, ImmediateContext, MinimapSize, MinimapSize, _terrain, _camera);
                 Window.Cursor = Cursors.Default;
             };
 
@@ -230,7 +244,8 @@ namespace Minimap {
             };
             _txtSeed = new NumericUpDown {
                 Value = 0,
-                AutoSize = true
+                AutoSize = true,
+                Maximum = int.MaxValue
             };
 
             _lblNoise1 = new Label {
@@ -398,6 +413,10 @@ namespace Minimap {
             if (Util.IsKeyDown(Keys.D3)) {
                 _camWalkMode = false;
             }
+            if (Util.IsKeyDown(Keys.Space)) {
+                _tblLayout.Visible = !_tblLayout.Visible;
+                Thread.Sleep(100);
+            }
             if (_camWalkMode) {
                 var camPos = _camera.Target;
                 var y = _terrain.Height(camPos.X, camPos.Z);
@@ -407,7 +426,7 @@ namespace Minimap {
 
             _lightRotationAngle += 0.1f * dt;
 
-            var r = Matrix.RotationY(_lightRotationAngle);
+            var r = Matrix.RotationX(_lightRotationAngle);
             for (int i = 0; i < 3; i++) {
                 var lightDir = _originalLightDirs[i];
                 lightDir = Vector3.TransformNormal(lightDir, r);
@@ -463,6 +482,11 @@ namespace Minimap {
         }
 
         public override void DrawScene() {
+            Effects.TerrainFX.SetSsaoMap(_whiteTex);
+            Effects.TerrainFX.SetShadowMap(_sMap.DepthMapSRV);
+            Effects.TerrainFX.SetShadowTransform(_shadowTransform);
+            _minimap.RenderMinimap(_dirLights);
+            
 
             _sMap.BindDsvAndSetNullRenderTarget(ImmediateContext);
 
@@ -493,7 +517,6 @@ namespace Minimap {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
 
-
             if (Util.IsKeyDown(Keys.S)) {
                 Effects.TerrainFX.SetSsaoMap(_whiteTex);
             } else {
@@ -507,7 +530,11 @@ namespace Minimap {
                 Effects.TerrainFX.SetShadowMap(_whiteTex);
             }
 
+            
+
             _terrain.Draw(ImmediateContext, _camera, _dirLights);
+
+            
 
             ImmediateContext.Rasterizer.State = null;
 
@@ -523,7 +550,7 @@ namespace Minimap {
             DrawScreenQuad(_ssao.AmbientSRV);
             DrawScreenQuad2(_ssao.NormalDepthSRV);
             DrawScreenQuad3(_sMap.DepthMapSRV);
-            DrawScreenQuad4(_ssao.NormalDepthSRV);
+            DrawScreenQuad4(_minimap.MinimapSRV);
             SwapChain.Present(0, PresentFlags.None);
 
 
@@ -604,7 +631,7 @@ namespace Minimap {
                 M42 = -0.75f,
                 M44 = 1.0f
             };
-            var tech = Effects.DebugTexFX.ViewAlphaTech;
+            var tech = Effects.DebugTexFX.ViewArgbTech;
             for (int p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(srv);

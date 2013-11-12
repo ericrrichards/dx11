@@ -60,6 +60,9 @@
     <Content Include="FX\BuildShadowMap.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="FX\color.fx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="FX\DebugTexture.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -123,7 +126,8 @@ fxc /Od /Fc /Zi /T  fx_5_0 /Fo NormalMap.fxo NormalMap.fx
 fxc /Od /Fc /Zi /T  fx_5_0 /Fo Ssao.fxo Ssao.fx
 fxc /Od /Fc /Zi /T  fx_5_0 /Fo Terrain.fxo Terrain.fx
 fxc /Od /Fc /Zi /T  fx_5_0 /Fo SsaoBlur.fxo SsaoBlur.fx
-fxc /Od /Fc /Zi /T  fx_5_0 /Fo SsaoNormalDepth.fxo SsaoNormalDepth.fx</PostBuildEvent>
+fxc /Od /Fc /Zi /T  fx_5_0 /Fo SsaoNormalDepth.fxo SsaoNormalDepth.fx
+fxc /Od /Fc /Zi /T  fx_5_0 /Fo color.fxo color.fx</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -4,6 +4,14 @@ using SlimDX;
 namespace Core {
     public class Frustum {
         private readonly Plane[] _frustum;
+
+        public const int Left = 0;
+        public const int Right = 1;
+        public const int Bottom = 2;
+        public const int Top = 3;
+        public const int Near = 4;
+        public const int Far = 5;
+
         public Frustum(Matrix vp) {
             _frustum = new[] {
                 //left
@@ -23,6 +31,8 @@ namespace Core {
                 plane.Normalize();
             }
         }
+
+        
 
         public Plane[] Planes { get { return _frustum; } }
 

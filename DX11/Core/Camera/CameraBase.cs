@@ -1,6 +1,8 @@
 ﻿using SlimDX;
 
 namespace Core.Camera {
+    using System.Security.Cryptography;
+
     public abstract class CameraBase {
         public HeightFunc Height { get; set; }
         protected Frustum _frustum;
@@ -85,6 +87,37 @@ namespace Core.Camera {
 
             ray.Direction.Normalize();
             return ray;
+        }
+
+        public Vector3[] GetFrustumCorners() {
+            var hNear = 2 * MathF.Tan(FovY / 2) * NearZ;
+            var wNear = hNear * Aspect;
+
+            var hFar = 2 * MathF.Tan(FovY / 2) * FarZ;
+            var wFar = hFar * Aspect;
+
+            var cNear = Position + Look * NearZ;
+            var cFar = Position + Look * FarZ;
+
+            return new[] {
+                //ntl
+                cNear + (Up*hNear/2) - (Right*wNear/2),
+                //ntr
+                cNear + (Up*hNear/2) + (Right*wNear/2),
+                //nbl
+                cNear - (Up *hNear/2) - (Right*wNear/2),
+                //nbr
+                cNear - (Up *hNear/2) + (Right*wNear/2),
+                //ftl
+                cFar + (Up*hFar/2) - (Right*wFar/2),
+                //ftr
+                cFar + (Up*hFar/2) + (Right*wFar/2),
+                //fbl
+                cFar - (Up *hFar/2) - (Right*wFar/2),
+                //fbr
+                cFar - (Up *hFar/2) + (Right*wFar/2),
+            };
+
         }
     }
 }

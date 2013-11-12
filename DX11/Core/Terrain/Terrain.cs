@@ -63,9 +63,9 @@ namespace Core.Terrain {
         private int _numPatchQuadFaces;
 
         // number of rows of patch control point vertices
-        internal int NumPatchVertRows;
+        public int NumPatchVertRows;
         // number of columns of patch control point vertices
-        internal int NumPatchVertCols;
+        public int NumPatchVertCols;
 
         public Matrix World { get; set; }
 
@@ -460,7 +460,7 @@ namespace Core.Terrain {
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();
             for (var i = 0; i < NumPatchVertRows - 1; i++) {
-                for (var j = 0; j < NumPatchVertCols; j++) {
+                for (var j = 0; j < NumPatchVertCols-1; j++) {
                     indices.Add(i * NumPatchVertCols + j);
                     indices.Add(i * NumPatchVertCols + j + 1);
                     indices.Add((i + 1) * NumPatchVertCols + j);
