@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="Camera\CameraBase.cs" />
     <Compile Include="Camera\FpsCamera.cs" />
+    <Compile Include="Camera\OrthoCamera.cs" />
     <Compile Include="CosTable.cs" />
     <Compile Include="D3DApp.cs" />
     <Compile Include="D3DForm.cs">
@@ -105,6 +106,7 @@
     <Compile Include="Sky.cs" />
     <Compile Include="SSAO.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
+    <Compile Include="Terrain\Minimap.cs" />
     <Compile Include="Terrain\Patch.cs" />
     <Compile Include="Terrain\Terrain.cs" />
     <Compile Include="TextureAtlas.cs" />

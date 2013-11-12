@@ -1,6 +1,5 @@
-﻿namespace Minimap {
+﻿namespace Core.Camera {
     using Core;
-    using Core.Camera;
 
     using SlimDX;
 

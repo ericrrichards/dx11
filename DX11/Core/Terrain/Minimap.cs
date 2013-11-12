@@ -1,16 +1,15 @@
-﻿namespace Minimap {
+﻿namespace Core.Terrain {
     using System;
     using System.Drawing;
 
     using Core;
     using Core.Camera;
     using Core.FX;
-    using Core.Terrain;
     using Core.Vertex;
 
     using SlimDX;
-    using SlimDX.DXGI;
     using SlimDX.Direct3D11;
+    using SlimDX.DXGI;
 
     using Buffer = SlimDX.Direct3D11.Buffer;
     using Device = SlimDX.Direct3D11.Device;
@@ -146,25 +145,26 @@
                 points[i] = new Vector3(Math.Min(Math.Max(hit.X, -float.MaxValue), float.MaxValue), 0, Math.Min(Math.Max(hit.Z, -float.MaxValue), float.MaxValue));
             }
 
-            if (ok) {
-                var buf = _dc.MapSubresource(_frustumVB, MapMode.WriteDiscard, MapFlags.None);
+            if (!ok) {
+                return;
+            }
+            var buf = _dc.MapSubresource(_frustumVB, MapMode.WriteDiscard, MapFlags.None);
 
-                buf.Data.Write(new VertexPC(points[0], Color.White));
-                buf.Data.Write(new VertexPC(points[1], Color.White));
-                buf.Data.Write(new VertexPC(points[2], Color.White));
-                buf.Data.Write(new VertexPC(points[3], Color.White));
-                buf.Data.Write(new VertexPC(points[0], Color.White));
+            buf.Data.Write(new VertexPC(points[0], Color.White));
+            buf.Data.Write(new VertexPC(points[1], Color.White));
+            buf.Data.Write(new VertexPC(points[2], Color.White));
+            buf.Data.Write(new VertexPC(points[3], Color.White));
+            buf.Data.Write(new VertexPC(points[0], Color.White));
 
-                _dc.UnmapSubresource(_frustumVB, 0);
+            _dc.UnmapSubresource(_frustumVB, 0);
 
-                _dc.InputAssembler.InputLayout = InputLayouts.PosColor;
-                _dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineStrip;
-                _dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_frustumVB, VertexPC.Stride, 0));
-                for (int i = 0; i < Effects.ColorFX.ColorTech.Description.PassCount; i++) {
-                    Effects.ColorFX.SetWorldViewProj(_camera.ViewProj);
-                    Effects.ColorFX.ColorTech.GetPassByIndex(i).Apply(_dc);
-                    _dc.Draw(5, 0);
-                }
+            _dc.InputAssembler.InputLayout = InputLayouts.PosColor;
+            _dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineStrip;
+            _dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_frustumVB, VertexPC.Stride, 0));
+            for (var i = 0; i < Effects.ColorFX.ColorTech.Description.PassCount; i++) {
+                Effects.ColorFX.SetWorldViewProj(_camera.ViewProj);
+                Effects.ColorFX.ColorTech.GetPassByIndex(i).Apply(_dc);
+                _dc.Draw(5, 0);
             }
         }
     }
