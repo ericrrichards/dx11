@@ -4,15 +4,19 @@ using SlimDX.Direct3D11;
 
 namespace Core.Model {
     public class Waves : DisposableClass {
+        // wave geometry
         private BasicModel _gridModel;
         private BasicModelInstance _grid;
 
+        // offsets to scroll the wave textures for displacement mapping
         private Vector2 _wavesDispOffset0;
         private Vector2 _wavesDispOffset1;
 
+        // offsets to scroll the wave textures for normal mapping
         private Vector2 _wavesNormalOffset0;
         private Vector2 _wavesNormalOffset1;
         
+        // transform matrices to convert offsets into transformations we can feed into the shader
         private Matrix _wavesDispTexTransform0;
         private Matrix _wavesDispTexTransform1;
         private Matrix _wavesNormalTexTransform0;
@@ -20,11 +24,12 @@ namespace Core.Model {
 
         private bool _disposed;
 
+        // provides access to model material
         public Material Material {
             get { return _gridModel.Materials[0]; }
             set { _gridModel.Materials[0] = value; }
         }
-
+        // provides access to model world transform
         public Matrix World {
             get { return _grid.World; }
             set { _grid.World = value; }
@@ -32,31 +37,33 @@ namespace Core.Model {
 
         public BoundingBox BoundingBox { get { return _grid.BoundingBox; } }
 
+        // normal/heightmap textures
         public ShaderResourceView NormalMap0 {get; set; }
         public ShaderResourceView NormalMap1 { get; set; }
 
+        // parameters to modify texture scrolling rates
         public Vector2 DispFactor0 { get; private set; }
         public Vector2 DispFactor1 { get; private set; }
         public Vector2 NormalFactor0 { get; private set; }
         public Vector2 NormalFactor1 { get; private set; }
 
+        // parameters to modify texture tiling
         public Vector3 DispScale0 { get; private set; }
         public Vector3 DispScale1 { get; private set; }
         public Vector3 NormalScale0 { get; private set; }
         public Vector3 NormalScale1 { get; private set; }
 
+        // provides access to model diffuse map
         public ShaderResourceView DiffuseMap {
             get { return _gridModel.DiffuseMapSRV[0]; }
             set { _gridModel.DiffuseMapSRV[0] = value; }
         }
-
+        // provides access to model diffuse texture transform
         public Matrix TexTransform {
             get {return _grid.TexTransform;}
             set { _grid.TexTransform = value; }
         }
-
-
-
+        
         public Waves() {
             _wavesDispOffset0 = new Vector2();
             _wavesDispOffset1 = new Vector2();
