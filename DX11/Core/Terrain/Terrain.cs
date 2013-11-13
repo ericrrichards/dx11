@@ -73,6 +73,7 @@ namespace Core.Terrain {
 
         // computed Y bounds for each patch
         private List<Vector2> _patchBoundsY;
+        private List<BoundingBox> _patchBounds; 
         private HeightMap _heightMap;
 
         private bool _disposed;
@@ -482,6 +483,7 @@ namespace Core.Terrain {
         }
         private void CalcAllPatchBoundsY() {
             _patchBoundsY = new List<Vector2>(new Vector2[_numPatchQuadFaces]);
+            _patchBounds = new List<BoundingBox>(new BoundingBox[_numPatchQuadFaces]);
 
             for (var i = 0; i < NumPatchVertRows - 1; i++) {
                 for (var j = 0; j < NumPatchVertCols - 1; j++) {
@@ -535,6 +537,15 @@ namespace Core.Terrain {
                     var patchID = i * (NumPatchVertCols - 1) + j;
                     var vertID = i * NumPatchVertCols + j;
                     patchVerts[vertID].BoundsY = _patchBoundsY[patchID];
+
+                    var min = patchVerts[vertID].Pos;
+                    min.Y = _patchBoundsY[patchID].X;
+                    var max = patchVerts[vertID].Pos;
+                    max.X += patchWidth;
+                    max.Y = _patchBoundsY[patchID].Y;
+                    max.Z += patchDepth;
+
+                    _patchBounds[patchID] = new BoundingBox(min, max);
                 }
             }
 
