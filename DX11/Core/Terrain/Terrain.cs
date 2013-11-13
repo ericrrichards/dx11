@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Core.FX;
+using Core.Vertex;
 using SlimDX;
 using SlimDX.DXGI;
 using SlimDX.Direct3D11;
@@ -15,37 +16,6 @@ namespace Core.Terrain {
 
     using Core.Camera;
 
-    public struct InitInfo {
-        // RAW heightmap image file or null for random terrain
-        public string HeightMapFilename;
-        // Heightmap maximum height
-        public float HeightScale;
-        // Heightmap dimensions
-        public int HeightMapWidth;
-        public int HeightMapHeight;
-        // terrain diffuse textures
-        public string LayerMapFilename0;
-        public string LayerMapFilename1;
-        public string LayerMapFilename2;
-        public string LayerMapFilename3;
-        public string LayerMapFilename4;
-        // Blend map which indicates which diffuse map is
-        // applied to which portions of the terrain
-        // null if the blendmap should be generated
-        public string BlendMapFilename;
-        // The distance between vertices in the generated mesh
-        public float CellSpacing;
-        public Material? Material;
-        // Random heightmap parameters
-        public float NoiseSize1;
-        public float NoiseSize2;
-        public float Persistence1;
-        public float Persistence2;
-        public int Octaves1;
-        public int Octaves2;
-        public int Seed;
-    }
-    
 
     public class Terrain : DisposableClass {
         public const int CellsPerPatch = 64;
@@ -73,7 +43,6 @@ namespace Core.Terrain {
 
         // computed Y bounds for each patch
         private List<Vector2> _patchBoundsY;
-        private List<BoundingBox> _patchBounds; 
         private HeightMap _heightMap;
 
         private bool _disposed;
@@ -84,6 +53,13 @@ namespace Core.Terrain {
         internal const float MinTess = 0.0f;
 
         public Image HeightMapImg { get { return _heightMap.Bitmap; } }
+
+        private BVH _bvh;
+
+        private List<VertexPC> _bvhVerts = new List<VertexPC>();
+        private List<int> _bvhIndices = new List<int>();
+        private Buffer _bvhVB;
+        private Buffer _bvhIB;
 
         public Terrain() {
             World = Matrix.Identity;
@@ -195,8 +171,100 @@ namespace Core.Terrain {
             } else {
                 _blendMapSRV = CreateBlendMap(_heightMap, device);
             }
+
+            _bvh = new BVH();
+            _bvh.Root = BuildBvh(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1)));
+            //BuildBVHDebugBuffers(device);
             D3DApp.GD3DApp.ProgressUpdate.Draw(1.0f, "Terrain initialized");
         }
+
+        private void BuildBVHDebugBuffers(Device device) {
+            GetBVHVerticesAndIndices(_bvh.Root, device);
+            var vbd = new BufferDescription(VertexPC.Stride*_bvhVerts.Count, ResourceUsage.Immutable,
+                BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            _bvhVB = new Buffer(device, new DataStream(_bvhVerts.ToArray(), false, false), vbd);
+            var ibd = new BufferDescription(sizeof (int)*_bvhIndices.Count, ResourceUsage.Immutable,
+                BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            _bvhIB = new Buffer(device, new DataStream(_bvhIndices.ToArray(), false, false), ibd);
+        }
+
+        private BVHNode BuildBvh(Vector2 tl, Vector2 br) {
+
+            var minMaxY = GetMinMaxY(tl, br);
+
+            var minX = tl.X*Info.CellSpacing - Width/2;
+            var maxX = br.X*Info.CellSpacing - Width/2;
+            var minZ = -tl.Y * Info.CellSpacing + Depth / 2;
+            var maxZ = -br.Y * Info.CellSpacing + Depth / 2;
+
+
+            var bvh = new BVHNode() {Bounds = new BoundingBox(new Vector3(minX, minMaxY.X, minZ), new Vector3(maxX, minMaxY.Y, maxZ))};
+
+            var width = (int)Math.Floor((br.X - tl.X)/2);
+            var depth = (int)Math.Floor((br.Y - tl.Y)/2);
+
+            if (width >= 4 && depth >= 4) {
+                bvh.Children = new[] {
+                    BuildBvh(tl, new Vector2(tl.X + width, tl.Y + depth)),
+                    BuildBvh(new Vector2(tl.X + width, tl.Y), new Vector2(br.X, tl.Y + depth) ),
+                    BuildBvh(new Vector2(tl.X, tl.Y+depth), new Vector2(tl.X+depth, br.Y) ),
+                    BuildBvh(new Vector2(tl.X+width, tl.Y+depth), br )
+                };
+            }
+            
+
+            
+            return bvh;
+        }
+
+        private int _aabCount = 0;
+
+        private Vector2 GetMinMaxY(Vector2 tl, Vector2 br) {
+            var max = float.MinValue;
+            var min = float.MaxValue;
+            for (var x = (int) tl.X; x < br.X; x++) {
+                for (var y = (int) tl.Y; y < br.Y; y++) {
+                    min = Math.Min(min, _heightMap[y, x]);
+                    max = Math.Max(max, _heightMap[y, x]);
+                }
+            }
+            return new Vector2(min, max);
+        }
+
+        private void GetBVHVerticesAndIndices(BVHNode bvh, Device device, int level = 0) {
+            var vertBase = _bvhVerts.Count;
+            var corners = bvh.Bounds.GetCorners();
+            if (level == 9) {
+                _bvhVerts.AddRange(corners.Select(c => {
+                    var color = Color.White;
+                    switch (_aabCount % 4) {
+                        case 1:
+                            color = Color.Blue;
+                            break;
+                        case 2:
+                            color = Color.Magenta;
+                            break;
+                        case 3:
+                            color = Color.Yellow;
+                            break;
+                    }
+                    return new VertexPC(c, color);
+                }));
+                _aabCount++;
+                _bvhIndices.AddRange(
+                    new[] {0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 4, 0, 5, 1, 7, 3, 6, 2}.Select(
+                        i => i + vertBase));
+
+            }
+            if (bvh.Children.All(c=>c!=null)) {
+                foreach (var child in bvh.Children) {
+                    GetBVHVerticesAndIndices(child, device, level+1);
+                }
+            }
+
+            
+        }
+
         private void GenerateRandomTerrain() {
             var hm2 = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, 2.0f);
             _heightMap.CreateRandomHeightMapParallel(Info.Seed, Info.NoiseSize1, Info.Persistence1, Info.Octaves1, true);
@@ -355,7 +423,7 @@ namespace Core.Terrain {
             Effects.TerrainFX.SetBlendMap(_blendMapSRV);
             Effects.TerrainFX.SetHeightMap(_heightMapSRV);
             Effects.TerrainFX.SetMaterial(_material);
-
+            
             var tech = Effects.TerrainFX.TessBuildShadowMapTech;
             for (int p = 0; p < tech.Description.PassCount; p++) {
                 var pass = tech.GetPassByIndex(p);
@@ -366,7 +434,7 @@ namespace Core.Terrain {
             dc.DomainShader.Set(null);
         }
 
-        public void Draw(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights) {
+        public void Draw(DeviceContext dc, CameraBase cam, DirectionalLight[] lights) {
             if (_useTessellation) {
 
                 dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
@@ -408,6 +476,9 @@ namespace Core.Terrain {
                 }
                 dc.HullShader.Set(null);
                 dc.DomainShader.Set(null);
+
+
+                //DrawBVHDebug(dc, cam, offset);
             } else {
                 dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
@@ -458,6 +529,22 @@ namespace Core.Terrain {
             }
            
         }
+
+        private void DrawBVHDebug(DeviceContext dc, CameraBase cam, int offset) {
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+            dc.InputAssembler.InputLayout = InputLayouts.PosColor;
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_bvhVB, VertexPC.Stride, offset));
+            dc.InputAssembler.SetIndexBuffer(_bvhIB, Format.R32_UInt, 0);
+
+            //dc.OutputMerger.DepthStencilState = RenderStates.NoDepthDSS;
+            Effects.ColorFX.SetWorldViewProj(cam.ViewProj);
+            for (int p = 0; p < Effects.ColorFX.ColorTech.Description.PassCount; p++) {
+                Effects.ColorFX.ColorTech.GetPassByIndex(p).Apply(dc);
+                dc.DrawIndexed(_bvhIndices.Count, 0, 0);
+            }
+            dc.OutputMerger.DepthStencilState = null;
+        }
+
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();
             for (var i = 0; i < NumPatchVertRows - 1; i++) {
@@ -483,7 +570,6 @@ namespace Core.Terrain {
         }
         private void CalcAllPatchBoundsY() {
             _patchBoundsY = new List<Vector2>(new Vector2[_numPatchQuadFaces]);
-            _patchBounds = new List<BoundingBox>(new BoundingBox[_numPatchQuadFaces]);
 
             for (var i = 0; i < NumPatchVertRows - 1; i++) {
                 for (var j = 0; j < NumPatchVertCols - 1; j++) {
@@ -537,15 +623,6 @@ namespace Core.Terrain {
                     var patchID = i * (NumPatchVertCols - 1) + j;
                     var vertID = i * NumPatchVertCols + j;
                     patchVerts[vertID].BoundsY = _patchBoundsY[patchID];
-
-                    var min = patchVerts[vertID].Pos;
-                    min.Y = _patchBoundsY[patchID].X;
-                    var max = patchVerts[vertID].Pos;
-                    max.X += patchWidth;
-                    max.Y = _patchBoundsY[patchID].Y;
-                    max.Z += patchDepth;
-
-                    _patchBounds[patchID] = new BoundingBox(min, max);
                 }
             }
 
@@ -582,6 +659,17 @@ namespace Core.Terrain {
             }
         }
 
-        
+
+        public Vector3 Intersect(Ray ray) {
+            Vector3 ret;
+            ray.Position -= ray.Direction*100;
+            if (_bvh.Intersects(ray, out ret)) {
+                ret.Y = Height(ret.X, ret.Z);
+                return ret;
+            }
+            ret = new Vector3(float.MaxValue);
+
+            return ret;
+        }
     }
 }

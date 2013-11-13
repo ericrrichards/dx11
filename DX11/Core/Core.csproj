@@ -107,6 +107,7 @@
     <Compile Include="SSAO.cs" />
     <Compile Include="Terrain\BVH.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
+    <Compile Include="Terrain\InitInfo.cs" />
     <Compile Include="Terrain\Minimap.cs" />
     <Compile Include="Terrain\Patch.cs" />
     <Compile Include="Terrain\Terrain.cs" />
