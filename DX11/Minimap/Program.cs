@@ -72,7 +72,7 @@ namespace Minimap {
 
         private RandomTerrainDemo(IntPtr hInstance)
             : base(hInstance) {
-            MainWindowCaption = "Random Terrain Demo";
+            MainWindowCaption = "Minimap Demo";
             //Enable4xMsaa = true;
             _lastMousePos = new Point();
 
