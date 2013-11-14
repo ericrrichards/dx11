@@ -55,7 +55,7 @@ namespace Core.Terrain {
                         var i = bvhNode.Value.Intersects(ray, out thisHit);
                         if (i ) {
                             var dot = (Vector3.Dot(Vector3.Normalize(thisHit - ray.Position), ray.Direction));
-                            if (dot > 0) {
+                            if (dot > 0.8f) {
                                 if ((ray.Position - thisHit).LengthSquared() < (ray.Position - bestHit).LengthSquared()) {
                                     bestHit = thisHit;
                                     intersect = true;
