@@ -14,7 +14,7 @@ using Device = SlimDX.Direct3D11.Device;
 namespace Core.Terrain {
     using System.Runtime.InteropServices;
 
-    using Core.Camera;
+    using Camera;
 
 
     public class Terrain : DisposableClass {
@@ -56,8 +56,8 @@ namespace Core.Terrain {
 
         private BVH _bvh;
 
-        private List<VertexPC> _bvhVerts = new List<VertexPC>();
-        private List<int> _bvhIndices = new List<int>();
+        private readonly List<VertexPC> _bvhVerts = new List<VertexPC>();
+        private readonly List<int> _bvhIndices = new List<int>();
         private Buffer _bvhVB;
         private Buffer _bvhIB;
 
@@ -172,14 +172,15 @@ namespace Core.Terrain {
                 _blendMapSRV = CreateBlendMap(_heightMap, device);
             }
 
-            _bvh = new BVH();
-            _bvh.Root = BuildBvh(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1)));
-            //BuildBVHDebugBuffers(device);
+            _bvh = new BVH {
+                Root = BuildBvh(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1)))
+            };
+            BuildBVHDebugBuffers(device);
             D3DApp.GD3DApp.ProgressUpdate.Draw(1.0f, "Terrain initialized");
         }
 
         private void BuildBVHDebugBuffers(Device device) {
-            GetBVHVerticesAndIndices(_bvh.Root, device);
+            GetBVHVerticesAndIndices(_bvh.Root);
             var vbd = new BufferDescription(VertexPC.Stride*_bvhVerts.Count, ResourceUsage.Immutable,
                 BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _bvhVB = new Buffer(device, new DataStream(_bvhVerts.ToArray(), false, false), vbd);
@@ -198,12 +199,12 @@ namespace Core.Terrain {
             var maxZ = -br.Y * Info.CellSpacing + Depth / 2;
 
 
-            var bvh = new BVHNode() {Bounds = new BoundingBox(new Vector3(minX, minMaxY.X, minZ), new Vector3(maxX, minMaxY.Y, maxZ))};
+            var bvh = new BVHNode {Bounds = new BoundingBox(new Vector3(minX, minMaxY.X, minZ), new Vector3(maxX, minMaxY.Y, maxZ))};
 
             var width = (int)Math.Floor((br.X - tl.X)/2);
             var depth = (int)Math.Floor((br.Y - tl.Y)/2);
 
-            if (width >= 2 && depth >= 2) {
+            if (width >= 4 && depth >= 4) {
                 bvh.Children = new[] {
                     BuildBvh(tl, new Vector2(tl.X + width, tl.Y + depth)),
                     BuildBvh(new Vector2(tl.X + width, tl.Y), new Vector2(br.X, tl.Y + depth) ),
@@ -217,7 +218,7 @@ namespace Core.Terrain {
             return bvh;
         }
 
-        private int _aabCount = 0;
+        private int _aabCount;
 
         private Vector2 GetMinMaxY(Vector2 tl, Vector2 br) {
             var max = float.MinValue;
@@ -231,7 +232,7 @@ namespace Core.Terrain {
             return new Vector2(min, max);
         }
 
-        private void GetBVHVerticesAndIndices(BVHNode bvh, Device device, int level = 0) {
+        private void GetBVHVerticesAndIndices(BVHNode bvh, int level = 0) {
             var vertBase = _bvhVerts.Count;
             var corners = bvh.Bounds.GetCorners();
             if (level == 9) {
@@ -256,9 +257,9 @@ namespace Core.Terrain {
                         i => i + vertBase));
 
             }
-            if (bvh.Children.All(c=>c!=null)) {
+            if (bvh.Children!=null) {
                 foreach (var child in bvh.Children) {
-                    GetBVHVerticesAndIndices(child, device, level+1);
+                    GetBVHVerticesAndIndices(child, level+1);
                 }
             }
 
@@ -317,8 +318,7 @@ namespace Core.Terrain {
                     _heightMap.HeightMapWidth * Marshal.SizeOf(typeof(Color4)),
                     new DataStream(colors.ToArray(), false, false)
                 )
-            );
-            blendTex.DebugName = "terrain blend texture";
+            ) {DebugName = "terrain blend texture"};
             var srvDesc = new ShaderResourceViewDescription {
                 Format = texDec.Format,
                 Dimension = ShaderResourceViewDimension.Texture2D,
@@ -352,10 +352,10 @@ namespace Core.Terrain {
             dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
             dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
-            var stride = Vertex.TerrainCP.Stride;
-            const int Offset = 0;
+            var stride = TerrainCP.Stride;
+            const int offset = 0;
 
-            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, Offset));
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
             dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
 
             var viewProj = cam.ViewProj;
@@ -394,11 +394,11 @@ namespace Core.Terrain {
             dc.DomainShader.Set(null);
         }
 
-        public void DrawToShadowMap(DeviceContext dc, Camera.CameraBase cam, DirectionalLight[] lights, Matrix viewProj) {
+        public void DrawToShadowMap(DeviceContext dc, CameraBase cam, DirectionalLight[] lights, Matrix viewProj) {
             dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
             dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
-            var stride = Vertex.TerrainCP.Stride;
+            var stride = TerrainCP.Stride;
             const int offset = 0;
 
             dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
@@ -440,7 +440,7 @@ namespace Core.Terrain {
                 dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
                 dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
-                var stride = Vertex.TerrainCP.Stride;
+                var stride = TerrainCP.Stride;
                 const int offset = 0;
 
                 dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
@@ -478,7 +478,7 @@ namespace Core.Terrain {
                 dc.DomainShader.Set(null);
 
 
-                //DrawBVHDebug(dc, cam, offset);
+                DrawBVHDebug(dc, cam, offset);
             } else {
                 dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
@@ -597,7 +597,7 @@ namespace Core.Terrain {
             _patchBoundsY[patchID] = new Vector2(minY, maxY);
         }
         private void BuildQuadPatchVB(Device device) {
-            var patchVerts = new Vertex.TerrainCP[_numPatchVertices];
+            var patchVerts = new TerrainCP[_numPatchVertices];
             var halfWidth = 0.5f * Width;
             var halfDepth = 0.5f * Depth;
 
@@ -611,7 +611,7 @@ namespace Core.Terrain {
                 for (int j = 0; j < NumPatchVertCols; j++) {
                     var x = -halfWidth + j * patchWidth;
                     var vertId = i * NumPatchVertCols + j;
-                    patchVerts[vertId] = new Vertex.TerrainCP(
+                    patchVerts[vertId] = new TerrainCP(
                         new Vector3(x, 0, z),
                         new Vector2(j * du, i * dv),
                         new Vector2()
@@ -627,7 +627,7 @@ namespace Core.Terrain {
             }
 
             var vbd = new BufferDescription(
-                Vertex.TerrainCP.Stride * patchVerts.Length,
+                TerrainCP.Stride * patchVerts.Length,
                 ResourceUsage.Immutable,
                 BindFlags.VertexBuffer,
                 CpuAccessFlags.None,

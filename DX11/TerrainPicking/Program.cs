@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Core;
 using Core.Camera;
@@ -165,13 +161,14 @@ namespace TerrainPicking {
             _minimap = new Minimap(Device, ImmediateContext, MinimapSize, MinimapSize, _terrain, _camera);
 
             _sphereModel = BasicModel.CreateSphere(Device, 0.25f, 10, 10);
-            _sphereModel.Materials[0] = new Material() {
+            _sphereModel.Materials[0] = new Material {
                 Ambient = Color.Red,
                 Diffuse = Color.Red,
+                Specular = new Color4(32, 1.0f, 1.0f, 1.0f)
             };
             _sphereModel.DiffuseMapSRV[0] = _whiteTex;
 
-            _sphere = new BasicModelInstance() {Model = _sphereModel};
+            _sphere = new BasicModelInstance {Model = _sphereModel};
             _spherePos = new Vector3(float.MaxValue);
 
             return true;
@@ -383,11 +380,11 @@ namespace TerrainPicking {
 
         private void DrawScreenQuad(ShaderResourceView srv) {
             var stride = Basic32.Stride;
-            const int Offset = 0;
+            const int offset = 0;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
@@ -408,11 +405,11 @@ namespace TerrainPicking {
         }
         private void DrawScreenQuad2(ShaderResourceView srv) {
             var stride = Basic32.Stride;
-            const int Offset = 0;
+            const int offset = 0;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
@@ -433,11 +430,11 @@ namespace TerrainPicking {
         }
         private void DrawScreenQuad4(ShaderResourceView srv) {
             var stride = Basic32.Stride;
-            const int Offset = 0;
+            const int offset = 0;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
@@ -458,11 +455,11 @@ namespace TerrainPicking {
         }
         private void DrawScreenQuad3(ShaderResourceView srv) {
             var stride = Basic32.Stride;
-            const int Offset = 0;
+            const int offset = 0;
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
