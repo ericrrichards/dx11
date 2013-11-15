@@ -175,7 +175,9 @@ namespace Core.Terrain {
             _bvh = new BVH {
                 Root = BuildBvh(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1)))
             };
-            BuildBVHDebugBuffers(device);
+            if (DebugBvh) {
+                BuildBVHDebugBuffers(device);
+            }
             D3DApp.GD3DApp.ProgressUpdate.Draw(1.0f, "Terrain initialized");
         }
 
@@ -219,6 +221,8 @@ namespace Core.Terrain {
         }
 
         private int _aabCount;
+        public bool DebugBvh { get;  set; }
+        public bool Shadows { get; set; }
 
         private Vector2 GetMinMaxY(Vector2 tl, Vector2 br) {
             var max = float.MinValue;
@@ -468,7 +472,7 @@ namespace Core.Terrain {
                 Effects.TerrainFX.SetHeightMap(_heightMapSRV);
                 Effects.TerrainFX.SetMaterial(_material);
                 
-                var tech = Effects.TerrainFX.Light1Tech;
+                var tech = Shadows ? Effects.TerrainFX.Light1ShadowTech: Effects.TerrainFX.Light1Tech;
                 for (int p = 0; p < tech.Description.PassCount; p++) {
                     var pass = tech.GetPassByIndex(p);
                     pass.Apply(dc);
@@ -477,8 +481,9 @@ namespace Core.Terrain {
                 dc.HullShader.Set(null);
                 dc.DomainShader.Set(null);
 
-
-                DrawBVHDebug(dc, cam, offset);
+                if (DebugBvh) {
+                    DrawBVHDebug(dc, cam, offset);
+                }
             } else {
                 dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;

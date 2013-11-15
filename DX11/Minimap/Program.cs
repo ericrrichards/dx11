@@ -424,7 +424,8 @@ namespace Minimap {
 
             }
 
-            _lightRotationAngle += 0.1f * dt;
+            //_lightRotationAngle += 0.1f * dt;
+            _lightRotationAngle = MathF.PI -MathF.PI/16;
 
             var r = Matrix.RotationX(_lightRotationAngle);
             for (int i = 0; i < 3; i++) {
@@ -523,11 +524,13 @@ namespace Minimap {
 
                 Effects.TerrainFX.SetSsaoMap(_ssao.AmbientSRV);
             }
+            Effects.TerrainFX.SetShadowMap(_sMap.DepthMapSRV);
+            Effects.TerrainFX.SetShadowTransform(_shadowTransform);
+
             if (!Util.IsKeyDown(Keys.A)) {
-                Effects.TerrainFX.SetShadowMap(_sMap.DepthMapSRV);
-                Effects.TerrainFX.SetShadowTransform(_shadowTransform);
+                _terrain.Shadows = true;
             } else {
-                Effects.TerrainFX.SetShadowMap(_whiteTex);
+                _terrain.Shadows = false;
             }
 
             
@@ -550,7 +553,7 @@ namespace Minimap {
             DrawScreenQuad(_ssao.AmbientSRV);
             DrawScreenQuad2(_ssao.NormalDepthSRV);
             DrawScreenQuad3(_sMap.DepthMapSRV);
-            DrawScreenQuad4(_minimap.MinimapSRV);
+            //DrawScreenQuad4(_minimap.MinimapSRV);
             SwapChain.Present(0, PresentFlags.None);
 
 

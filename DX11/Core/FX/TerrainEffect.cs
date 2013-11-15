@@ -14,6 +14,13 @@ namespace Core.FX {
         public EffectTechnique Light2FogTech { get; private set; }
         public EffectTechnique Light3FogTech { get; private set; }
 
+        public EffectTechnique Light1ShadowTech { get; private set; }
+        public EffectTechnique Light2ShadowTech { get; private set; }
+        public EffectTechnique Light3ShadowTech { get; private set; }
+        public EffectTechnique Light1FogShadowTech { get; private set; }
+        public EffectTechnique Light2FogShadowTech { get; private set; }
+        public EffectTechnique Light3FogShadowTech { get; private set; }
+
         public EffectTechnique Light1TechNT { get; private set; }
         public EffectTechnique Light2TechNT { get; private set; }
         public EffectTechnique Light3TechNT { get; private set; }
@@ -56,6 +63,13 @@ namespace Core.FX {
             Light1FogTech = FX.GetTechniqueByName("Light1Fog");
             Light2FogTech = FX.GetTechniqueByName("Light2Fog");
             Light3FogTech = FX.GetTechniqueByName("Light3Fog");
+
+            Light1ShadowTech = FX.GetTechniqueByName("Light1Shadow");
+            Light2ShadowTech = FX.GetTechniqueByName("Light2Shadow");
+            Light3ShadowTech = FX.GetTechniqueByName("Light3Shadow");
+            Light1FogShadowTech = FX.GetTechniqueByName("Light1FogShadow");
+            Light2FogShadowTech = FX.GetTechniqueByName("Light2FogShadow");
+            Light3FogShadowTech = FX.GetTechniqueByName("Light3FogShadow");
 
             Light1TechNT = FX.GetTechniqueByName("Light1NT");
             Light2TechNT = FX.GetTechniqueByName("Light2NT");

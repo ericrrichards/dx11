@@ -308,7 +308,7 @@ DomainOut VS_NT(VertexIn vin)
 
 float4 PS(DomainOut pin, 
           uniform int gLightCount, 
-		  uniform bool gFogEnabled) : SV_Target
+		  uniform bool gFogEnabled, uniform bool gDoShadow) : SV_Target
 {
 	//
 	// Estimate normal and tangent using central differences.
@@ -363,8 +363,9 @@ float4 PS(DomainOut pin,
 	//
 	// Only the first light casts a shadow.
 	float3 shadow = float3(1.0f, 1.0f, 1.0f);
-	shadow[0] = CalcShadowFactor(samShadow, gShadowMap, pin.ShadowPosH);
-
+	if (gDoShadow){
+		shadow[0] = CalcShadowFactor(samShadow, gShadowMap, pin.ShadowPosH);
+	}
 	pin.SsaoPosH /= pin.SsaoPosH.w;
 	float ambientAccess = gSsaoMap.SampleLevel(samLinear, pin.SsaoPosH.xy, 0.0f).r;
 
@@ -511,7 +512,7 @@ technique11 Light1
         SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_4_0, PS(1, false) ) );
+		SetPixelShader(CompileShader(ps_4_0, PS(1, false, false)));
     }
 }
 
@@ -523,7 +524,7 @@ technique11 Light2
         SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_4_0, PS(2, false) ) );
+		SetPixelShader(CompileShader(ps_4_0, PS(2, false, false)));
     }
 }
 
@@ -535,7 +536,7 @@ technique11 Light3
         SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_4_0, PS(3, false) ) );
+		SetPixelShader(CompileShader(ps_4_0, PS(3, false, false)));
     }
 }
 
@@ -547,7 +548,7 @@ technique11 Light1Fog
         SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_4_0, PS(1, true) ) );
+		SetPixelShader(CompileShader(ps_4_0, PS(1, true, false)));
     }
 }
 
@@ -559,7 +560,7 @@ technique11 Light2Fog
         SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_4_0, PS(2, true) ) );
+		SetPixelShader(CompileShader(ps_4_0, PS(2, true, false)));
     }
 }
 
@@ -571,8 +572,79 @@ technique11 Light3Fog
         SetHullShader( CompileShader( hs_5_0, HS() ) );
         SetDomainShader( CompileShader( ds_5_0, DS() ) );
 		SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_4_0, PS(3, true) ) );
+        SetPixelShader( CompileShader( ps_4_0, PS(3, true, false) ) );
     }
+}
+technique11 Light1Shadow
+{
+	pass P0
+	{
+		SetVertexShader(CompileShader(vs_4_0, VS()));
+		SetHullShader(CompileShader(hs_5_0, HS()));
+		SetDomainShader(CompileShader(ds_5_0, DS()));
+		SetGeometryShader(NULL);
+		SetPixelShader(CompileShader(ps_4_0, PS(1, false, true)));
+	}
+}
+
+technique11 Light2Shadow
+{
+	pass P0
+	{
+		SetVertexShader(CompileShader(vs_4_0, VS()));
+		SetHullShader(CompileShader(hs_5_0, HS()));
+		SetDomainShader(CompileShader(ds_5_0, DS()));
+		SetGeometryShader(NULL);
+		SetPixelShader(CompileShader(ps_4_0, PS(2, false, true)));
+	}
+}
+
+technique11 Light3Shadow
+{
+	pass P0
+	{
+		SetVertexShader(CompileShader(vs_4_0, VS()));
+		SetHullShader(CompileShader(hs_5_0, HS()));
+		SetDomainShader(CompileShader(ds_5_0, DS()));
+		SetGeometryShader(NULL);
+		SetPixelShader(CompileShader(ps_4_0, PS(3, false, true)));
+	}
+}
+
+technique11 Light1FogShadow
+{
+	pass P0
+	{
+		SetVertexShader(CompileShader(vs_4_0, VS()));
+		SetHullShader(CompileShader(hs_5_0, HS()));
+		SetDomainShader(CompileShader(ds_5_0, DS()));
+		SetGeometryShader(NULL);
+		SetPixelShader(CompileShader(ps_4_0, PS(1, true, true)));
+	}
+}
+
+technique11 Light2FogShadow
+{
+	pass P0
+	{
+		SetVertexShader(CompileShader(vs_4_0, VS()));
+		SetHullShader(CompileShader(hs_5_0, HS()));
+		SetDomainShader(CompileShader(ds_5_0, DS()));
+		SetGeometryShader(NULL);
+		SetPixelShader(CompileShader(ps_4_0, PS(2, true, true)));
+	}
+}
+
+technique11 Light3FogShadow
+{
+	pass P0
+	{
+		SetVertexShader(CompileShader(vs_4_0, VS()));
+		SetHullShader(CompileShader(hs_5_0, HS()));
+		SetDomainShader(CompileShader(ds_5_0, DS()));
+		SetGeometryShader(NULL);
+		SetPixelShader(CompileShader(ps_4_0, PS(3, true, true)));
+	}
 }
 
 technique11 Light1NT
