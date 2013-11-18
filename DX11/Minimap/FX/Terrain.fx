@@ -27,27 +27,33 @@ cbuffer cbPerFrame
 	float gWorldCellSpace;
 	float2 gTexScale = 66.0f;
 
-		float4 gWorldFrustumPlanes[6];
+	float4 gWorldFrustumPlanes[6];
 };
 
 cbuffer cbPerObject
 {
 	// Terrain coordinate specified directly 
 	// at center of world space.
-	float4x4 gViewProjTex;
+	
 	float4x4 gViewProj;
 	Material gMaterial;
-	float4x4 gView;
-	float4x4 gShadowTransform;
 
+	// new for ssao
+	float4x4 gViewProjTex;
+	float4x4 gView;
+	// new for shadowmapping
+	float4x4 gShadowTransform;
 };
 
 // Nonnumeric values cannot be added to a cbuffer.
 Texture2DArray gLayerMapArray;
 Texture2D gBlendMap;
 Texture2D gHeightMap;
-Texture2D gSsaoMap;
+// new for shadowmapping
 Texture2D gShadowMap;
+// new for ssao
+Texture2D gSsaoMap;
+
 
 SamplerState samLinear
 {
@@ -64,6 +70,7 @@ SamplerState samHeightmap
 	AddressU = CLAMP;
 	AddressV = CLAMP;
 };
+// new for shadowmapping
 SamplerComparisonState samShadow
 {
 	Filter = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
@@ -201,12 +208,12 @@ PatchTess ConstantHS(InputPatch<VertexOut, 4> patch, uint patchID : SV_Primitive
 
 		// Compute midpoint on edges, and patch center
 		float3 e0 = 0.5f*(patch[0].PosW + patch[2].PosW);
-			float3 e1 = 0.5f*(patch[0].PosW + patch[1].PosW);
-			float3 e2 = 0.5f*(patch[1].PosW + patch[3].PosW);
-			float3 e3 = 0.5f*(patch[2].PosW + patch[3].PosW);
-			float3  c = 0.25f*(patch[0].PosW + patch[1].PosW + patch[2].PosW + patch[3].PosW);
+		float3 e1 = 0.5f*(patch[0].PosW + patch[1].PosW);
+		float3 e2 = 0.5f*(patch[1].PosW + patch[3].PosW);
+		float3 e3 = 0.5f*(patch[2].PosW + patch[3].PosW);
+		float3  c = 0.25f*(patch[0].PosW + patch[1].PosW + patch[2].PosW + patch[3].PosW);
 
-			pt.EdgeTess[0] = CalcTessFactor(e0);
+		pt.EdgeTess[0] = CalcTessFactor(e0);
 		pt.EdgeTess[1] = CalcTessFactor(e1);
 		pt.EdgeTess[2] = CalcTessFactor(e2);
 		pt.EdgeTess[3] = CalcTessFactor(e3);
@@ -249,7 +256,9 @@ struct DomainOut
 	float3 PosW     : POSITION;
 	float2 Tex      : TEXCOORD0;
 	float2 TiledTex : TEXCOORD1;
+	// new for ssao
 	float4 SsaoPosH   : TEXCOORD2;
+	// new for shadowmapping
 	float4 ShadowPosH : TEXCOORD3;
 };
 
@@ -286,7 +295,9 @@ DomainOut DS(PatchTess patchTess,
 
 	// Project to homogeneous clip space.
 	dout.PosH = mul(float4(dout.PosW, 1.0f), gViewProj);
+	// new for ssao
 	dout.SsaoPosH = mul(float4(dout.PosW, 1.0f), gViewProjTex);
+	// new for shadowmapping
 	dout.ShadowPosH = mul(float4(dout.PosW, 1.0f), gShadowTransform);
 	return dout;
 }
@@ -324,15 +335,15 @@ float4 PS(DomainOut pin,
 	float topY = gHeightMap.SampleLevel(samHeightmap, topTex, 0).r;
 
 	float3 tangent = normalize(float3(2.0f*gWorldCellSpace, rightY - leftY, 0.0f));
-		float3 bitan = normalize(float3(0.0f, bottomY - topY, -2.0f*gWorldCellSpace));
-		float3 normalW = cross(tangent, bitan);
+	float3 bitan = normalize(float3(0.0f, bottomY - topY, -2.0f*gWorldCellSpace));
+	float3 normalW = cross(tangent, bitan);
 
 
-		// The toEye vector is used in lighting.
-		float3 toEye = gEyePosW - pin.PosW;
+	// The toEye vector is used in lighting.
+	float3 toEye = gEyePosW - pin.PosW;
 
-		// Cache the distance to the eye from this surface point.
-		float distToEye = length(toEye);
+	// Cache the distance to the eye from this surface point.
+	float distToEye = length(toEye);
 
 	// Normalize.
 	toEye /= distToEye;
@@ -343,17 +354,17 @@ float4 PS(DomainOut pin,
 
 	// Sample layers in texture array.
 	float4 c0 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 0.0f));
-		float4 c1 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 1.0f));
-		float4 c2 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 2.0f));
-		float4 c3 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 3.0f));
-		float4 c4 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 4.0f));
+	float4 c1 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 1.0f));
+	float4 c2 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 2.0f));
+	float4 c3 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 3.0f));
+	float4 c4 = gLayerMapArray.Sample(samLinear, float3(pin.TiledTex, 4.0f));
 
-		// Sample the blend map.
-		float4 t = gBlendMap.Sample(samLinear, pin.Tex);
+	// Sample the blend map.
+	float4 t = gBlendMap.Sample(samLinear, pin.Tex);
 
-		// Blend the layers on top of each other.
-		float4 texColor = c0;
-		texColor = lerp(texColor, c1, t.r);
+	// Blend the layers on top of each other.
+	float4 texColor = c0;
+	texColor = lerp(texColor, c1, t.r);
 	texColor = lerp(texColor, c2, t.g);
 	texColor = lerp(texColor, c3, t.b);
 	texColor = lerp(texColor, c4, t.a);
@@ -362,10 +373,12 @@ float4 PS(DomainOut pin,
 	// Lighting.
 	//
 	// Only the first light casts a shadow.
+	// new for shadowmapping
 	float3 shadow = float3(1.0f, 1.0f, 1.0f);
 	if (gDoShadow){
 		shadow[0] = CalcShadowFactor(samShadow, gShadowMap, pin.ShadowPosH);
 	}
+	// new for ssao
 	pin.SsaoPosH /= pin.SsaoPosH.w;
 	float ambientAccess = gSsaoMap.SampleLevel(samLinear, pin.SsaoPosH.xy, 0.0f).r;
 
@@ -374,18 +387,19 @@ float4 PS(DomainOut pin,
 	{
 		// Start with a sum of zero. 
 		float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
-			float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-			float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-			// Sum the light contribution from each light source.  
-			[unroll]
+		// Sum the light contribution from each light source.  
+		[unroll]
 		for (int i = 0; i < gLightCount; ++i)
 		{
 			float4 A, D, S;
 			ComputeDirectionalLight(gMaterial, gDirLights[i], normalW, toEye,
 				A, D, S);
-
-			ambient += ambientAccess*A;;
+			// modified for ssao
+			ambient += ambientAccess*A;
+			// modified for shadowmapping
 			diffuse += shadow[i] * D;
 			spec += shadow[i] * S;
 		}
@@ -444,8 +458,6 @@ PatchTess NormDepthConstantHS(InputPatch<VertexOut, 4> patch, uint patchID : SV_
 	//
 	else
 	{
-
-
 		pt.EdgeTess[0] = gMaxTess;
 		pt.EdgeTess[1] = gMaxTess;
 		pt.EdgeTess[2] = gMaxTess;
@@ -493,15 +505,15 @@ float4 NormDepthPS(DomainOut pin) : SV_Target{
 	float topY = gHeightMap.SampleLevel(samHeightmap, topTex, 0).r;
 
 	float3 tangent = normalize(float3(2.0f*gWorldCellSpace, rightY - leftY, 0.0f));
-		float3 bitan = normalize(float3(0.0f, bottomY - topY, -2.0f*gWorldCellSpace));
-		float3 normalW = cross(tangent, bitan);
+	float3 bitan = normalize(float3(0.0f, bottomY - topY, -2.0f*gWorldCellSpace));
+	float3 normalW = cross(tangent, bitan);
 
-		float3 posV = mul(float4(pin.PosW, 1.0f), gView).xyz;
-		float3 normalV = mul(normalW, (float3x3)gView);
+	float3 posV = mul(float4(pin.PosW, 1.0f), gView).xyz;
+	float3 normalV = mul(normalW, (float3x3)gView);
 
-		float4 c = float4(normalV, posV.z);
+	float4 c = float4(normalV, posV.z);
 
-		return c;
+	return c;
 }
 
 technique11 Light1
@@ -714,20 +726,6 @@ technique11 NormalDepth {
 
 RasterizerState Depth
 {
-	// [From MSDN]
-	// If the depth buffer currently bound to the output-merger stage has a UNORM format or
-	// no depth buffer is bound the bias value is calculated like this: 
-	//
-	// Bias = (float)DepthBias * r + SlopeScaledDepthBias * MaxDepthSlope;
-	//
-	// where r is the minimum representable value > 0 in the depth-buffer format converted to float32.
-	// [/End MSDN]
-	// 
-	// For a 24-bit depth buffer, r = 1 / 2^24.
-	//
-	// Example: DepthBias = 100000 ==> Actual DepthBias = 100000/2^24 = .006
-
-	// You need to experiment with these values for your scene.
 	DepthBias = 100000;
 	DepthBiasClamp = 0.0f;
 	SlopeScaledDepthBias = 1.0f;

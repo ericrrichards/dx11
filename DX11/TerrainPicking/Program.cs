@@ -278,12 +278,6 @@ namespace TerrainPicking {
             _shadowTransform = s;
         }
 
-        private void DrawSceneToSsaoNormalDepthMap() {
-
-
-            _terrain.DrawNormalDepth(ImmediateContext, _camera, _dirLights);
-        }
-
         public override void DrawScene() {
             Effects.TerrainFX.SetSsaoMap(_whiteTex);
             Effects.TerrainFX.SetShadowMap(_sMap.DepthMapSRV);
@@ -291,22 +285,21 @@ namespace TerrainPicking {
             _minimap.RenderMinimap(_dirLights);
 
 
-            _sMap.BindDsvAndSetNullRenderTarget(ImmediateContext);
+            
 
-            DrawSceneToShadowMap();
+            var view = _lightView;
+            var proj = _lightProj;
+            var viewProj = view * proj;
+
+            _terrain.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
 
             ImmediateContext.Rasterizer.State = null;
 
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
             ImmediateContext.Rasterizer.SetViewports(Viewport);
 
-            _ssao.SetNormalDepthRenderTarget(DepthStencilView);
 
-            DrawSceneToSsaoNormalDepthMap();
-
-            //Effects.SsaoFX.SetOcclusionRadius(0.1f);
-            _ssao.ComputeSsao(_camera);
-            _ssao.BlurAmbientMap(4);
+            _terrain.ComputeSsao(ImmediateContext, _camera, _ssao, DepthStencilView);
 
 
             ImmediateContext.OutputMerger.SetTargets(DepthStencilView, RenderTargetView);
@@ -368,14 +361,6 @@ namespace TerrainPicking {
             SwapChain.Present(0, PresentFlags.None);
 
 
-        }
-
-        private void DrawSceneToShadowMap() {
-            var view = _lightView;
-            var proj = _lightProj;
-            var viewProj = view * proj;
-
-            _terrain.DrawToShadowMap(ImmediateContext, _camera, _dirLights, viewProj);
         }
 
         private void DrawScreenQuad(ShaderResourceView srv) {

@@ -352,7 +352,9 @@ namespace Core.Terrain {
                 }
             }
         }
-        public void DrawNormalDepth(DeviceContext dc, CameraBase cam, DirectionalLight[] lights) {
+        public void ComputeSsao(DeviceContext dc, CameraBase cam, Ssao ssao, DepthStencilView depthStencilView) {
+            ssao.SetNormalDepthRenderTarget(depthStencilView);
+
             dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
             dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
@@ -364,14 +366,10 @@ namespace Core.Terrain {
 
             var viewProj = cam.ViewProj;
             var planes = cam.FrustumPlanes;
-            var toTexSpace = Matrix.Scaling(0.5f, -0.5f, 1.0f) * Matrix.Translation(0.5f, 0.5f, 0);
+            
 
             Effects.TerrainFX.SetViewProj(viewProj);
             Effects.TerrainFX.SetEyePosW(cam.Position);
-            Effects.TerrainFX.SetDirLights(lights);
-            Effects.TerrainFX.SetFogColor(Color.Silver);
-            Effects.TerrainFX.SetFogStart(15.0f);
-            Effects.TerrainFX.SetFogRange(175.0f);
             Effects.TerrainFX.SetMinDist(MinDist);
             Effects.TerrainFX.SetMaxDist(MaxDist);
             Effects.TerrainFX.SetMinTess(MinTess);
@@ -380,12 +378,7 @@ namespace Core.Terrain {
             Effects.TerrainFX.SetTexelCellSpaceV(1.0f / Info.HeightMapHeight);
             Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
             Effects.TerrainFX.SetWorldFrustumPlanes(planes);
-            Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
-            Effects.TerrainFX.SetBlendMap(_blendMapSRV);
             Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-            Effects.TerrainFX.SetMaterial(_material);
-            Effects.TerrainFX.SetViewProjTex(viewProj * toTexSpace);
-
             Effects.TerrainFX.SetView(cam.View);
 
             var tech = Effects.TerrainFX.NormalDepthTech;
@@ -396,9 +389,15 @@ namespace Core.Terrain {
             }
             dc.HullShader.Set(null);
             dc.DomainShader.Set(null);
-        }
 
-        public void DrawToShadowMap(DeviceContext dc, CameraBase cam, DirectionalLight[] lights, Matrix viewProj) {
+            ssao.ComputeSsao(cam);
+            ssao.BlurAmbientMap(4);
+        }
+        
+
+        public void DrawToShadowMap(DeviceContext dc, ShadowMap sMap, Matrix viewProj) {
+            sMap.BindDsvAndSetNullRenderTarget(dc);
+
             dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
             dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
@@ -414,19 +413,13 @@ namespace Core.Terrain {
 
             Effects.TerrainFX.SetViewProj(viewProj);
             Effects.TerrainFX.SetEyePosW(new Vector3(viewProj.M41, viewProj.M42, viewProj.M43));
-            Effects.TerrainFX.SetDirLights(lights);
             Effects.TerrainFX.SetMinDist(MinDist);
             Effects.TerrainFX.SetMaxDist(MaxDist);
             Effects.TerrainFX.SetMinTess(MinTess);
             Effects.TerrainFX.SetMaxTess(MaxTess);
-            Effects.TerrainFX.SetTexelCellSpaceU(1.0f / Info.HeightMapWidth);
-            Effects.TerrainFX.SetTexelCellSpaceV(1.0f / Info.HeightMapHeight);
             Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
             Effects.TerrainFX.SetWorldFrustumPlanes(planes);
-            Effects.TerrainFX.SetLayerMapArray(_layerMapArraySRV);
-            Effects.TerrainFX.SetBlendMap(_blendMapSRV);
             Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-            Effects.TerrainFX.SetMaterial(_material);
             
             var tech = Effects.TerrainFX.TessBuildShadowMapTech;
             for (int p = 0; p < tech.Description.PassCount; p++) {
@@ -452,6 +445,7 @@ namespace Core.Terrain {
 
                 var viewProj = cam.ViewProj;
                 var planes = cam.FrustumPlanes;
+                var toTexSpace = Matrix.Scaling(0.5f, -0.5f, 1.0f) * Matrix.Translation(0.5f, 0.5f, 0);
 
                 Effects.TerrainFX.SetViewProj(viewProj);
                 Effects.TerrainFX.SetEyePosW(cam.Position);
@@ -471,6 +465,7 @@ namespace Core.Terrain {
                 Effects.TerrainFX.SetBlendMap(_blendMapSRV);
                 Effects.TerrainFX.SetHeightMap(_heightMapSRV);
                 Effects.TerrainFX.SetMaterial(_material);
+                Effects.TerrainFX.SetViewProjTex(viewProj * toTexSpace);
                 
                 var tech = Shadows ? Effects.TerrainFX.Light1ShadowTech: Effects.TerrainFX.Light1Tech;
                 for (int p = 0; p < tech.Description.PassCount; p++) {

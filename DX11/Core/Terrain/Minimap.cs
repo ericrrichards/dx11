@@ -29,6 +29,9 @@
         private readonly Plane[] _edgePlanes;
         private bool _disposed;
 
+        public Vector2 ScreenPosition { get; set; }
+        public Vector2 Size { get; set; }
+
         public Minimap(Device device, DeviceContext dc, int minimapWidth, int minimapHeight, Terrain terrain, CameraBase viewCam) {
             _dc = dc;
 
@@ -71,6 +74,8 @@
                 new Plane(0, -1, 0, _terrain.Depth / 2)
             };
 
+            ScreenPosition = new Vector2( 0.25f, 0.75f);
+            Size = new Vector2(0.25f, 0.25f);
         }
 
         protected override void Dispose(bool disposing) {
@@ -166,6 +171,47 @@
                 Effects.ColorFX.ColorTech.GetPassByIndex(i).Apply(_dc);
                 _dc.Draw(5, 0);
             }
+        }
+
+        public void Draw( DeviceContext dc) {
+            var stride = Basic32.Stride;
+            const int Offset = 0;
+
+            dc.InputAssembler.InputLayout = InputLayouts.Basic32;
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(D3DApp.GD3DApp.ScreenQuadVB, stride, Offset));
+            dc.InputAssembler.SetIndexBuffer(D3DApp.GD3DApp.ScreenQuadIB, Format.R32_UInt, 0);
+
+            var world = new Matrix {
+                M11 = Size.X,
+                M22 = Size.Y,
+                M33 = 1.0f,
+                M41 = -1.0f + 2*ScreenPosition.X + (Size.X ),
+                M42 = 1.0f - 2*ScreenPosition.Y - (Size.Y ),
+                M44 = 1.0f
+            };
+
+
+
+            var tech = Effects.DebugTexFX.ViewArgbTech;
+            for (int p = 0; p < tech.Description.PassCount; p++) {
+                Effects.DebugTexFX.SetWorldViewProj(world);
+                Effects.DebugTexFX.SetTexture(MinimapSRV);
+                tech.GetPassByIndex(p).Apply(dc);
+                dc.DrawIndexed(6, 0, 0);
+            }
+        }
+
+        public bool Contains(ref Vector2 p) {
+            if (p.X >= ScreenPosition.X && p.X <= ScreenPosition.X + Size.X &&
+                p.Y >= ScreenPosition.Y && p.Y <= ScreenPosition.Y + Size.Y) {
+
+                p.X = (p.X - ScreenPosition.X) / Size.X;
+                p.Y = (p.Y - ScreenPosition.Y) / Size.Y;
+
+                return true;
+            }
+            return false;
         }
     }
 }

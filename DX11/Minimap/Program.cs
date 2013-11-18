@@ -54,9 +54,6 @@ namespace Minimap {
 
         #endregion
 
-        private Buffer _screenQuadVB;
-        private Buffer _screenQuadIB;
-
         private BoundingSphere _sceneBounds;
 
         private const int SMapSize = 4096;
@@ -112,8 +109,7 @@ namespace Minimap {
                     Util.ReleaseCom(ref _sMap);
                     Util.ReleaseCom(ref _ssao);
                     Util.ReleaseCom(ref _whiteTex);
-                    Util.ReleaseCom(ref _screenQuadIB);
-                    Util.ReleaseCom(ref _screenQuadVB);
+                    
 
 
                     Effects.DestroyAll();
@@ -170,7 +166,7 @@ namespace Minimap {
             _ssao = new Ssao(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
 
             _whiteTex = ShaderResourceView.FromFile(Device, "Textures/white.dds");
-            BuildScreenQuadGeometryBuffers();
+            
 
             _sMap = new ShadowMap(Device, SMapSize, SMapSize);
 
@@ -180,16 +176,7 @@ namespace Minimap {
 
             return true;
         }
-        private void BuildScreenQuadGeometryBuffers() {
-            var quad = GeometryGenerator.CreateFullScreenQuad();
-
-            var verts = quad.Vertices.Select(v => new Basic32(v.Position, v.Normal, v.TexC)).ToList();
-            var vbd = new BufferDescription(Basic32.Stride * verts.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-            _screenQuadVB = new Buffer(Device, new DataStream(verts.ToArray(), false, false), vbd);
-
-            var ibd = new BufferDescription(sizeof(int) * quad.Indices.Count, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-            _screenQuadIB = new Buffer(Device, new DataStream(quad.Indices.ToArray(), false, false), ibd);
-        }
+        
 
         private void AddUIElements() {
             _panel = new FlowLayoutPanel {
@@ -476,35 +463,24 @@ namespace Minimap {
             _shadowTransform = s;
         }
 
-        private void DrawSceneToSsaoNormalDepthMap() {
-
-
-            _terrain.DrawNormalDepth(ImmediateContext, _camera, _dirLights);
-        }
-
         public override void DrawScene() {
             Effects.TerrainFX.SetSsaoMap(_whiteTex);
             Effects.TerrainFX.SetShadowMap(_sMap.DepthMapSRV);
             Effects.TerrainFX.SetShadowTransform(_shadowTransform);
             _minimap.RenderMinimap(_dirLights);
+
+            var viewProj = _lightView * _lightProj;
             
-
-            _sMap.BindDsvAndSetNullRenderTarget(ImmediateContext);
-
-            DrawSceneToShadowMap();
+            _terrain.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
 
             ImmediateContext.Rasterizer.State = null;
 
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
             ImmediateContext.Rasterizer.SetViewports(Viewport);
 
-            _ssao.SetNormalDepthRenderTarget(DepthStencilView);
+            _terrain.ComputeSsao(ImmediateContext, _camera, _ssao, DepthStencilView);
 
-            DrawSceneToSsaoNormalDepthMap();
-
-            //Effects.SsaoFX.SetOcclusionRadius(0.1f);
-            _ssao.ComputeSsao(_camera);
-            _ssao.BlurAmbientMap(4);
+            
 
 
             ImmediateContext.OutputMerger.SetTargets(DepthStencilView, RenderTargetView);
@@ -553,18 +529,10 @@ namespace Minimap {
             DrawScreenQuad(_ssao.AmbientSRV);
             DrawScreenQuad2(_ssao.NormalDepthSRV);
             DrawScreenQuad3(_sMap.DepthMapSRV);
-            //DrawScreenQuad4(_minimap.MinimapSRV);
+            _minimap.Draw(ImmediateContext);
             SwapChain.Present(0, PresentFlags.None);
 
 
-        }
-
-        private void DrawSceneToShadowMap() {
-            var view = _lightView;
-            var proj = _lightProj;
-            var viewProj = view * proj;
-
-            _terrain.DrawToShadowMap(ImmediateContext, _camera, _dirLights, viewProj);
         }
 
         private void DrawScreenQuad(ShaderResourceView srv) {
@@ -573,8 +541,8 @@ namespace Minimap {
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(ScreenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetIndexBuffer(ScreenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
                 M11 = 0.25f,
@@ -598,8 +566,8 @@ namespace Minimap {
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(ScreenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetIndexBuffer(ScreenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
                 M11 = 0.25f,
@@ -623,8 +591,8 @@ namespace Minimap {
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(ScreenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetIndexBuffer(ScreenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
                 M11 = 0.25f,
@@ -648,8 +616,8 @@ namespace Minimap {
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, Offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
+            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(ScreenQuadVB, stride, Offset));
+            ImmediateContext.InputAssembler.SetIndexBuffer(ScreenQuadIB, Format.R32_UInt, 0);
 
             var world = new Matrix {
                 M11 = 0.25f,
@@ -670,6 +638,16 @@ namespace Minimap {
 
 
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
+            var x = (float)mouseEventArgs.X / Window.ClientSize.Width;
+            var y = (float)mouseEventArgs.Y / Window.ClientSize.Height;
+            var p = new Vector2(x, y);
+            if (_minimap.Contains(ref p)) {
+                var terrainX = _terrain.Width * p.X - _terrain.Width/2;
+                var terrainZ = -_terrain.Depth * p.Y + _terrain.Depth/2;
+                _camera.Target = new Vector3(terrainX, _terrain.Height(terrainX, terrainZ), terrainZ );
+                return;
+            }
+
             _lastMousePos = mouseEventArgs.Location;
             Window.Capture = true;
         }
@@ -679,6 +657,15 @@ namespace Minimap {
         }
 
         protected override void OnMouseMove(object sender, MouseEventArgs e) {
+            var x = (float)e.X / Window.ClientSize.Width;
+            var y = (float)e.Y / Window.ClientSize.Height;
+            var p = new Vector2(x, y);
+            if (e.Button == MouseButtons.Left && _minimap.Contains(ref p)) {
+                var terrainX = _terrain.Width * p.X - _terrain.Width / 2;
+                var terrainZ = -_terrain.Depth * p.Y + _terrain.Depth / 2;
+                _camera.Target = new Vector3(terrainX, _terrain.Height(terrainX, terrainZ), terrainZ);
+                return;
+            }
             if (e.Button == MouseButtons.Left) {
                 var dx = MathF.ToRadians(0.25f * (e.X - _lastMousePos.X));
                 var dy = MathF.ToRadians(0.25f * (e.Y - _lastMousePos.Y));

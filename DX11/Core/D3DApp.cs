@@ -5,12 +5,16 @@ using FeatureLevel = SlimDX.Direct3D11.FeatureLevel;
 
 namespace Core {
     using System.Drawing;
+    using System.Linq;
     using System.Threading;
     using System.Windows.Forms;
+
+    using Core.Vertex;
 
     using SlimDX;
     using SlimDX.DXGI;
 
+    using Buffer = SlimDX.Direct3D11.Buffer;
     using Device = Device;
     using Debug = System.Diagnostics.Debug;
 
@@ -21,9 +25,6 @@ namespace Core {
         public Form Window { get; protected set; }
         public IntPtr AppInst { get; protected set; }
         public float AspectRatio { get { return (float)ClientWidth / ClientHeight; } }
-
-        
-        
 
         protected bool AppPaused;
         protected bool Minimized;
@@ -47,12 +48,27 @@ namespace Core {
         private bool _running;
         private int _frameCount;
         private float _timeElapsed;
-private WindowRenderTarget _dxWRT;
-internal WindowRenderTarget DxWrt {
-    get { return _dxWRT; }
-}
+        private WindowRenderTarget _dxWRT;
+        internal WindowRenderTarget DxWrt {
+            get { return _dxWRT; }
+        }
         private ProgressUpdate _progressUpdate;
+        
+        protected Buffer _screenQuadVB;
+        protected Buffer _screenQuadIB;
+
+
         public ProgressUpdate ProgressUpdate { get { return _progressUpdate; } }
+
+        public Buffer ScreenQuadVB {
+            get { return _screenQuadVB; }
+            set { _screenQuadVB = value; }
+        }
+
+        public Buffer ScreenQuadIB {
+            get { return _screenQuadIB; }
+            set { _screenQuadIB = value; }
+        }
 
         protected bool InitMainWindow() {
             try {
@@ -81,7 +97,7 @@ internal WindowRenderTarget DxWrt {
                     Timer.Start();
                     OnResize();
                 };
-                
+
 
                 Window.Show();
                 Window.Update();
@@ -93,11 +109,11 @@ internal WindowRenderTarget DxWrt {
         }
 
         protected virtual void OnMouseMove(object sender, MouseEventArgs e) {
-            
+
         }
 
         protected virtual void OnMouseUp(object sender, MouseEventArgs e) {
-           
+
         }
 
         protected virtual void OnMouseDown(object sender, MouseEventArgs e) {
@@ -197,7 +213,7 @@ internal WindowRenderTarget DxWrt {
             OnResize();
             return true;
         }
-        
+
 
         protected void CalculateFrameRateStats() {
             _frameCount++;
@@ -217,7 +233,9 @@ internal WindowRenderTarget DxWrt {
                 if (disposing) {
                     Util.ReleaseCom(ref RenderTargetView);
                     Util.ReleaseCom(ref DepthStencilView);
-                    
+                    Util.ReleaseCom(ref _screenQuadIB);
+                    Util.ReleaseCom(ref _screenQuadVB);
+
                     Util.ReleaseCom(ref DepthStencilBuffer);
                     if (ImmediateContext != null) {
                         ImmediateContext.ClearState();
@@ -273,22 +291,34 @@ internal WindowRenderTarget DxWrt {
             if (!InitDirect2D()) {
                 return false;
             }
+            BuildScreenQuadGeometryBuffers();
+
             _running = true;
             return true;
+        }
+        private void BuildScreenQuadGeometryBuffers() {
+            var quad = GeometryGenerator.CreateFullScreenQuad();
+
+            var verts = quad.Vertices.Select(v => new Basic32(v.Position, v.Normal, v.TexC)).ToList();
+            var vbd = new BufferDescription(Basic32.Stride * verts.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            ScreenQuadVB = new Buffer(Device, new DataStream(verts.ToArray(), false, false), vbd);
+
+            var ibd = new BufferDescription(sizeof(int) * quad.Indices.Count, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
+            ScreenQuadIB = new Buffer(Device, new DataStream(quad.Indices.ToArray(), false, false), ibd);
         }
 
         private bool InitDirect2D() {
             try {
                 var factory = new SlimDX.Direct2D.Factory(FactoryType.SingleThreaded);
-                
-                _dxWRT = new WindowRenderTarget(factory,new WindowRenderTargetProperties {
+
+                _dxWRT = new WindowRenderTarget(factory, new WindowRenderTargetProperties {
                     Handle = Window.Handle,
                     PixelSize = Window.ClientSize,
                     PresentOptions = PresentOptions.Immediately
                 });
                 Util.ReleaseCom(ref factory);
                 _progressUpdate = new ProgressUpdate(_dxWRT);
-                
+
 
             } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
@@ -318,13 +348,13 @@ internal WindowRenderTarget DxWrt {
                 MipLevels = 1,
                 ArraySize = 1,
                 Format = Format.D24_UNorm_S8_UInt,
-                SampleDescription = (Enable4XMsaa && Device.FeatureLevel>= FeatureLevel.Level_10_1) ? new SampleDescription(4, Msaa4XQuality - 1) : new SampleDescription(1, 0),
+                SampleDescription = (Enable4XMsaa && Device.FeatureLevel >= FeatureLevel.Level_10_1) ? new SampleDescription(4, Msaa4XQuality - 1) : new SampleDescription(1, 0),
                 Usage = ResourceUsage.Default,
                 BindFlags = BindFlags.DepthStencil,
                 CpuAccessFlags = CpuAccessFlags.None,
                 OptionFlags = ResourceOptionFlags.None
             };
-            DepthStencilBuffer = new Texture2D(Device, depthStencilDesc) {DebugName = "DepthStencilBuffer"};
+            DepthStencilBuffer = new Texture2D(Device, depthStencilDesc) { DebugName = "DepthStencilBuffer" };
             DepthStencilView = new DepthStencilView(Device, DepthStencilBuffer);
 
             ImmediateContext.OutputMerger.SetTargets(DepthStencilView, RenderTargetView);
@@ -342,12 +372,12 @@ internal WindowRenderTarget DxWrt {
             while (_running) {
                 Application.DoEvents();
                 Timer.Tick();
-                
+
                 if (!AppPaused) {
                     CalculateFrameRateStats();
                     UpdateScene(Timer.DeltaTime);
                     DrawScene();
-                    
+
 
                 } else {
                     Thread.Sleep(100);
