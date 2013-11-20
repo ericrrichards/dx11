@@ -109,7 +109,7 @@ namespace Minimap {
                     Util.ReleaseCom(ref _sMap);
                     Util.ReleaseCom(ref _ssao);
                     Util.ReleaseCom(ref _whiteTex);
-                    
+
 
 
                     Effects.DestroyAll();
@@ -153,7 +153,7 @@ namespace Minimap {
                 Persistence2 = 0.8f,
                 Octaves2 = 3,
 
-                
+
             };
             _terrain = new Terrain();
             _terrain.Init(Device, ImmediateContext, tii);
@@ -166,17 +166,17 @@ namespace Minimap {
             _ssao = new Ssao(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
 
             _whiteTex = ShaderResourceView.FromFile(Device, "Textures/white.dds");
-            
+
 
             _sMap = new ShadowMap(Device, SMapSize, SMapSize);
 
-            _sceneBounds = new BoundingSphere(new Vector3(), MathF.Sqrt(_terrain.Width*_terrain.Width + _terrain.Depth*_terrain.Depth)/2 );
+            _sceneBounds = new BoundingSphere(new Vector3(), MathF.Sqrt(_terrain.Width * _terrain.Width + _terrain.Depth * _terrain.Depth) / 2);
 
-            _minimap = new Minimap(Device, ImmediateContext, MinimapSize,MinimapSize, _terrain, _camera);
+            _minimap = new Minimap(Device, ImmediateContext, MinimapSize, MinimapSize, _terrain, _camera);
 
             return true;
         }
-        
+
 
         private void AddUIElements() {
             _panel = new FlowLayoutPanel {
@@ -239,7 +239,7 @@ namespace Minimap {
                 Text = "Noise:",
                 AutoSize = true,
                 Padding = labelPadding,
-                
+
 
             };
             _txtNoise1 = new NumericUpDown {
@@ -412,7 +412,7 @@ namespace Minimap {
             }
 
             //_lightRotationAngle += 0.1f * dt;
-            _lightRotationAngle = MathF.PI -MathF.PI/16;
+            _lightRotationAngle = MathF.PI - MathF.PI / 16;
 
             var r = Matrix.RotationX(_lightRotationAngle);
             for (int i = 0; i < 3; i++) {
@@ -470,7 +470,7 @@ namespace Minimap {
             _minimap.RenderMinimap(_dirLights);
 
             var viewProj = _lightView * _lightProj;
-            
+
             _terrain.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
 
             ImmediateContext.Rasterizer.State = null;
@@ -480,7 +480,7 @@ namespace Minimap {
 
             _terrain.ComputeSsao(ImmediateContext, _camera, _ssao, DepthStencilView);
 
-            
+
 
 
             ImmediateContext.OutputMerger.SetTargets(DepthStencilView, RenderTargetView);
@@ -509,15 +509,15 @@ namespace Minimap {
                 _terrain.Shadows = false;
             }
 
-            
+
 
             _terrain.Draw(ImmediateContext, _camera, _dirLights);
 
-            
+
 
             ImmediateContext.Rasterizer.State = null;
 
-            
+
 
             _sky.Draw(ImmediateContext, _camera);
 
@@ -642,9 +642,10 @@ namespace Minimap {
             var y = (float)mouseEventArgs.Y / Window.ClientSize.Height;
             var p = new Vector2(x, y);
             if (_minimap.Contains(ref p)) {
-                var terrainX = _terrain.Width * p.X - _terrain.Width/2;
-                var terrainZ = -_terrain.Depth * p.Y + _terrain.Depth/2;
-                _camera.Target = new Vector3(terrainX, _terrain.Height(terrainX, terrainZ), terrainZ );
+                // convert minimap-space to world-space and set the camera target
+                var terrainX = _terrain.Width * p.X - _terrain.Width / 2;
+                var terrainZ = -_terrain.Depth * p.Y + _terrain.Depth / 2;
+                _camera.Target = new Vector3(terrainX, _terrain.Height(terrainX, terrainZ), terrainZ);
                 return;
             }
 

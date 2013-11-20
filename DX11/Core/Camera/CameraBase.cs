@@ -37,7 +37,7 @@ namespace Core.Camera {
 
             View = Matrix.Identity;
             Proj = Matrix.Identity;
-            SetLens(0.25f * MathF.PI, 1.0f, 1.0f, 1000.0f);
+            //SetLens(0.25f * MathF.PI, 1.0f, 1.0f, 1000.0f);
         }
 
         public abstract void LookAt(Vector3 pos, Vector3 target, Vector3 up);
@@ -52,7 +52,7 @@ namespace Core.Camera {
             return _frustum.Intersect(box) > 0;
         }
 
-        public void SetLens(float fovY, float aspect, float zn, float zf) {
+        public virtual void SetLens(float fovY, float aspect, float zn, float zf) {
             FovY = fovY;
             Aspect = aspect;
             NearZ = zn;
