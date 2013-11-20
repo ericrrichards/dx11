@@ -32,9 +32,6 @@ namespace TerrainPicking {
         
         private ShaderResourceView _whiteTex;
 
-        private Buffer _screenQuadVB;
-        private Buffer _screenQuadIB;
-
         private BoundingSphere _sceneBounds;
 
         private const int SMapSize = 4096;
@@ -55,7 +52,7 @@ namespace TerrainPicking {
 
         private TerrainPickingDemo(IntPtr hInstance)
             : base(hInstance) {
-            MainWindowCaption = "Minimap Demo";
+            MainWindowCaption = "Terrain Picking Demo";
             //Enable4xMsaa = true;
             _lastMousePos = new Point();
 
