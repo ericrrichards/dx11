@@ -92,5 +92,9 @@ namespace Core {
         public static float Sqrt(float f) {
             return (float)Math.Sqrt(f);
         }
+
+        public static float Pow(float x, float y) {
+            return (float) Math.Pow(x, y);
+        }
     }
 }

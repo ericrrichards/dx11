@@ -41,6 +41,10 @@ namespace Core.Terrain {
             foreach (var bvhNode in Children) {
                 float cd;
                 if (Ray.Intersects(ray, bvhNode.Bounds, out cd)) {
+                    while (pq.ContainsKey(cd)) {
+                        // perturb things slightly so that we don't have duplicate keys
+                        cd += MathF.Rand(-0.001f, 0.001f);
+                    }
                     pq.Add(cd, bvhNode);
                 }
             }

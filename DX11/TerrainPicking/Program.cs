@@ -8,11 +8,9 @@ using Core.Camera;
 using Core.FX;
 using Core.Model;
 using Core.Terrain;
-using Core.Vertex;
 using SlimDX;
 using SlimDX.Direct3D11;
 using SlimDX.DXGI;
-using Buffer = SlimDX.Direct3D11.Buffer;
 
 
 namespace TerrainPicking {
@@ -140,8 +138,9 @@ namespace TerrainPicking {
 
             };
             _terrain = new Terrain();
+            _terrain.DebugBvh = true;
             _terrain.Init(Device, ImmediateContext, tii);
-
+            
             _camera.Height = _terrain.Height;
 
 
@@ -149,7 +148,6 @@ namespace TerrainPicking {
             _ssao = new Ssao(Device, ImmediateContext, ClientWidth, ClientHeight, _camera.FovY, _camera.FarZ);
 
             _whiteTex = ShaderResourceView.FromFile(Device, "Textures/white.dds");
-            BuildScreenQuadGeometryBuffers();
 
             _sMap = new ShadowMap(Device, SMapSize, SMapSize);
 
@@ -170,16 +168,7 @@ namespace TerrainPicking {
 
             return true;
         }
-        private void BuildScreenQuadGeometryBuffers() {
-            var quad = GeometryGenerator.CreateFullScreenQuad();
-
-            var verts = quad.Vertices.Select(v => new Basic32(v.Position, v.Normal, v.TexC)).ToList();
-            var vbd = new BufferDescription(Basic32.Stride * verts.Count, ResourceUsage.Immutable, BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-            _screenQuadVB = new Buffer(Device, new DataStream(verts.ToArray(), false, false), vbd);
-
-            var ibd = new BufferDescription(sizeof(int) * quad.Indices.Count, ResourceUsage.Immutable, BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
-            _screenQuadIB = new Buffer(Device, new DataStream(quad.Indices.ToArray(), false, false), ibd);
-        }
+        
 
 
         public override void OnResize() {
@@ -351,114 +340,11 @@ namespace TerrainPicking {
             ImmediateContext.OutputMerger.DepthStencilState = null;
             ImmediateContext.OutputMerger.DepthStencilReference = 0;
 
-            DrawScreenQuad(_ssao.AmbientSRV);
-            DrawScreenQuad2(_ssao.NormalDepthSRV);
-            DrawScreenQuad3(_sMap.DepthMapSRV);
-            DrawScreenQuad4(_minimap.MinimapSRV);
+            
+            _minimap.Draw(ImmediateContext);
             SwapChain.Present(0, PresentFlags.None);
 
 
-        }
-
-        private void DrawScreenQuad(ShaderResourceView srv) {
-            var stride = Basic32.Stride;
-            const int offset = 0;
-
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
-
-            var world = new Matrix {
-                M11 = 0.25f,
-                M22 = 0.25f,
-                M33 = 1.0f,
-                M41 = 0.75f,
-                M42 = -0.75f,
-                M44 = 1.0f
-            };
-            var tech = Effects.DebugTexFX.ViewRedTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
-                Effects.DebugTexFX.SetWorldViewProj(world);
-                Effects.DebugTexFX.SetTexture(srv);
-                tech.GetPassByIndex(p).Apply(ImmediateContext);
-                ImmediateContext.DrawIndexed(6, 0, 0);
-            }
-        }
-        private void DrawScreenQuad2(ShaderResourceView srv) {
-            var stride = Basic32.Stride;
-            const int offset = 0;
-
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
-
-            var world = new Matrix {
-                M11 = 0.25f,
-                M22 = 0.25f,
-                M33 = 1.0f,
-                M41 = -0.75f,
-                M42 = -0.75f,
-                M44 = 1.0f
-            };
-            var tech = Effects.DebugTexFX.ViewArgbTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
-                Effects.DebugTexFX.SetWorldViewProj(world);
-                Effects.DebugTexFX.SetTexture(srv);
-                tech.GetPassByIndex(p).Apply(ImmediateContext);
-                ImmediateContext.DrawIndexed(6, 0, 0);
-            }
-        }
-        private void DrawScreenQuad4(ShaderResourceView srv) {
-            var stride = Basic32.Stride;
-            const int offset = 0;
-
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
-
-            var world = new Matrix {
-                M11 = 0.25f,
-                M22 = 0.25f,
-                M33 = 1.0f,
-                M41 = -0.25f,
-                M42 = -0.75f,
-                M44 = 1.0f
-            };
-            var tech = Effects.DebugTexFX.ViewArgbTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
-                Effects.DebugTexFX.SetWorldViewProj(world);
-                Effects.DebugTexFX.SetTexture(srv);
-                tech.GetPassByIndex(p).Apply(ImmediateContext);
-                ImmediateContext.DrawIndexed(6, 0, 0);
-            }
-        }
-        private void DrawScreenQuad3(ShaderResourceView srv) {
-            var stride = Basic32.Stride;
-            const int offset = 0;
-
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
-            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
-            ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_screenQuadVB, stride, offset));
-            ImmediateContext.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R32_UInt, 0);
-
-            var world = new Matrix {
-                M11 = 0.25f,
-                M22 = 0.25f,
-                M33 = 1.0f,
-                M41 = 0.25f,
-                M42 = -0.75f,
-                M44 = 1.0f
-            };
-            var tech = Effects.DebugTexFX.ViewRedTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
-                Effects.DebugTexFX.SetWorldViewProj(world);
-                Effects.DebugTexFX.SetTexture(srv);
-                tech.GetPassByIndex(p).Apply(ImmediateContext);
-                ImmediateContext.DrawIndexed(6, 0, 0);
-            }
         }
 
 
