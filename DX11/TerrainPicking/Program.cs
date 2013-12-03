@@ -138,8 +138,9 @@ namespace TerrainPicking {
 
             };
             _terrain = new Terrain();
+            _terrain.DebugBvh = true;
             _terrain.Init(Device, ImmediateContext, tii);
-
+            
             _camera.Height = _terrain.Height;
 
 

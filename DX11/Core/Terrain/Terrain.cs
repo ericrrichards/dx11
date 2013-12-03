@@ -206,7 +206,7 @@ namespace Core.Terrain {
             var width = (int)Math.Floor((br.X - tl.X)/2);
             var depth = (int)Math.Floor((br.Y - tl.Y)/2);
 
-            if (width >= 4 && depth >= 4) {
+            if (width >= 2 && depth >= 2) {
                 bvh.Children = new[] {
                     BuildBvh(tl, new Vector2(tl.X + width, tl.Y + depth)),
                     BuildBvh(new Vector2(tl.X + width, tl.Y), new Vector2(br.X, tl.Y + depth) ),
@@ -525,6 +525,9 @@ namespace Core.Terrain {
                             }
                         }
                     }
+                }
+                if (DebugBvh) {
+                    DrawBVHDebug(dc, cam, 0);
                 }
             }
            
