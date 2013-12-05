@@ -138,7 +138,7 @@ namespace TerrainPicking {
 
             };
             _terrain = new Terrain();
-            _terrain.DebugBvh = true;
+            //_terrain.DebugQuadTree = true;
             _terrain.Init(Device, ImmediateContext, tii);
             
             _camera.Height = _terrain.Height;
@@ -355,9 +355,9 @@ namespace TerrainPicking {
             } else if (e.Button == MouseButtons.Right) {
                 var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
 
-                _spherePos = _terrain.Intersect(ray);
-                //_spherePos.Y += 0.25f;
-                _showSphere = _spherePos != new Vector3(float.MaxValue);
+                _showSphere = _terrain.Intersect(ray, ref _spherePos);
+                
+                _spherePos.Y += 0.1f;
                 Console.WriteLine("Clicked at " + _spherePos.ToString());
             }
         }

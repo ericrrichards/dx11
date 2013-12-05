@@ -106,7 +106,7 @@
     <Compile Include="ShadowMap.cs" />
     <Compile Include="Sky.cs" />
     <Compile Include="SSAO.cs" />
-    <Compile Include="Terrain\BVH.cs" />
+    <Compile Include="Terrain\QuadTree.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
     <Compile Include="Terrain\InitInfo.cs" />
     <Compile Include="Terrain\Minimap.cs" />

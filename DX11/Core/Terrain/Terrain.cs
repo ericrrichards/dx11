@@ -54,12 +54,16 @@ namespace Core.Terrain {
 
         public Image HeightMapImg { get { return _heightMap.Bitmap; } }
 
-        private BVH _bvh;
+        private QuadTree _quadTree;
 
         private readonly List<VertexPC> _bvhVerts = new List<VertexPC>();
         private readonly List<int> _bvhIndices = new List<int>();
         private Buffer _bvhVB;
         private Buffer _bvhIB;
+
+        private int _aabCount;
+        public bool DebugQuadTree { get; set; }
+        public bool Shadows { get; set; }
 
         public Terrain() {
             World = Matrix.Identity;
@@ -141,9 +145,10 @@ namespace Core.Terrain {
             } else {
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f, "Generating random terrain");
                 GenerateRandomTerrain();
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f, "Smoothing terrain");
+                _heightMap.Smooth(true);
             }
-            D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f, "Smoothing terrain");
-            _heightMap.Smooth(true);
+
 
             D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f, "Building terrain patches");
             if (_useTessellation) {
@@ -171,64 +176,93 @@ namespace Core.Terrain {
             } else {
                 _blendMapSRV = CreateBlendMap(_heightMap, device);
             }
-
-            _bvh = new BVH {
-                Root = BuildBvh(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1)))
+            D3DApp.GD3DApp.ProgressUpdate.Draw(0.97f, "Building picking quadtree...");
+            _quadTree = new QuadTree {
+                Root = BuildQuadTree(
+                    new Vector2(0, 0),
+                    new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1))
+                )
             };
-            if (DebugBvh) {
-                BuildBVHDebugBuffers(device);
+            if (DebugQuadTree) {
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.99f, "Building quadtree debug vertex buffers");
+                BuildQuadTreeDebugBuffers(device);
             }
             D3DApp.GD3DApp.ProgressUpdate.Draw(1.0f, "Terrain initialized");
         }
 
-        private void BuildBVHDebugBuffers(Device device) {
-            GetBVHVerticesAndIndices(_bvh.Root);
-            var vbd = new BufferDescription(VertexPC.Stride*_bvhVerts.Count, ResourceUsage.Immutable,
+        private void BuildQuadTreeDebugBuffers(Device device) {
+            GetQuadTreeVerticesAndIndices(_quadTree.Root);
+            var vbd = new BufferDescription(VertexPC.Stride * _bvhVerts.Count, ResourceUsage.Immutable,
                 BindFlags.VertexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _bvhVB = new Buffer(device, new DataStream(_bvhVerts.ToArray(), false, false), vbd);
-            var ibd = new BufferDescription(sizeof (int)*_bvhIndices.Count, ResourceUsage.Immutable,
+            var ibd = new BufferDescription(sizeof(int) * _bvhIndices.Count, ResourceUsage.Immutable,
                 BindFlags.IndexBuffer, CpuAccessFlags.None, ResourceOptionFlags.None, 0);
             _bvhIB = new Buffer(device, new DataStream(_bvhIndices.ToArray(), false, false), ibd);
         }
 
-        private BVHNode BuildBvh(Vector2 tl, Vector2 br) {
+        private QuadTreeNode BuildQuadTree(Vector2 topLeft, Vector2 bottomRight) {
 
-            var minMaxY = GetMinMaxY(tl, br);
+            const float tolerance = 0.01f;
 
-            var minX = tl.X*Info.CellSpacing - Width/2;
-            var maxX = br.X*Info.CellSpacing - Width/2;
-            var minZ = -tl.Y * Info.CellSpacing + Depth / 2;
-            var maxZ = -br.Y * Info.CellSpacing + Depth / 2;
+            // search the heightmap in order to get the y-extents of the terrain region
+            var minMaxY = GetMinMaxY(topLeft, bottomRight);
 
+            // convert the heightmap index bounds into world-space coordinates
+            var minX = topLeft.X * Info.CellSpacing - Width / 2;
+            var maxX = bottomRight.X * Info.CellSpacing - Width / 2;
+            var minZ = -topLeft.Y * Info.CellSpacing + Depth / 2;
+            var maxZ = -bottomRight.Y*Info.CellSpacing + Depth/2;
 
-            var bvh = new BVHNode {Bounds = new BoundingBox(new Vector3(minX, minMaxY.X, minZ), new Vector3(maxX, minMaxY.Y, maxZ))};
+            // adjust the bounds to get a very slight overlap of the bounding boxes
+            minX -= tolerance;
+            maxX += tolerance;
+            minZ += tolerance;
+            maxZ -= tolerance;
 
-            var width = (int)Math.Floor((br.X - tl.X)/2);
-            var depth = (int)Math.Floor((br.Y - tl.Y)/2);
+            // construct the new node and assign the world-space bounds of the terrain region
+            var quadNode = new QuadTreeNode {
+                Bounds = new BoundingBox(
+                    new Vector3(minX, minMaxY.X, minZ),
+                    new Vector3(maxX, minMaxY.Y, maxZ)
+                )
+            };
 
-            if (width >= 2 && depth >= 2) {
-                bvh.Children = new[] {
-                    BuildBvh(tl, new Vector2(tl.X + width, tl.Y + depth)),
-                    BuildBvh(new Vector2(tl.X + width, tl.Y), new Vector2(br.X, tl.Y + depth) ),
-                    BuildBvh(new Vector2(tl.X, tl.Y+depth), new Vector2(tl.X+depth, br.Y) ),
-                    BuildBvh(new Vector2(tl.X+width, tl.Y+depth), br )
+            var width = (int)Math.Floor((bottomRight.X - topLeft.X) / 2);
+            var depth = (int)Math.Floor((bottomRight.Y - topLeft.Y) / 2);
+
+            // we will recurse until the terrain regions match our logical terrain tile sizes
+            const int tileSize = 2;
+            if (width >= tileSize && depth >= tileSize) {
+                quadNode.Children = new[] {
+                    BuildQuadTree(
+                        topLeft, 
+                        new Vector2(topLeft.X + width, topLeft.Y + depth)
+                    ),
+                    BuildQuadTree(
+                        new Vector2(topLeft.X + width, topLeft.Y), 
+                        new Vector2(bottomRight.X, topLeft.Y + depth) 
+                    ),
+                    BuildQuadTree(
+                        new Vector2(topLeft.X, topLeft.Y+depth), 
+                        new Vector2(topLeft.X+depth, bottomRight.Y) 
+                    ),
+                    BuildQuadTree(
+                        new Vector2(topLeft.X+width, topLeft.Y+depth), 
+                        bottomRight 
+                    )
                 };
             }
-            
 
-            
-            return bvh;
+            return quadNode;
         }
 
-        private int _aabCount;
-        public bool DebugBvh { get;  set; }
-        public bool Shadows { get; set; }
+
 
         private Vector2 GetMinMaxY(Vector2 tl, Vector2 br) {
             var max = float.MinValue;
             var min = float.MaxValue;
-            for (var x = (int) tl.X; x < br.X; x++) {
-                for (var y = (int) tl.Y; y < br.Y; y++) {
+            for (var x = (int)tl.X; x < br.X; x++) {
+                for (var y = (int)tl.Y; y < br.Y; y++) {
                     min = Math.Min(min, _heightMap[y, x]);
                     max = Math.Max(max, _heightMap[y, x]);
                 }
@@ -236,9 +270,9 @@ namespace Core.Terrain {
             return new Vector2(min, max);
         }
 
-        private void GetBVHVerticesAndIndices(BVHNode bvh, int level = 0) {
+        private void GetQuadTreeVerticesAndIndices(QuadTreeNode quadTree, int level = 0) {
             var vertBase = _bvhVerts.Count;
-            var corners = bvh.Bounds.GetCorners();
+            var corners = quadTree.Bounds.GetCorners();
             if (level == 9) {
                 _bvhVerts.AddRange(corners.Select(c => {
                     var color = Color.White;
@@ -257,17 +291,17 @@ namespace Core.Terrain {
                 }));
                 _aabCount++;
                 _bvhIndices.AddRange(
-                    new[] {0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 4, 0, 5, 1, 7, 3, 6, 2}.Select(
+                    new[] { 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 4, 0, 5, 1, 7, 3, 6, 2 }.Select(
                         i => i + vertBase));
 
             }
-            if (bvh.Children!=null) {
-                foreach (var child in bvh.Children) {
-                    GetBVHVerticesAndIndices(child, level+1);
+            if (quadTree.Children != null) {
+                foreach (var child in quadTree.Children) {
+                    GetQuadTreeVerticesAndIndices(child, level + 1);
                 }
             }
 
-            
+
         }
 
         private void GenerateRandomTerrain() {
@@ -278,7 +312,7 @@ namespace Core.Terrain {
             _heightMap *= hm2;
         }
         private ShaderResourceView CreateBlendMap(HeightMap hm, Device device) {
-            
+
             var colors = new List<Color4>();
             for (int y = 0; y < _heightMap.HeightMapHeight; y++) {
                 for (int x = 0; x < _heightMap.HeightMapWidth; x++) {
@@ -322,7 +356,7 @@ namespace Core.Terrain {
                     _heightMap.HeightMapWidth * Marshal.SizeOf(typeof(Color4)),
                     new DataStream(colors.ToArray(), false, false)
                 )
-            ) {DebugName = "terrain blend texture"};
+            ) { DebugName = "terrain blend texture" };
             var srvDesc = new ShaderResourceViewDescription {
                 Format = texDec.Format,
                 Dimension = ShaderResourceViewDimension.Texture2D,
@@ -331,7 +365,7 @@ namespace Core.Terrain {
             };
 
             var srv = new ShaderResourceView(device, blendTex, srvDesc);
-            
+
             Util.ReleaseCom(ref blendTex);
             return srv;
         }
@@ -366,7 +400,7 @@ namespace Core.Terrain {
 
             var viewProj = cam.ViewProj;
             var planes = cam.FrustumPlanes;
-            
+
 
             Effects.TerrainFX.SetViewProj(viewProj);
             Effects.TerrainFX.SetEyePosW(cam.Position);
@@ -393,7 +427,7 @@ namespace Core.Terrain {
             ssao.ComputeSsao(cam);
             ssao.BlurAmbientMap(4);
         }
-        
+
 
         public void DrawToShadowMap(DeviceContext dc, ShadowMap sMap, Matrix viewProj) {
             sMap.BindDsvAndSetNullRenderTarget(dc);
@@ -420,7 +454,7 @@ namespace Core.Terrain {
             Effects.TerrainFX.SetWorldCellSpace(Info.CellSpacing);
             Effects.TerrainFX.SetWorldFrustumPlanes(planes);
             Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-            
+
             var tech = Effects.TerrainFX.TessBuildShadowMapTech;
             for (int p = 0; p < tech.Description.PassCount; p++) {
                 var pass = tech.GetPassByIndex(p);
@@ -466,8 +500,8 @@ namespace Core.Terrain {
                 Effects.TerrainFX.SetHeightMap(_heightMapSRV);
                 Effects.TerrainFX.SetMaterial(_material);
                 Effects.TerrainFX.SetViewProjTex(viewProj * toTexSpace);
-                
-                var tech = Shadows ? Effects.TerrainFX.Light1ShadowTech: Effects.TerrainFX.Light1Tech;
+
+                var tech = Shadows ? Effects.TerrainFX.Light1ShadowTech : Effects.TerrainFX.Light1Tech;
                 for (int p = 0; p < tech.Description.PassCount; p++) {
                     var pass = tech.GetPassByIndex(p);
                     pass.Apply(dc);
@@ -476,8 +510,8 @@ namespace Core.Terrain {
                 dc.HullShader.Set(null);
                 dc.DomainShader.Set(null);
 
-                if (DebugBvh) {
-                    DrawBVHDebug(dc, cam, offset);
+                if (DebugQuadTree) {
+                    DrawQuadTreeDebugBuffers(dc, cam, offset);
                 }
             } else {
                 dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
@@ -513,7 +547,7 @@ namespace Core.Terrain {
                             } else {
                                 ns[NeighborDir.Top] = _patches[i - NumPatchVertCols + 1];
                             }
-                            if (i%(NumPatchVertCols - 1) == 0) {
+                            if (i % (NumPatchVertCols - 1) == 0) {
                                 ns[NeighborDir.Left] = null;
                             } else {
                                 ns[NeighborDir.Left] = _patches[i - 1];
@@ -526,14 +560,14 @@ namespace Core.Terrain {
                         }
                     }
                 }
-                if (DebugBvh) {
-                    DrawBVHDebug(dc, cam, 0);
+                if (DebugQuadTree) {
+                    DrawQuadTreeDebugBuffers(dc, cam, 0);
                 }
             }
-           
+
         }
 
-        private void DrawBVHDebug(DeviceContext dc, CameraBase cam, int offset) {
+        private void DrawQuadTreeDebugBuffers(DeviceContext dc, CameraBase cam, int offset) {
             dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
             dc.InputAssembler.InputLayout = InputLayouts.PosColor;
             dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_bvhVB, VertexPC.Stride, offset));
@@ -551,7 +585,7 @@ namespace Core.Terrain {
         private void BuildQuadPatchIB(Device device) {
             var indices = new List<int>();
             for (var i = 0; i < NumPatchVertRows - 1; i++) {
-                for (var j = 0; j < NumPatchVertCols-1; j++) {
+                for (var j = 0; j < NumPatchVertCols - 1; j++) {
                     indices.Add(i * NumPatchVertCols + j);
                     indices.Add(i * NumPatchVertCols + j + 1);
                     indices.Add((i + 1) * NumPatchVertCols + j);
@@ -658,21 +692,19 @@ namespace Core.Terrain {
                     p.CreateMesh(this, r, device);
                     _patches.Add(p);
                 }
-                D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f + 0.1f * ((float)z / (NumPatchVertRows-2)), "Building terrain patches");
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f + 0.1f * ((float)z / (NumPatchVertRows - 2)), "Building terrain patches");
             }
         }
 
 
-        public Vector3 Intersect(Ray ray) {
+        public bool Intersect(Ray ray, ref Vector3 spherePos) {
             Vector3 ret;
-            //ray.Position -= ray.Direction*100;
-            if (_bvh.Intersects(ray, out ret)) {
-                ret.Y = Height(ret.X, ret.Z);
-                return ret;
+            if (!_quadTree.Intersects(ray, out ret)) {
+                return false;
             }
-            ret = new Vector3(float.MaxValue);
-
-            return ret;
+            ret.Y = Height(ret.X, ret.Z);
+            spherePos = ret;
+            return true;
         }
     }
 }
