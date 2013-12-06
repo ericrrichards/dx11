@@ -37,7 +37,6 @@
         max-width: 100%;
         padding: 4px;
         line-height: 1.428571429;
-        background-color: #ffffff;
         border: 1px solid #dddddd;
         border-radius: 4px;
         -webkit-transition: all 0.2s ease-in-out;
@@ -48,262 +47,369 @@
         clear: both;
     }
 </style>
-<p>
-    The following tutorials are based on my exploration of <a href="http://introduction%20to%203d%20game%20programming%20with%20direct3d%2011.0/">Frank Luna's&nbsp;Introduction to 3D Game Programming with Direct3D 11.0</a>, adapting the C++ original code into C#, using SlimDX as a managed wrapper for the DirectX libraries.
-</p>
-<p>
-    The code for all of these examples can be found on my GitHub public repository, at&nbsp;<a href="https://github.com/ericrrichards/dx11">https://github.com/ericrrichards/dx11</a>.
-</p>
-<p>
-    To compile and run the examples, you will need Visual Studio 2012. &nbsp;I have the Professional edition, but I would imagine that you should be able to use the C# Express edition as well. &nbsp;You will also need SlimDX, which is available either through NuGet, or from&nbsp;<a href="http://slimdx.org/">http://slimdx.org/</a>, as well as the DirectX SDK, which can be obtained at&nbsp;<a href="http://www.microsoft.com/en-us/download/details.aspx?id=6812">http://www.microsoft.com/en-us/download/details.aspx?id=6812</a>. &nbsp;If you are running Windows 8 or greater, DirectX is now included in the Windows SDK, so you will want to grab that for the most updated version of DirectX, at&nbsp;<a href="http://msdn.microsoft.com/en-US/windows/desktop/hh852363">http://msdn.microsoft.com/en-US/windows/desktop/hh852363</a>.
-</p>
-<p>
-    Some of the examples use Assimp.Net to load 3D models. &nbsp;You can download this from Google Code at&nbsp;<a href="https://code.google.com/p/assimp-net/">https://code.google.com/p/assimp-net/</a>.
-</p>
-<p>
-    If you find these tutorials helpful, please consider donating a couple bucks.  While my primary goal with this site is simply learning new things and sharing that knowledge with others, I do put a lot of time and energy into these tutorials, and web hosting and domain registration have some costs.
-    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-        <input type="hidden" name="cmd" value="_s-xclick">
-        <input type="hidden" name="hosted_button_id" value="MJ7RUPRNMHE5S">
-        <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
-    </form>
-</p>
-<h1>Tutorials</h1>
+
+The following tutorials are based on my exploration of <a href="http://introduction%20to%203d%20game%20programming%20with%20direct3d%2011.0/">Frank Luna's&nbsp;Introduction to 3D Game Programming with Direct3D 11.0</a>, adapting the C++ original code into C#, using SlimDX as a managed wrapper for the DirectX libraries.
+<br />
+The code for all of these examples can be found on my GitHub public repository, at&nbsp;<a href="https://github.com/ericrrichards/dx11">https://github.com/ericrrichards/dx11</a>.
+<br />
+To compile and run the examples, you will need Visual Studio 2012. &nbsp;I have the Professional edition, but I would imagine that you should be able to use the C# Express edition as well. &nbsp;You will also need SlimDX, which is available either through NuGet, or from&nbsp;<a href="http://slimdx.org/">http://slimdx.org/</a>, as well as the DirectX SDK, which can be obtained at&nbsp;<a href="http://www.microsoft.com/en-us/download/details.aspx?id=6812">http://www.microsoft.com/en-us/download/details.aspx?id=6812</a>. &nbsp;If you are running Windows 8 or greater, DirectX is now included in the Windows SDK, so you will want to grab that for the most updated version of DirectX, at&nbsp;<a href="http://msdn.microsoft.com/en-US/windows/desktop/hh852363">http://msdn.microsoft.com/en-US/windows/desktop/hh852363</a>.
+<br />
+Some of the examples use Assimp.Net to load 3D models. &nbsp;You can download this from Google Code at&nbsp;<a href="https://code.google.com/p/assimp-net/">https://code.google.com/p/assimp-net/</a>.
+<br />
+If you find these tutorials helpful, please consider donating a couple bucks.  While my primary goal with this site is simply learning new things and sharing that knowledge with others, I do put a lot of time and energy into these tutorials, and web hosting and domain registration have some costs.
+<br />
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+    <input name="cmd" type="hidden" value="_s-xclick" />
+    <input name="hosted_button_id" type="hidden" value="MJ7RUPRNMHE5S" />
+    <input alt="PayPal - The safer, easier way to pay online!" border="0" name="submit" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" type="image" />
+    <img alt="" border="0" height="1" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" />
+</form>
+<br />
+<h1>
+    Tutorials
+</h1>
 <div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/directx-11-initialization-with-slimdx.html">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-XBUOJnnlMCs/UdrjzQRpa5I/AAAAAAAACx0/AgcJESO59LU/Capture_thumb%25255B8%25255D.png?imgmax=800" alt="Initializing DirectX 11" />
+                <img alt="Initializing DirectX 11" class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-W9TNxinNm-Y/UqEL_TdQWmI/AAAAAAAADjU/H46ibN0mAks/w617-h484-no/Capture_thumb%2525255B8%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">DirectX Initialization and sample framework</h4>
+                <h4 class="media-heading">
+                    DirectX Initialization and sample framework
+                </h4>
                 Introduces the demo application framework that will be used going forwards, and discusses DirectX intialization and integration with Windows Forms.
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/a-colored-cube-in-directx-11-and-slimdx.html">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-0pVycXlIG7E/Ud2HD5gSoSI/AAAAAAAACyQ/Bs5pjp5OwiU/image_thumb%25255B1%25255D.png?imgmax=800" alt="A colored cube" />
+                <img alt="A colored cube" class="media-object thumb" 
+                     src="https://lh3.googleusercontent.com/-0pVycXlIG7E/Ud2HD5gSoSI/AAAAAAAACyU/QDFTaL8GHr0/w622-h483-no/image_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Rendering a Colored Cube</h4>
+                <h4 class="media-heading">
+                    Rendering a Colored Cube
+                </h4>
                 Draw a colored cube using simple vertex and pixel shaders.
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/hills-demo-with-slimdx-and-c.html" target="_blank">
-                <img class="media-object thumb" src="http://lh4.ggpht.com/-kHX8YutD7gU/UeVo8iRsIpI/AAAAAAAACyo/oJKIR_yLy8c/hillDemo_thumb%25255B1%25255D.png?imgmax=800" alt="A simple terrain" />
+                <img alt="A simple terrain" class="media-object thumb" 
+                     src="https://lh4.googleusercontent.com/-kHX8YutD7gU/UeVo8iRsIpI/AAAAAAAACys/KLhzWJ_pk4o/w622-h483-no/hillDemo_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Rendering a simple terrain with DirectX 11</h4>
+                <h4 class="media-heading">
+                    Rendering a simple terrain with DirectX 11
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/shapes-demo-with-direct3d11-and-slimdx.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-VENjRltMumQ/UeleWe4TduI/AAAAAAAACzM/ycmcovUJ9lI/shapes_thumb%25255B1%25255D.png?imgmax=800" alt="Creating simple geometric shapes with DirectX11" />
+                <img alt="Creating simple geometric shapes with DirectX11" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-jn1BPICRQA8/UqEMBhxD7KI/AAAAAAAADkk/ZVIJxf6Z1Lk/w557-h433-no/shapes_thumb%2525255B1%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Creating simple geometric shapes with DirectX11</h4>
+                <h4 class="media-heading">
+                    Creating simple geometric shapes with DirectX11
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/loading-mesh-from-file-skull-demo.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-7rQ4k-4hKjA/Ueq95AqQmYI/AAAAAAAAC0c/TdzBtkHJtsc/skull_thumb1.png?imgmax=800" alt="Loading a mesh from file using a simple text format " />
+                <img alt="Loading a mesh from file using a simple text format " class="media-object thumb" 
+                     src="https://lh6.googleusercontent.com/-7rQ4k-4hKjA/Ueq95AqQmYI/AAAAAAAAC0g/SM9IRbZCb-E/w617-h484-no/skull_thumb1" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Loading a mesh from file using a simple text format </h4>
+                <h4 class="media-heading">
+                    Loading a mesh from file using a simple text format
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/dynamic-vertex-buffers-waves-demo.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-rFD6MgAt3so/Ue05nnBa7VI/AAAAAAAAC00/JV_5hytikns/waves_thumb%25255B1%25255D.png?imgmax=800" alt="Rendering a dynamic vertex buffer with DirectX 11  " />
+                <img alt="Rendering a dynamic vertex buffer with DirectX 11  " class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-eQ7nHplIxsE/UqEME0tdC6I/AAAAAAAADlc/2PozA6-5jas/w557-h437-no/waves_thumb%2525255B1%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Rendering a dynamic vertex buffer with DirectX 11 </h4>
+                <h4 class="media-heading">
+                    Rendering a dynamic vertex buffer with DirectX 11
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/lighting-take-1.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-scYPuDEg-34/Ue8QoEYzekI/AAAAAAAAC1M/h9tmDgaX7UQ/lighting_thumb.png?imgmax=800" alt="Phong Lighting Theory" />
+                <img alt="Phong Lighting Theory" class="media-object thumb"
+                     src="https://lh3.googleusercontent.com/-2Rph0bAmOtU/UqEMFqFKZvI/AAAAAAAADlw/jsS8qdccM84/w244-h190-no/lighting_thumb.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Phong Lighting Theory</h4>
+                <h4 class="media-heading">
+                    Phong Lighting Theory
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/lit-terrain-demo.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-Uz079h4Uza4/Ue_rSCDnBPI/AAAAAAAAC2U/Ye7ml_LJjl4/lighting_thumb%25255B1%25255D.png?imgmax=800" alt="Adding Lighting to the simple terrain" />
+                <img alt="Adding Lighting to the simple terrain" class="media-object thumb"
+                     src="https://lh3.googleusercontent.com/-2Rph0bAmOtU/UqEMFqFKZvI/AAAAAAAADlw/jsS8qdccM84/w244-h190-no/lighting_thumb.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Adding Lighting to the simple terrain</h4>
+                <h4 class="media-heading">
+                    Adding Lighting to the simple terrain
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/three-point-lighting-litskull-demo.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-r34IVdKotuU/UfFYEhW-TuI/AAAAAAAAC3E/ODv2vdLlF4E/litskull1_thumb.png?imgmax=800" alt="Creating a basic reusable lighting shader" />
+                <img alt="Creating a basic reusable lighting shader" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-JUyQJMQA8s8/UqEMJKkNuGI/AAAAAAAADnQ/Q1U1rISk7ys/w244-h190-no/litskull3_thumb.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Creating a basic reusable lighting shader</h4>
+                <h4 class="media-heading">
+                    Creating a basic reusable lighting shader
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/texturing-101crate-demo.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-UKUAuKApF3I/UfZLW0VFkbI/AAAAAAAAC4Y/XfxSLmuQwbs/crate_thumb%25255B1%25255D.png?imgmax=800" alt="Texture Mapping in DirectX11" />
+                <img alt="Texture Mapping in DirectX11" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/--Obrye85K-A/UqEMKRI4jGI/AAAAAAAADnw/ymFzWLelGkA/w557-h437-no/crate2_thumb%2525255B1%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Texture Mapping in DirectX11</h4>
+                <h4 class="media-heading">
+                    Texture Mapping in DirectX11
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/07/textured-hills-demo.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-vQLm7YdJTaA/UfltRfxDSpI/AAAAAAAAC5I/JUgCXuhc2uU/texHills_thumb%25255B1%25255D.png?imgmax=800" alt="Adding textures to the simple terrain" />
+                <img alt="Adding textures to the simple terrain" class="media-object thumb" 
+                     src="https://lh6.googleusercontent.com/-vQLm7YdJTaA/UfltRfxDSpI/AAAAAAAAC5Q/GoqsxDdS6lI/w622-h483-no/texHills_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Adding textures to the simple terrain</h4>
+                <h4 class="media-heading">
+                    Adding textures to the simple terrain
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/using-texture-atlas-for-animation.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-LYICO3y21FE/UfsHQs6ntMI/AAAAAAAAC54/mhue3xj6gIY/firebox_thumb%25255B1%25255D.png?imgmax=800" alt="Sprite animation using a texture atlas" />
+                <img alt="Sprite animation using a texture atlas" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-uIqWDfiVEzM/UqEMMRSR4tI/AAAAAAAADok/rsNUJCkqij8/w557-h437-no/firebox_thumb%2525255B1%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Sprite animation using a texture atlas</h4>
+                <h4 class="media-heading">
+                    Sprite animation using a texture atlas
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/blending-theory.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-2ZUhqTbcCk8/Ufv0lAjBXMI/AAAAAAAAC6g/ThAQdSqLobc/blendDemo_thumb%25255B1%25255D.png?imgmax=800" alt="Alpha Blending in DirectX 11" />
+                <img alt="Alpha Blending in DirectX 11" class="media-object thumb" 
+                     src="https://lh6.googleusercontent.com/UILnVGcx01UjwP_Ey44obt7JQTx1yjAgt0OdXXYqCys=w622-h483-no" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Alpha Blending in DirectX 11</h4>
+                <h4 class="media-heading">
+                    Alpha Blending in DirectX 11
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/blend-demo.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-GheE9ZLgMjo/Uf__V1PCeBI/AAAAAAAAC7k/UVYirEAfxxc/s1600/blend-tex-fog%25255B2%25255D.png" alt="Using Alpha Blending on the simple terrain" />
+                <img alt="Using Alpha Blending on the simple terrain" class="media-object thumb"
+                     src="https://lh3.googleusercontent.com/-rPcuzOROWao/UqEMRHzEBQI/AAAAAAAADqA/Rp10WWO6Zag/w244-h190-no/blend-tex-fog_thumb.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Using Alpha Blending on the simple terrain</h4>
+                <h4 class="media-heading">
+                    Using Alpha Blending on the simple terrain
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/planar-reflections-and-shadows-using.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-A3i7Wxn-iN4/UgjIpPFAQnI/AAAAAAAAC-A/mQWCasQmHPU/mirror_thumb%25255B1%25255D.png?imgmax=800" alt="Planar Reflections and Shadows using the Stencil Buffer" />
+                <img alt="Planar Reflections and Shadows using the Stencil Buffer" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-A3i7Wxn-iN4/UgjIpPFAQnI/AAAAAAAAC-E/WrhDzPvccXw/w557-h437-no/mirror_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Planar Reflections and Shadows using the Stencil Buffer</h4>
+                <h4 class="media-heading">
+                    Planar Reflections and Shadows using the Stencil Buffer
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/geometry-shader-billboards-with-slimdx.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-pYySncYXKSY/Ug5h4FR4NII/AAAAAAAADB4/bhyMJAkHync/billboard-atc_thumb%25255B1%25255D.png?imgmax=800" alt="Rendering Billboards using the Geometry Shader in DirectX 11" />
+                <img alt="Rendering Billboards using the Geometry Shader in DirectX 11" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-KaaYRDxicvw/Ug5h1VpBqmI/AAAAAAAADBc/a1qpxAAuMWw/w557-h433-no/billboard_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Rendering Billboards using the Geometry Shader in DirectX 11</h4>
+                <h4 class="media-heading">
+                    Rendering Billboards using the Geometry Shader in DirectX 11
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/an-fps-camera-in-slimdx.html" target="_blank">
-                <img class="media-object thumb" src="http://lh4.ggpht.com/-tL7cjdhc3aA/UhTQ300U4ZI/AAAAAAAADCQ/clCPfbfMaAM/camera_thumb%25255B1%25255D.png?imgmax=800" alt="Creating a reusable FPS-style Camera class for DirectX11" />
+                <img alt="Creating a reusable FPS-style Camera class for DirectX11" class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-tL7cjdhc3aA/UhTQ300U4ZI/AAAAAAAADCU/eKYDWkiyVq4/w557-h433-no/camera_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Creating a reusable FPS-style Camera class for DirectX11</h4>
+                <h4 class="media-heading">
+                    Creating a reusable FPS-style Camera class for DirectX11
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/a-look-at-camera-in-slimdx-and-direct3d.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-M9huFe4AX7A/Uh9z_0_z9NI/AAAAAAAADFw/Den7Z2N5d-k/lookat_thumb%25255B4%25255D.png?imgmax=800" alt="Creating a reusable RTS-style Camera class for DirectX11" />
+                <img alt="Creating a reusable RTS-style Camera class for DirectX11" class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-Bp14SkLUs_Y/Uh9zg-5rODI/AAAAAAAADFQ/24kxr6Os8NY/w557-h433-no/lookat_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Creating a reusable RTS-style Camera class for DirectX11</h4>
+                <h4 class="media-heading">
+                    Creating a reusable RTS-style Camera class for DirectX11
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/hardware-instancing-and-frustum-culling.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-QV9ZWnOt8IU/Uh5jlYHSX7I/AAAAAAAADDo/H9DkuYphqQc/skulls-1000-instancing_thumb.png?imgmax=800" alt="Frustum Culling and Hardware mesh instancing" />
+                <img alt="Frustum Culling and Hardware mesh instancing" class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-dumxLMBEEy4/UqEMahkN3NI/AAAAAAAADuA/ETqjwW6hOh0/w244-h190-no/skulls-1000-instancing_thumb.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Frustum Culling and Hardware mesh instancing</h4>
+                <h4 class="media-heading">
+                    Frustum Culling and Hardware mesh instancing
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/08/camera-picking-in-slimdx-and-direct3d-11.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-FUJ-MEAKuP4/UiDv_Vi9JPI/AAAAAAAADGI/9vM3nReiO5U/Picking_thumb%25255B1%25255D.png?imgmax=800" alt="Screen-World Picking with DirectX11" />
+                <img alt="Screen-World Picking with DirectX11" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-QP9SqkDTkzo/UqEMhE89y9I/AAAAAAAADwY/-HUUIEq0uf4/w623-h484-no/picking-wf_thumb%2525255B6%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Screen-World Picking with DirectX11</h4>
+                <h4 class="media-heading">
+                    Screen-World Picking with DirectX11
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/09/skyboxes-and-environmental-reflections.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-wc5EFIPws44/UiyrP192zCI/AAAAAAAADJQ/IPPs4LHbHHg/cubemap_thumb%25255B3%25255D.png?imgmax=800" alt="Skyboxes and environmental reflections with CubeMaps" />
+                <img alt="Skyboxes and environmental reflections with CubeMaps" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-Qh_ZA3HnodY/UixcTCyw-8I/AAAAAAAADG0/OtfWjY4ZVBs/w557-h437-no/image_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Skyboxes and environmental reflections with CubeMaps</h4>
+                <h4 class="media-heading">
+                    Skyboxes and environmental reflections with CubeMaps
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/09/dynamic-environmental-reflections-in.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-GBzUN907tdQ/UjCCDWujhII/AAAAAAAADKo/kZbzYOb3p5I/image_thumb%252525255B3%252525255D%25255B1%25255D_thumb%25255B1%25255D.png?imgmax=800" alt="Dynamic Cube-mapped reflections" />
+                <img alt="Dynamic Cube-mapped reflections" class="media-object thumb"
+                     src="https://lh3.googleusercontent.com/-8DQU9oh8MHE/UixcWpFcGUI/AAAAAAAADHE/GgjVgdac87I/w557-h437-no/image_thumb%255B3%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Dynamic Cube-mapped reflections</h4>
+                <h4 class="media-heading">
+                    Dynamic Cube-mapped reflections
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/09/bump-and-displacement-mapping-with.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-uUxjAP7tmlE/UjbfB6I12vI/AAAAAAAADLg/4ZczEwZKAq8/displacement-mapped_thumb1.png?imgmax=800" alt="Bump and Displacement mapping" />
+                <img alt="Bump and Displacement mapping" class="media-object thumb"
+                     src="https://lh3.googleusercontent.com/-uUxjAP7tmlE/UjbfB6I12vI/AAAAAAAADLk/bazCyaEDwOI/w557-h437-no/displacement-mapped_thumb1" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Bump and Displacement mapping</h4>
+                <h4 class="media-heading">
+                    Bump and Displacement mapping
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/09/diving-into-tessellation-stages-of.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-uUxjAP7tmlE/UjbfB6I12vI/AAAAAAAADLg/4ZczEwZKAq8/displacement-mapped_thumb1.png?imgmax=800" alt="Examining the Tessellation Stages of DirectX11: Hull &amp; Domain shaders" />
+                <img alt="Examining the Tessellation Stages of DirectX11: Hull &amp; Domain shaders" class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-PfnNbN56li0/UqEMk-mSiTI/AAAAAAAADxk/kccLrze6-wY/w244-h192-no/image_thumb%2525255B12%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Examining the Tessellation Stages of DirectX11: Hull &amp; Domain shaders</h4>
+                <h4 class="media-heading">
+                    Examining the Tessellation Stages of DirectX11: Hull &amp; Domain shaders
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/09/dynamic-terrain-rendering-with-slimdx.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-3JFu9EjGvGA/Uj4w6IoWmDI/AAAAAAAADNc/eeRGLY-5pUk/image_thumb%25255B3%25255D.png?imgmax=800" alt="DirectX11 Terrain rendering with LOD" />
+                <img alt="DirectX11 Terrain rendering with LOD" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-FU1whO480Rw/UqEMlsLLIwI/AAAAAAAADx8/6I2s76d7y_0/w244-h192-no/image_thumb%2525255B14%2525255D.jpg" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">DirectX11 Terrain rendering with LOD</h4>
+                <h4 class="media-heading">
+                    DirectX11 Terrain rendering with LOD
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/09/terrain-lod-for-directx-10-graphics.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-cZynwlIm_8I/UkWn2gmNbLI/AAAAAAAADP4/DJAIj16-oac/dx10-terrain_thumb%25255B1%25255D.png?imgmax=800" alt="DirectX10-compatible Terrain rendering with LOD" />
+                <img alt="DirectX10-compatible Terrain rendering with LOD" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-cZynwlIm_8I/UkWn2gmNbLI/AAAAAAAADQA/nSYBOOXMq6w/w557-h437-no/dx10-terrain_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">DirectX10-compatible Terrain rendering with LOD</h4>
+                <h4 class="media-heading">
+                    DirectX10-compatible Terrain rendering with LOD
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/09/drawing-loading-screen-with-direct2d-in.html" target="_blank">
-                <img class="media-object thumb" src="http://lh5.ggpht.com/-P8PlhRpe8b8/Ukms1POrCII/AAAAAAAADS8/sFflp8ZP1kI/progressBar_thumb%25255B1%25255D.png?imgmax=800" alt="A Simple Loading Screen using Direct2D" />
+                <img alt="A Simple Loading Screen using Direct2D" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-P8PlhRpe8b8/Ukms1POrCII/AAAAAAAADTA/hloIQD9n2JE/w557-h433-no/progressBar_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">A Simple Loading Screen using Direct2D</h4>
+                <h4 class="media-heading">
+                    A Simple Loading Screen using Direct2D
+                </h4>
             </div>
         </div>
     </div>
@@ -311,72 +417,141 @@
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/10/generating-random-terrains-using-perlin.html" target="_blank">
                 Generating Random Terrain with Perlin Noise
-                <img class="media-object thumb" src="http://lh4.ggpht.com/-bs8V0sM3kJw/UkrbCCMlbtI/AAAAAAAADTk/OpQSq70IFK0/random2_thumb%25255B1%25255D.png?imgmax=800" alt="Generating Random Terrain with Perlin Noise" />
+                <img alt="Generating Random Terrain with Perlin Noise" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-wjgseEP9Q3A/Ukra_XCsFiI/AAAAAAAADTY/mBSGns4m5vs/w557-h437-no/random1_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Generating Random Terrain with Perlin Noise</h4>
+                <h4 class="media-heading">
+                    Generating Random Terrain with Perlin Noise
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/10/loading-3d-models-using-assimpnet-and.html" target="_blank">
-                <img class="media-object thumb" src="http://lh4.ggpht.com/-GYS5QhaWn9A/Uk2Dtfc9QMI/AAAAAAAADUA/5IoOXCE5x-s/image_thumb%25255B1%25255D.png?imgmax=800" alt="Loading 3D models with Assimp.Net and SlimDX" />
+                <img alt="Loading 3D models with Assimp.Net and SlimDX" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-GYS5QhaWn9A/Uk2Dtfc9QMI/AAAAAAAADUE/Bj68ERkDWzM/w557-h433-no/image_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Loading 3D models with Assimp.Net and SlimDX</h4>
+                <h4 class="media-heading">
+                    Loading 3D models with Assimp.Net and SlimDX
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/10/skinned-models-in-directx-11-with.html" target="_blank">
-                <img class="media-object thumb" src="http://lh4.ggpht.com/-J5w0vmSa_kQ/Ul2bb_5HJVI/AAAAAAAADU0/AR2E4xkx8PA/skinnedModels_thumb%25255B1%25255D.png?imgmax=800" alt="Skeletal Animation with Assimp.Net and SlimDX" />
+                <img alt="Skeletal Animation with Assimp.Net and SlimDX" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-J5w0vmSa_kQ/Ul2bb_5HJVI/AAAAAAAADU4/CECDdaKZyVk/w557-h433-no/skinnedModels_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Skeletal Animation with Assimp.Net and SlimDX</h4>
+                <h4 class="media-heading">
+                    Skeletal Animation with Assimp.Net and SlimDX
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/10/particle-systems-using-stream-out-in.html" target="_blank">
-                <img class="media-object thumb" src="http://lh4.ggpht.com/-MbwnhX9dfBM/UmU3VGuKd2I/AAAAAAAADVc/8VL2NyS6KPU/image_thumb%25255B1%25255D.png?imgmax=800" alt="Hardware Particle Systems with DirectX 11" />
+                <img alt="Hardware Particle Systems with DirectX 11" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-MbwnhX9dfBM/UmU3VGuKd2I/AAAAAAAADVg/Q6y6eS7eP8A/w557-h433-no/image_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Hardware Particle Systems with DirectX 11</h4>
+                <h4 class="media-heading">
+                    Hardware Particle Systems with DirectX 11
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/10/expanding-our-basicmodel-class.html" target="_blank">
-                <img class="media-object thumb" src="http://lh4.ggpht.com/-KKqYyie9AR4/Ums5jdlXVdI/AAAAAAAADV0/VLQMfoiBns0/image_thumb%25255B1%25255D.png?imgmax=800" alt="Expanding the BasicModel Class" />
+                <img alt="Expanding the BasicModel Class" class="media-object thumb"
+                     src="https://lh4.googleusercontent.com/-KKqYyie9AR4/Ums5jdlXVdI/AAAAAAAADV4/UcsH0iNPcKU/w557-h437-no/image_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Expanding the BasicModel Class</h4>
+                <h4 class="media-heading">
+                    Expanding the BasicModel Class
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/10/shadow-mapping-with-slimdx-and-directx.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-ekXhJR3Weso/Um8T411XpeI/AAAAAAAADZI/X8UEcZp_SRY/image_thumb%25255B3%25255D.png?imgmax=800" alt="Shadow Mapping" />
+                <img alt="Shadow Mapping" class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-ekXhJR3Weso/Um8T411XpeI/AAAAAAAADZM/b4nT8nEwFr8/w557-h437-no/image_thumb%255B3%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Shadow Mapping</h4>
+                <h4 class="media-heading">
+                    Shadow Mapping
+                </h4>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/11/ssao-with-slimdx-and-directx11.html" target="_blank">
-                <img class="media-object thumb" src="http://lh3.ggpht.com/-lsvUdM_B2Ig/UnbCBuTW3hI/AAAAAAAADaE/Ic308_Q6EjM/image_thumb%25255B3%25255D.png?imgmax=800" alt="SSAO" />
+                <img alt="SSAO" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-sIdcHxpsbNs/Unq6q4Yf1QI/AAAAAAAADbQ/2BzpWi71QWU/w557-h437-no/image_thumb%255B8%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">SSAO</h4>
+                <h4 class="media-heading">
+                    SSAO
+                </h4>
             </div>
         </div>
         <div class="media thumbnail">
             <a class="" href="http://www.richardssoftware.net/2013/11/rendering-water-with-displacement.html" target="_blank">
-                <img class="media-object thumb" src="http://lh6.ggpht.com/-5WlMrUxp8GU/Un0fQxhN7BI/AAAAAAAADcg/4ngDLP5iAbw/image_thumb%25255B1%25255D.png?imgmax=800" alt="Displacement Mapped Water" />
+                <img alt="Displacement Mapped Water" class="media-object thumb"
+                     src="https://lh6.googleusercontent.com/-5WlMrUxp8GU/Un0fQxhN7BI/AAAAAAAADck/sHD8VypRmAg/w557-h437-no/image_thumb%255B1%255D" />
             </a>
+            <br />
             <div class="media-body">
-                <h4 class="media-heading">Displacement Mapped Water</h4>
+                <h4 class="media-heading">
+                    Displacement Mapped Water
+                </h4>
+            </div>
+        </div>
+        <div class="media thumbnail">
+            <a class="" href="http://www.richardssoftware.net/2013/11/adding-shadow-mapping-and-ssao-to.html" target="_blank">
+                <img alt="Shadow Mapping and Ambient Occlusion on Terrain" class="media-object thumb"
+                     src="https://lh3.googleusercontent.com/-p8-VlrOIggY/UoZX0LPKfKI/AAAAAAAADfs/JlLYTFWnDog/w557-h437-no/image_thumb%255B33%255D" />
+            </a>
+            <br />
+            <div class="media-body">
+                <h4 class="media-heading">
+                    Terrain with Shadow Mapping and Ambient Occlusion
+                </h4>
             </div>
         </div>
     </div>
-
+    <div class="row">
+        <div class="media thumbnail">
+            <a class="" href="http://www.richardssoftware.net/2013/11/a-terrain-minimap-with-slimdx-and.html" target="_blank">
+                <img alt="A Terrain Minimap" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-GToQM-Y1oO8/UoqMR3QvUrI/AAAAAAAADhA/mHewfb-JzUw/w557-h437-no/image_thumb%255B1%255D" />
+            </a>
+            <br />
+            <div class="media-body">
+                <h4 class="media-heading">
+                    A Terrain Minimap
+                </h4>
+            </div>
+        </div>
+        <div class="media thumbnail">
+            <a class="" href="http://www.richardssoftware.net/2013/12/terrain-tile-picking.html" target="_blank">
+                <img alt="Terrain Picking" class="media-object thumb"
+                     src="https://lh5.googleusercontent.com/-no3Z9CTIYao/UqENXmSelvI/AAAAAAAAEBs/z_Gs1KipBdA/w617-h484-no/bvh_thumb2.jpg" />
+            </a>
+            <br />
+            <div class="media-body">
+                <h4 class="media-heading">
+                    Terrain Mouse Picking
+                </h4>
+            </div>
+        </div>
+    </div>
 </div>
