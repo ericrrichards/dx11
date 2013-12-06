@@ -296,8 +296,14 @@ namespace PickingDemo {
                 var v2 = _meshVertices[_meshIndices[i * 3 + 2]].Position;
 
                 float t;
-                
-                if (!Ray.Intersects(ray, v0, v1, v2, out t)) continue;
+
+                float u, v;
+                //if (!Ray.Intersects(ray, v0, v1, v2, out t)) continue;
+                if (!Ray.Intersects(ray, v0, v1, v2, out t, out u, out v)) continue;
+
+                // determine the actual picked point on the triangle
+                var p = v0*(1.0f - u - v) + v1*u + v2*v;
+
                 // find the closest intersection, exclude intersections behind camera
                 if (!(t < tmin || t < 0)) continue;
                 tmin = t;
