@@ -27,11 +27,10 @@ namespace Core.Terrain {
             new Dictionary<NeighborDir, Dictionary<Tuple<int, int>, Buffer>>();
         private static readonly Dictionary<NeighborDir, Dictionary<Tuple<int, int>, int>> EdgeIndiceCount = 
             new Dictionary<NeighborDir, Dictionary<Tuple<int, int>, int>>();
-        private static int _width;
+        private static int width;
 
         public BoundingBox Bounds { get; private set; }
         private bool _disposed;
-        private Rectangle _patchBounds;
         private List<TerrainCP> _verts;
         private Buffer _vb;
 
@@ -50,13 +49,13 @@ namespace Core.Terrain {
         private int TessFactor(Vector3 eye) {
             var c = (Bounds.Maximum - Bounds.Minimum) / 2 + Bounds.Minimum;
             var d = Vector3.Distance(eye, c);
-            var s = MathF.Clamp(-(d - Terrain.MaxDist) / (Terrain.MaxDist - Terrain.MinDist), 0, 1);
+            var s = MathF.Clamp(-(d - TerrainRenderer.MaxDist) / (TerrainRenderer.MaxDist - TerrainRenderer.MinDist), 0, 1);
             s = 1.0f - s;
             
-            return (int)Math.Pow(2, (int)(Terrain.MinTess + (Terrain.MaxTess-1 - Terrain.MinTess) * s));
+            return (int)Math.Pow(2, (int)(TerrainRenderer.MinTess + (TerrainRenderer.MaxTess-1 - TerrainRenderer.MinTess) * s));
         }
         public static void InitPatchData(int patchWidth, Device device) {
-            _width = patchWidth;
+            width = patchWidth;
             BuildCenterIndices(device);
             BuildTopEdges(device);
             BuildLeftEdges(device);
@@ -79,8 +78,6 @@ namespace Core.Terrain {
         }
 
         public void CreateMesh(Terrain terrain, Rectangle r, Device device) {
-            
-            _patchBounds = r;
             if (_vb != null) {
                 Util.ReleaseCom(ref _vb);
                 _vb = null;
@@ -89,12 +86,12 @@ namespace Core.Terrain {
             var halfWidth = 0.5f * terrain.Width;
             var halfDepth = 0.5f * terrain.Depth;
 
-            var patchWidth = terrain.Width / (terrain.NumPatchVertCols - 1);
-            var patchDepth = terrain.Depth / (terrain.NumPatchVertRows - 1);
+            var patchWidth = terrain.Width / (terrain.Renderer.NumPatchVertCols - 1);
+            var patchDepth = terrain.Depth / (terrain.Renderer.NumPatchVertRows - 1);
             var vertWidth = terrain.Info.CellSpacing;
             var vertDepth = terrain.Info.CellSpacing;
-            var du = 1.0f / (terrain.NumPatchVertCols - 1) / Terrain.CellsPerPatch;
-            var dv = 1.0f / (terrain.NumPatchVertRows - 1) / Terrain.CellsPerPatch;
+            var du = 1.0f / (terrain.Renderer.NumPatchVertCols - 1) / Terrain.CellsPerPatch;
+            var dv = 1.0f / (terrain.Renderer.NumPatchVertRows - 1) / Terrain.CellsPerPatch;
 
             _verts = new List<TerrainCP>();
             var min = new Vector3(float.MaxValue);
@@ -132,15 +129,15 @@ namespace Core.Terrain {
             for (var tessLevel = 0; tessLevel <= 6; tessLevel++) {
                 var t = (int)Math.Pow(2, tessLevel);
                 var indices = new List<short>();
-                for (int z = 0 + t, z0 = t; z < _width; z += t, z0 += t) {
-                    for (int x = 0 + t, x0 = t; x < _width; x += t, x0 += t) {
-                        indices.Add((short)(z0 * (_width + 1) + x0));
-                        indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                        indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                for (int z = 0 + t, z0 = t; z < width; z += t, z0 += t) {
+                    for (int x = 0 + t, x0 = t; x < width; x += t, x0 += t) {
+                        indices.Add((short)(z0 * (width + 1) + x0));
+                        indices.Add((short)(z0 * (width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                        indices.Add((short)((z0 + t) * (_width + 1) + x0));
-                        indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                        indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0));
+                        indices.Add((short)(z0 * (width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
                     }
                 }
 
@@ -171,15 +168,15 @@ namespace Core.Terrain {
             for (var tessLevel = 0; tessLevel <= 6; tessLevel++) {
                 var t = (int)Math.Pow(2, tessLevel);
                 var indices = new List<short>();
-                for (int z = 0, z0 = 0; z < _width; z += t, z0 += t) {
-                    for (int x = 0, x0 = 0; x < _width; x += t, x0 += t) {
-                        indices.Add((short)(z0 * (_width + 1) + x0));
-                        indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                        indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                for (int z = 0, z0 = 0; z < width; z += t, z0 += t) {
+                    for (int x = 0, x0 = 0; x < width; x += t, x0 += t) {
+                        indices.Add((short)(z0 * (width + 1) + x0));
+                        indices.Add((short)(z0 * (width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                        indices.Add((short)((z0 + t) * (_width + 1) + x0));
-                        indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                        indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0));
+                        indices.Add((short)(z0 * (width + 1) + x0 + t));
+                        indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
                     }
                 }
 
@@ -216,19 +213,19 @@ namespace Core.Terrain {
             List<short> indices;
             int x0;
             int t;
-            for (int i = 0; i < 6; i++) {
+            for (var i = 0; i < 6; i++) {
                 t = (int)Math.Pow(2, i);
                 key = new Tuple<int, int>(t, t);
                 indices = new List<short>();
                 x0 = 0;
-                for (int z = 0, z0 = 0; z < _width; z += t, z0 += t) {
-                    indices.Add((short)(z0 * (_width + 1) + x0));
-                    indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                for (int z = 0, z0 = 0; z < width; z += t, z0 += t) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
-                    indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
                 }
 
                 ibd = new BufferDescription(
@@ -250,26 +247,26 @@ namespace Core.Terrain {
                 x0 = 0;
 
                 indices.Add(0);
-                indices.Add((short)((_width+1) + t));
-                indices.Add((short)(t1*(_width+1)));
+                indices.Add((short)((width+1) + t));
+                indices.Add((short)(t1*(width+1)));
 
-                indices.Add((short)((_width + 1) + t));
-                indices.Add((short)(t1 * (_width + 1) + t));
-                indices.Add((short)(t1 * (_width + 1)));
+                indices.Add((short)((width + 1) + t));
+                indices.Add((short)(t1 * (width + 1) + t));
+                indices.Add((short)(t1 * (width + 1)));
 
                 
-                for (int z = 0+t1, z0 = t1; z < _width; z += t1, z0 += t1) {
-                    indices.Add((short)(z0 * (_width + 1) + x0));
-                    indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
+                for (int z = 0+t1, z0 = t1; z < width; z += t1, z0 += t1) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
 
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t1) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t1) * (_width + 1) + x0));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
 
-                    indices.Add((short)(z0 * (_width + 1) + x0));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t1) * (_width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
                 }
                 
                 ibd = new BufferDescription(
@@ -292,18 +289,18 @@ namespace Core.Terrain {
                 indices = new List<short>();
                 x0 = 0;
 
-                for (int z = 0 , z0 = 0; z < _width - t1; z += t, z0 += t) {
-                    indices.Add((short)(z0 * (_width + 1) + x0));
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t1) * (_width + 1) + x0));
+                for (int z = 0 , z0 = 0; z < width - t1; z += t, z0 += t) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
 
-                    indices.Add((short)((z0 + t1) * (_width + 1) + x0));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t1) * (_width + 1) + x0));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t1) * (width + 1) + x0));
                 }
 
                 ibd = new BufferDescription(
@@ -328,19 +325,19 @@ namespace Core.Terrain {
             List<short> indices;
             int z0;
             int t;
-            for (int i = 0; i < 6; i++) {
+            for (var i = 0; i < 6; i++) {
                 t = (int)Math.Pow(2, i);
                 key = new Tuple<int, int>(t, t);
                 indices = new List<short>();
                 z0 = 0;
-                for (int x = 0, x0 = 0; x < _width; x += t, x0 += t) {
-                    indices.Add((short)(z0 * (_width + 1) + x0));
-                    indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                for (int x = 0, x0 = 0; x < width; x += t, x0 += t) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
-                    indices.Add((short)(z0 * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
+                    indices.Add((short)(z0 * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
                 }
 
                 ibd = new BufferDescription(
@@ -364,24 +361,24 @@ namespace Core.Terrain {
                 
                 indices.Add(0);
                 indices.Add((short)(t1));
-                indices.Add((short)((z0 + t) * (_width + 1) + t));
+                indices.Add((short)((z0 + t) * (width + 1) + t));
 
                 indices.Add((short)(t1));
-                indices.Add((short)(t * (_width + 1) + t1));
-                indices.Add((short)((t) * (_width + 1) + t));
+                indices.Add((short)(t * (width + 1) + t1));
+                indices.Add((short)((t) * (width + 1) + t));
                 
-                for (int x = 0 + t1, x0 = t1; x < _width; x += t1, x0 += t1) {
-                    indices.Add((short)(z0 * (_width + 1) + x0));
-                    indices.Add((short)((z0+t) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                for (int x = 0 + t1, x0 = t1; x < width; x += t1, x0 += t1) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)((z0+t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t1));
-                    indices.Add((short)((z0+t) * (_width + 1) + x0 + t1));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t1));
+                    indices.Add((short)((z0+t) * (width + 1) + x0 + t1));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
 
-                    indices.Add((short)((z0) * (_width + 1) + x0 ));
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t1));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0+t));
+                    indices.Add((short)((z0) * (width + 1) + x0 ));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t1));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0+t));
                 }
                 
 
@@ -405,18 +402,18 @@ namespace Core.Terrain {
                 z0 = 0;
 
                 
-                for (int x = 0 , x0 = 0; x <_width - t1; x += t, x0 += t) {
-                    indices.Add((short)(z0 * (_width + 1) + x0));
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t1));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                for (int x = 0 , x0 = 0; x <width - t1; x += t, x0 += t) {
+                    indices.Add((short)(z0 * (width + 1) + x0));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t1));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
 
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t1));
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t1));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
 
-                    indices.Add((short)((z0) * (_width + 1) + x0 + t1));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0 + t));
-                    indices.Add((short)((z0 + t) * (_width + 1) + x0));
+                    indices.Add((short)((z0) * (width + 1) + x0 + t1));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0 + t));
+                    indices.Add((short)((z0 + t) * (width + 1) + x0));
                 }
 
                 ibd = new BufferDescription(
@@ -441,13 +438,13 @@ namespace Core.Terrain {
 
             dc.DrawIndexed(CenterIndexCount[tessLevel], 0, 0);
 
-            int topEdge = neighbors[NeighborDir.Top] != null ? neighbors[NeighborDir.Top].TessFactor(camPos) : tessLevel;
+            var topEdge = neighbors[NeighborDir.Top] != null ? neighbors[NeighborDir.Top].TessFactor(camPos) : tessLevel;
             var key = new Tuple<int, int>(tessLevel, topEdge);
             if (EdgeIbs[NeighborDir.Top].ContainsKey(key)) {
                 dc.InputAssembler.SetIndexBuffer(EdgeIbs[NeighborDir.Top][key], Format.R16_UInt, 0);
                 dc.DrawIndexed(EdgeIndiceCount[NeighborDir.Top][key], 0, 0);
             }
-            int leftEdge = neighbors[NeighborDir.Left] != null ? neighbors[NeighborDir.Left].TessFactor(camPos) : tessLevel;
+            var leftEdge = neighbors[NeighborDir.Left] != null ? neighbors[NeighborDir.Left].TessFactor(camPos) : tessLevel;
             key = new Tuple<int, int>(tessLevel, leftEdge);
             if (EdgeIbs[NeighborDir.Left].ContainsKey(key)) {
                 dc.InputAssembler.SetIndexBuffer(EdgeIbs[NeighborDir.Left][key], Format.R16_UInt, 0);

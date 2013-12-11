@@ -68,11 +68,11 @@
             _frustumVB = new Buffer(device, vbd);
 
             _edgePlanes = new[] {
-        new Plane(1, 0, 0, -_terrain.Width / 2),
-        new Plane(-1, 0, 0, _terrain.Width / 2),
-        new Plane(0, 1, 0, -_terrain.Depth / 2),
-        new Plane(0, -1, 0, _terrain.Depth / 2)
-    };
+                new Plane(1, 0, 0, -_terrain.Width / 2),
+                new Plane(-1, 0, 0, _terrain.Width / 2),
+                new Plane(0, 1, 0, -_terrain.Depth / 2),
+                new Plane(0, -1, 0, _terrain.Depth / 2)
+            };
 
             ScreenPosition = new Vector2(0.25f, 0.75f);
             Size = new Vector2(0.25f, 0.25f);
@@ -125,7 +125,7 @@
             _dc.Rasterizer.SetViewports(_minimapViewport);
 
             _dc.ClearRenderTargetView(_minimapRTV, Color.White);
-            _terrain.Draw(_dc, _orthoCamera, lights);
+            _terrain.Renderer.Draw(_dc, _orthoCamera, lights);
 
             DrawCameraFrustum();
         }
@@ -140,11 +140,11 @@
 
             // vectors pointed towards the corners of the near plane of the view frustum
             var dirs = new[] {
-        new Vector3(fovX, fovY, 1.0f),
-        new Vector3(-fovX, fovY, 1.0f),
-        new Vector3(-fovX, -fovY, 1.0f),
-        new Vector3(fovX, -fovY, 1.0f)
-    };
+                new Vector3(fovX, fovY, 1.0f),
+                new Vector3(-fovX, fovY, 1.0f),
+                new Vector3(-fovX, -fovY, 1.0f),
+                new Vector3(fovX, -fovY, 1.0f)
+            };
             var points = new Vector3[4];
 
             // view-to-world transform
@@ -239,7 +239,7 @@
 
 
             var tech = Effects.DebugTexFX.ViewArgbTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(MinimapSRV);
                 tech.GetPassByIndex(p).Apply(dc);

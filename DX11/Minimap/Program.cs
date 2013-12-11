@@ -415,7 +415,7 @@ namespace Minimap {
             _lightRotationAngle = MathF.PI - MathF.PI / 16;
 
             var r = Matrix.RotationX(_lightRotationAngle);
-            for (int i = 0; i < 3; i++) {
+            for (var i = 0; i < 3; i++) {
                 var lightDir = _originalLightDirs[i];
                 lightDir = Vector3.TransformNormal(lightDir, r);
                 _dirLights[i].Direction = lightDir;
@@ -471,14 +471,14 @@ namespace Minimap {
 
             var viewProj = _lightView * _lightProj;
 
-            _terrain.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
+            _terrain.Renderer.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
 
             ImmediateContext.Rasterizer.State = null;
 
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
             ImmediateContext.Rasterizer.SetViewports(Viewport);
 
-            _terrain.ComputeSsao(ImmediateContext, _camera, _ssao, DepthStencilView);
+            _terrain.Renderer.ComputeSsao(ImmediateContext, _camera, _ssao, DepthStencilView);
 
 
 
@@ -504,14 +504,14 @@ namespace Minimap {
             Effects.TerrainFX.SetShadowTransform(_shadowTransform);
 
             if (!Util.IsKeyDown(Keys.A)) {
-                _terrain.Shadows = true;
+                _terrain.Renderer.Shadows = true;
             } else {
-                _terrain.Shadows = false;
+                _terrain.Renderer.Shadows = false;
             }
 
 
 
-            _terrain.Draw(ImmediateContext, _camera, _dirLights);
+            _terrain.Renderer.Draw(ImmediateContext, _camera, _dirLights);
 
 
 
@@ -553,7 +553,7 @@ namespace Minimap {
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewRedTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(srv);
                 tech.GetPassByIndex(p).Apply(ImmediateContext);
@@ -578,7 +578,7 @@ namespace Minimap {
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewArgbTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(srv);
                 tech.GetPassByIndex(p).Apply(ImmediateContext);
@@ -603,7 +603,7 @@ namespace Minimap {
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewArgbTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(srv);
                 tech.GetPassByIndex(p).Apply(ImmediateContext);
@@ -628,7 +628,7 @@ namespace Minimap {
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewRedTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(srv);
                 tech.GetPassByIndex(p).Apply(ImmediateContext);

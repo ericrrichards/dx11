@@ -112,6 +112,7 @@
     <Compile Include="Terrain\Minimap.cs" />
     <Compile Include="Terrain\Patch.cs" />
     <Compile Include="Terrain\Terrain.cs" />
+    <Compile Include="Terrain\TerrainRenderer.cs" />
     <Compile Include="TextureAtlas.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Vertex.cs" />

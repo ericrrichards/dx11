@@ -208,7 +208,7 @@ namespace TerrainDemo {
             if (Util.IsKeyDown(Keys.W)) {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
-            _terrain.Draw(ImmediateContext, _camera, _dirLights);
+            _terrain.Renderer.Draw(ImmediateContext, _camera, _dirLights);
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.InstancedPosNormalTexTan;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;

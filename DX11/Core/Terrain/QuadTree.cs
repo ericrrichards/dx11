@@ -3,7 +3,7 @@
 namespace Core.Terrain {
     using SlimDX;
 
-    class QuadTree {
+    public class QuadTree {
         public QuadTreeNode Root;
 
         public bool Intersects(Ray ray, out Vector3 hit) {
@@ -11,7 +11,7 @@ namespace Core.Terrain {
         }
     }
 
-    class QuadTreeNode {
+    public class QuadTreeNode {
         public BoundingBox Bounds;
         public QuadTreeNode[] Children;
 
