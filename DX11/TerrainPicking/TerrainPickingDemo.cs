@@ -216,7 +216,7 @@ namespace TerrainPicking {
             _lightRotationAngle += 0.1f * dt;
 
             var r = Matrix.RotationX(_lightRotationAngle);
-            for (int i = 0; i < 3; i++) {
+            for (var i = 0; i < 3; i++) {
                 var lightDir = _originalLightDirs[i];
                 lightDir = Vector3.TransformNormal(lightDir, r);
                 _dirLights[i].Direction = lightDir;
@@ -277,7 +277,7 @@ namespace TerrainPicking {
             var proj = _lightProj;
             var viewProj = view * proj;
 
-            _terrain.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
+            _terrain.Renderer.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
 
             ImmediateContext.Rasterizer.State = null;
 
@@ -285,7 +285,7 @@ namespace TerrainPicking {
             ImmediateContext.Rasterizer.SetViewports(Viewport);
 
 
-            _terrain.ComputeSsao(ImmediateContext, _camera, _ssao, DepthStencilView);
+            _terrain.Renderer.ComputeSsao(ImmediateContext, _camera, _ssao, DepthStencilView);
 
 
             ImmediateContext.OutputMerger.SetTargets(DepthStencilView, RenderTargetView);
@@ -318,13 +318,13 @@ namespace TerrainPicking {
             Effects.BasicFX.SetSsaoMap(_whiteTex);
             if (_showSphere) {
                 _sphere.World = Matrix.Translation(_spherePos);
-                for (int p = 0; p < Effects.BasicFX.Light1Tech.Description.PassCount; p++) {
+                for (var p = 0; p < Effects.BasicFX.Light1Tech.Description.PassCount; p++) {
                     var pass = Effects.BasicFX.Light1Tech.GetPassByIndex(p);
                     _sphere.DrawBasic(ImmediateContext, pass, _camera.ViewProj);
                 }
             }
 
-            _terrain.Draw(ImmediateContext, _camera, _dirLights);
+            _terrain.Renderer.Draw(ImmediateContext, _camera, _dirLights);
 
 
 
@@ -355,10 +355,15 @@ namespace TerrainPicking {
             } else if (e.Button == MouseButtons.Right) {
                 var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
 
-                _showSphere = _terrain.Intersect(ray, ref _spherePos);
+                var tile = new MapTile();
+                _showSphere = _terrain.Intersect(ray, ref _spherePos, ref tile);
                 
-                _spherePos.Y += 0.1f;
+                //_terrain.Intersect(ray, ref _spherePos, ref tile);
+
                 Console.WriteLine("Clicked at " + _spherePos.ToString());
+                if (tile != null) {
+                    Console.WriteLine("Hit tile " + tile.MapPosition);
+                }
             }
         }
 

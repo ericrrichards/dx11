@@ -178,7 +178,7 @@ namespace ParticlesDemo {
             if (Util.IsKeyDown(Keys.W)) {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
-            _terrain.Draw(ImmediateContext, _camera, _dirLights);
+            _terrain.Renderer.Draw(ImmediateContext, _camera, _dirLights);
             ImmediateContext.Rasterizer.State = null;
 
             _sky.Draw(ImmediateContext, _camera);
