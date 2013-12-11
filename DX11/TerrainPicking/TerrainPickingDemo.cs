@@ -355,10 +355,15 @@ namespace TerrainPicking {
             } else if (e.Button == MouseButtons.Right) {
                 var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
 
-                _showSphere = _terrain.Intersect(ray, ref _spherePos);
+                var tile = new MapTile();
+                _showSphere = _terrain.Intersect(ray, ref _spherePos, ref tile);
                 
-                _spherePos.Y += 0.1f;
+                //_terrain.Intersect(ray, ref _spherePos, ref tile);
+
                 Console.WriteLine("Clicked at " + _spherePos.ToString());
+                if (tile != null) {
+                    Console.WriteLine("Hit tile " + tile.MapPosition);
+                }
             }
         }
 
