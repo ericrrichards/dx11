@@ -13,58 +13,28 @@
 
     #endregion
 
-    public class MapTile {
-
-        public float Height { get; set; }
-        public Point MapPosition { get; set; }
-        public int Type { get; set; }
-        public float Cost { get; set; }
-        public bool Walkable { get; set; }
-        public int Set { get; set; }
-        public float F { get; set; }
-        public float G { get; set; }
-        public bool Open { get; set; }
-        public bool Closed { get; set; }
-        public MapTile Parent { get; set; }
-
-        public MapTile[] Neighbors = new MapTile[8];
-    }
-
-
     public class Terrain : DisposableClass {
         public const int CellsPerPatch = 64;
         private const int TileSize = 2;
-        private bool _disposed;
-        private HeightMap _heightMap;
-        private MapTile[] _tiles;
 
-        private QuadTree _quadTree;
+        private bool _disposed;
+        private MapTile[] _tiles;
+        
+        public float Width { get { return (Info.HeightMapWidth - 1) * Info.CellSpacing; } }
+        public float Depth { get { return (Info.HeightMapHeight - 1) * Info.CellSpacing; } }
+        
+        public InitInfo Info { get; private set; }
+        public HeightMap HeightMap { get; private set; }
+        public Image HeightMapImg { get { return HeightMap.Bitmap; } }
+        public QuadTree QuadTree { get; private set; }
 
         private TerrainRenderer _renderer;
-        public Matrix World { get; set; }
-
-        public Image HeightMapImg { get { return _heightMap.Bitmap; } }
-
-        public float Width { get { return (Info.HeightMapWidth - 1) * Info.CellSpacing; } }
-
-        public float Depth { get { return (Info.HeightMapHeight - 1) * Info.CellSpacing; } }
-
         public TerrainRenderer Renderer { get { return _renderer; } }
 
-        public InitInfo Info { get; private set; }
-
-        public HeightMap HeightMap { get { return _heightMap; } }
-
-        public QuadTree QuadTree { get { return _quadTree; } }
-
         public Terrain() {
-            World = Matrix.Identity;
-
             _renderer = new TerrainRenderer(new Material { Ambient = Color.White, Diffuse = Color.White, Specular = new Color4(64.0f, 0, 0, 0), Reflect = Color.Black }, this);
         }
-
         
-
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
@@ -75,16 +45,18 @@
             base.Dispose(disposing);
         }
 
+        #region Utility Functions
+
         public float Height(float x, float z) {
             var c = (x + 0.5f * Width) / Info.CellSpacing;
             var d = (z - 0.5f * Depth) / -Info.CellSpacing;
             var row = (int)Math.Floor(d);
             var col = (int)Math.Floor(c);
 
-            var h00 = _heightMap[row, col];
-            var h01 = _heightMap[row, col + 1];
-            var h10 = _heightMap[(row + 1), col];
-            var h11 = _heightMap[(row + 1), col + 1];
+            var h00 = HeightMap[row, col];
+            var h01 = HeightMap[row, col + 1];
+            var h10 = HeightMap[(row + 1), col];
+            var h11 = HeightMap[(row + 1), col + 1];
 
             var s = c - col;
             var t = d - row;
@@ -100,65 +72,116 @@
             }
         }
 
+        private static float H(Point start, Point goal) { return MathF.Sqrt((goal.X - start.X) * (goal.X - start.X) + (goal.Y - start.Y) * (goal.Y - start.Y)); }
+
+        private bool Within(Point p) {
+            return p.X >= 0 && p.X < Info.HeightMapWidth / TileSize && p.Y >= 0 && p.Y < Info.HeightMapHeight / TileSize;
+        }
+
+        private MapTile GetTile(Point point) { return GetTile(point.X, point.Y); }
+
+        private MapTile GetTile(int x, int y) {
+            if (_tiles == null)
+                return null;
+            return _tiles[x + y * Info.HeightMapHeight / TileSize];
+        }
+
+        private Vector2 GetMinMaxY(Vector2 tl, Vector2 br) {
+            var max = float.MinValue;
+            var min = float.MaxValue;
+            for (var x = (int)tl.X; x < br.X; x++) {
+                for (var y = (int)tl.Y; y < br.Y; y++) {
+                    min = Math.Min(min, HeightMap[y, x]);
+                    max = Math.Max(max, HeightMap[y, x]);
+                }
+            }
+            return new Vector2(min, max);
+        }
+        #endregion
+
         public void Init(Device device, DeviceContext dc, InitInfo info) {
             D3DApp.GD3DApp.ProgressUpdate.Draw(0, "Initializing terrain");
 
             Info = info;
-            _heightMap = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, Info.HeightScale);
+            HeightMap = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, Info.HeightScale);
             if (!string.IsNullOrEmpty(Info.HeightMapFilename)) {
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f, "Loading terrain from file");
-                _heightMap.LoadHeightmap(Info.HeightMapFilename);
+                HeightMap.LoadHeightmap(Info.HeightMapFilename);
             } else {
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f, "Generating random terrain");
                 GenerateRandomTerrain();
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f, "Smoothing terrain");
-                _heightMap.Smooth(true);
+                HeightMap.Smooth(true);
             }
             InitPathfinding();
             D3DApp.GD3DApp.ProgressUpdate.Draw(0.55f, "Building picking quadtree...");
-            _quadTree = new QuadTree { Root = BuildQuadTree(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1))) };
-
-            
+            QuadTree = new QuadTree {
+                Root = BuildQuadTree(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1)))
+            };
             
 
             Renderer.Init(device, dc, this);
         }
 
+        private void GenerateRandomTerrain() {
+            var hm2 = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, 2.0f);
+            HeightMap.CreateRandomHeightMapParallel(Info.Seed, Info.NoiseSize1, Info.Persistence1, Info.Octaves1, true);
+            hm2.CreateRandomHeightMapParallel(Info.Seed, Info.NoiseSize2, Info.Persistence2, Info.Octaves2, true);
+            hm2.Cap(hm2.MaxHeight * 0.4f);
+            HeightMap *= hm2;
+        }
+
+        #region Pathfinding
+
         private void InitPathfinding() {
-            _tiles = new MapTile[Info.HeightMapWidth / TileSize * Info.HeightMapHeight / TileSize];
+            ResetPathfinding();
+
+            SetTilePositionsAndTypes();
+            CalculateWalkability();
+            ConnectNeighboringTiles();
+            CreateTileSets();
+        }
+
+        private void ResetPathfinding() {
+            _tiles = new MapTile[Info.HeightMapWidth/TileSize*Info.HeightMapHeight/TileSize];
             for (var i = 0; i < _tiles.Length; i++) {
                 _tiles[i] = new MapTile();
             }
+        }
 
-            for (var y = 0; y < Info.HeightMapWidth / TileSize; y++) {
+        private void SetTilePositionsAndTypes() {
+            for (var y = 0; y < Info.HeightMapWidth/TileSize; y++) {
                 for (var x = 0; x < Info.HeightMapHeight/TileSize; x++) {
-                    var tile = GetTile(x, y) ;
-                    var worldX = x * Info.CellSpacing - Width / 2;
-                    var worldZ = -y * Info.CellSpacing + Depth / 2;
+                    var tile = GetTile(x, y);
+                    var worldX = x*Info.CellSpacing - Width/2;
+                    var worldZ = -y*Info.CellSpacing + Depth/2;
                     tile.Height = Height(worldX, worldZ);
                     tile.MapPosition = new Point(x, y);
-                    
+                    tile.WorldPos = new Vector3(worldX, tile.Height, worldZ);
 
-                    if (tile.Height > _heightMap.MaxHeight * (0.05f)) {
+                    if (tile.Height > HeightMap.MaxHeight*(0.05f)) {
                         tile.Type = 0;
-                    } else if (tile.Height > _heightMap.MaxHeight * (0.4f)) {
+                    } else if (tile.Height > HeightMap.MaxHeight*(0.4f)) {
                         tile.Type = 1;
-                    } else if (tile.Height > _heightMap.MaxHeight * (0.75f)) {
+                    } else if (tile.Height > HeightMap.MaxHeight*(0.75f)) {
                         tile.Type = 2;
                     }
                 }
             }
-            for (var y = 0; y < Info.HeightMapWidth / TileSize; y++) {
-                for (var x = 0; x < Info.HeightMapHeight / TileSize; x++) {
+        }
+
+        private void CalculateWalkability() {
+            for (var y = 0; y < Info.HeightMapWidth/TileSize; y++) {
+                for (var x = 0; x < Info.HeightMapHeight/TileSize; x++) {
                     var tile = GetTile(x, y);
 
                     if (tile == null) {
                         continue;
                     }
                     var p = new[] {
-                        new Point(x - 1, y - 1), new Point(x , y - 1), new Point(x + 1, y - 1),
-                        new Point(x - 1, y),new Point(x + 1, y ),
-                        new Point(x - 1, y + 1),new Point(x , y + 1),new Point(x + 1, y + 1)
+                        new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
+                        new Point(x - 1, y), new Point(x + 1, y),
+                        new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
                     };
                     var variance = 0.0f;
                     var nr = 0;
@@ -171,7 +194,7 @@
                             continue;
                         }
                         var v = neighbor.Height - tile.Height;
-                        variance += v * v;
+                        variance += v*v;
                         nr++;
                     }
                     variance /= nr;
@@ -181,17 +204,20 @@
                     tile.Walkable = tile.Cost < 0.5f;
                 }
             }
-            for (var y = 0; y < Info.HeightMapWidth / TileSize; y++) {
-                for (var x = 0; x < Info.HeightMapHeight / TileSize; x++) {
+        }
+
+        private void ConnectNeighboringTiles() {
+            for (var y = 0; y < Info.HeightMapWidth/TileSize; y++) {
+                for (var x = 0; x < Info.HeightMapHeight/TileSize; x++) {
                     var tile = GetTile(x, y);
                     if (tile != null && tile.Walkable) {
                         for (var i = 0; i < 8; i++) {
                             tile.Neighbors[i] = null;
                         }
                         var p = new[] {
-                            new Point(x - 1, y - 1), new Point(x , y - 1), new Point(x + 1, y - 1),
-                            new Point(x - 1, y),new Point(x + 1, y ),
-                            new Point(x - 1, y + 1),new Point(x , y + 1),new Point(x + 1, y + 1)
+                            new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
+                            new Point(x - 1, y), new Point(x + 1, y),
+                            new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
                         };
                         for (var i = 0; i < 8; i++) {
                             if (!Within(p[i])) {
@@ -205,7 +231,6 @@
                     }
                 }
             }
-            CreateTileSets();
         }
 
         private void CreateTileSets() {
@@ -237,15 +262,15 @@
             }
         }
 
-        public List<Point> GetPath(Point start, Point goal) {
+        public List<MapTile> GetPath(Point start, Point goal) {
             var startTile = GetTile(start);
             var goalTile = GetTile(goal);
 
             if (!Within(start) || !Within(goal) || start == goal || startTile == null || goalTile == null) {
-                return new List<Point>();
+                return new List<MapTile>();
             }
             if (!startTile.Walkable || !goalTile.Walkable || startTile.Set != goalTile.Set) {
-                return new List<Point>();
+                return new List<MapTile>();
             }
             var numTiles = Info.HeightMapWidth / TileSize * Info.HeightMapHeight / TileSize;
             for (var i = 0; i < numTiles; i++) {
@@ -274,10 +299,10 @@
                 open[bestPlace].Open = false;
                 open.RemoveAt(bestPlace);
                 if (best.MapPosition == goal) {
-                    var p = new List<Point>();
+                    var p = new List<MapTile>();
                     var point = best;
                     while (point.MapPosition != start) {
-                        p.Add(point.MapPosition);
+                        p.Add(point);
                         point = point.Parent;
                     }
                     p.Reverse();
@@ -311,22 +336,9 @@
                 }
                 best.Closed = true;
             }
-            return new List<Point>();
+            return new List<MapTile>();
         }
-
-        private static float H(Point start, Point goal) { return MathF.Sqrt((goal.X - start.X) * (goal.X - start.X) + (goal.Y - start.Y) * (goal.Y - start.Y)); }
-
-        private bool Within(Point p) {
-            return p.X >= 0 && p.X < Info.HeightMapWidth / TileSize && p.Y >= 0 && p.Y < Info.HeightMapHeight / TileSize;
-        }
-
-        private MapTile GetTile(Point point) { return GetTile(point.X, point.Y); }
-
-        private MapTile GetTile(int x, int y) {
-            if (_tiles == null)
-                return null;
-            return _tiles[x + y * Info.HeightMapHeight / TileSize];
-        }
+        #endregion
 
         private QuadTreeNode BuildQuadTree(Vector2 topLeft, Vector2 bottomRight) {
             const float tolerance = 0.01f;
@@ -365,29 +377,10 @@
             return quadNode;
         }
 
-        private Vector2 GetMinMaxY(Vector2 tl, Vector2 br) {
-            var max = float.MinValue;
-            var min = float.MaxValue;
-            for (var x = (int)tl.X; x < br.X; x++) {
-                for (var y = (int)tl.Y; y < br.Y; y++) {
-                    min = Math.Min(min, _heightMap[y, x]);
-                    max = Math.Max(max, _heightMap[y, x]);
-                }
-            }
-            return new Vector2(min, max);
-        }
-
-        private void GenerateRandomTerrain() {
-            var hm2 = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, 2.0f);
-            _heightMap.CreateRandomHeightMapParallel(Info.Seed, Info.NoiseSize1, Info.Persistence1, Info.Octaves1, true);
-            hm2.CreateRandomHeightMapParallel(Info.Seed, Info.NoiseSize2, Info.Persistence2, Info.Octaves2, true);
-            hm2.Cap(hm2.MaxHeight * 0.4f);
-            _heightMap *= hm2;
-        }
-
+        #region Intersection tests
         public bool Intersect(Ray ray, ref Vector3 spherePos) {
             Vector3 ret;
-            if (!_quadTree.Intersects(ray, out ret)) {
+            if (!QuadTree.Intersects(ray, out ret)) {
                 return false;
             }
             ret.Y = Height(ret.X, ret.Z);
@@ -397,7 +390,7 @@
         public bool Intersect(Ray ray, ref Vector3 spherePos, ref MapTile mapPos) {
             Vector3 ret;
             QuadTreeNode ret2;
-            if (!_quadTree.Intersects(ray, out ret, out ret2)) {
+            if (!QuadTree.Intersects(ray, out ret, out ret2)) {
                 return false;
             }
             ret.Y = Height(ret.X, ret.Z);
@@ -407,12 +400,13 @@
         }
         public bool Intersect(Ray ray, ref MapTile mapPos) {
             QuadTreeNode ret;
-            if (!_quadTree.Intersects(ray, out ret)) {
+            if (!QuadTree.Intersects(ray, out ret)) {
                 return false;
             }
             mapPos = ret.MapTile;
             return true;
         }
+        #endregion
 
     }
 }

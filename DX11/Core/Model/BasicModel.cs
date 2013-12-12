@@ -11,50 +11,11 @@ using SlimDX.Direct3D11;
 namespace Core.Model {
     using System.Drawing;
 
-    public class BasicModel : DisposableClass {
-        private bool _disposed;
-        private readonly List<MeshGeometry.Subset> _subsets;
-        private readonly List<PosNormalTexTan> _vertices;
-        private readonly List<short> _indices;
-        private MeshGeometry _modelMesh;
+    public class BasicModel : IModel<PosNormalTexTan> {
 
-
-        public List<Material> Materials { get; private set; }
-        public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
-        public List<ShaderResourceView> NormalMapSRV { get; private set; }
-        public BoundingBox BoundingBox { get; private set; }
-
-        public MeshGeometry ModelMesh { get { return _modelMesh; } }
-        public int SubsetCount { get { return _subsets.Count; } }
-
-        protected override void Dispose(bool disposing) {
-            if (!_disposed) {
-                if (disposing) {
-                    Util.ReleaseCom(ref _modelMesh);
-
-                }
-                _disposed = true;
-            }
-            base.Dispose(disposing);
-        }
-        private BasicModel() {
-            _subsets = new List<MeshGeometry.Subset>();
-            _vertices = new List<PosNormalTexTan>();
-            _indices = new List<short>();
-            DiffuseMapSRV = new List<ShaderResourceView>();
-            NormalMapSRV = new List<ShaderResourceView>();
-            Materials = new List<Material>();
-            _modelMesh = new MeshGeometry();
-        }
+        public BasicModel() { }
 
         public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath) {
-            _subsets = new List<MeshGeometry.Subset>();
-            _vertices = new List<PosNormalTexTan>();
-            _indices = new List<short>();
-            DiffuseMapSRV = new List<ShaderResourceView>();
-            NormalMapSRV = new List<ShaderResourceView>();
-            Materials = new List<Material>();
-            _modelMesh = new MeshGeometry();
 
             var importer = new AssimpImporter();
             if (!importer.IsImportFormatSupported(Path.GetExtension(filename))) {
@@ -75,11 +36,11 @@ namespace Core.Model {
                 var subset = new MeshGeometry.Subset {
 
                     VertexCount = mesh.VertexCount,
-                    VertexStart = _vertices.Count,
-                    FaceStart = _indices.Count / 3,
+                    VertexStart = Vertices.Count,
+                    FaceStart = Indices.Count / 3,
                     FaceCount = mesh.FaceCount
                 };
-                _subsets.Add(subset);
+                Subsets.Add(subset);
                 // bounding box corners
 
 
@@ -95,10 +56,10 @@ namespace Core.Model {
                     verts.Add(v);
                 }
 
-                _vertices.AddRange(verts);
+                Vertices.AddRange(verts);
 
                 var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
-                _indices.AddRange(indices);
+                Indices.AddRange(indices);
 
                 var mat = model.Materials[mesh.MaterialIndex];
                 var material = mat.ToMaterial();
@@ -125,23 +86,19 @@ namespace Core.Model {
                 }
             }
             BoundingBox = new BoundingBox(min, max);
-            _modelMesh.SetSubsetTable(_subsets);
-            _modelMesh.SetVertices(device, _vertices);
-            _modelMesh.SetIndices(device, _indices);
+            ModelMesh.SetSubsetTable(Subsets);
+            ModelMesh.SetVertices(device, Vertices);
+            ModelMesh.SetIndices(device, Indices);
         }
 
-
-
-        private static BasicModel BuildFromMeshData(Device device, GeometryGenerator.MeshData mesh) {
-            var ret = new BasicModel();
-
+        protected override void InitFromMeshData(Device device, GeometryGenerator.MeshData mesh) {
             var subset = new MeshGeometry.Subset {
                 FaceCount = mesh.Indices.Count / 3,
                 FaceStart = 0,
                 VertexCount = mesh.Vertices.Count,
                 VertexStart = 0
             };
-            ret._subsets.Add(subset);
+            Subsets.Add(subset);
 
             var max = new Vector3(float.MinValue);
             var min = new Vector3(float.MaxValue);
@@ -150,38 +107,38 @@ namespace Core.Model {
                 min = Vector3.Minimize(min, vertex.Position);
             }
 
-            ret.BoundingBox = new BoundingBox(min, max);
+            BoundingBox = new BoundingBox(min, max);
 
-            ret._vertices.AddRange(mesh.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
-            ret._indices.AddRange(mesh.Indices.Select(i => (short)i));
+            Vertices.AddRange(mesh.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
+            Indices.AddRange(mesh.Indices.Select(i => (short)i));
 
-            ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
-            ret.DiffuseMapSRV.Add(null);
-            ret.NormalMapSRV.Add(null);
+            Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
+            DiffuseMapSRV.Add(null);
+            NormalMapSRV.Add(null);
 
-            ret._modelMesh.SetSubsetTable(ret._subsets);
-            ret._modelMesh.SetVertices(device, ret._vertices);
-            ret._modelMesh.SetIndices(device, ret._indices);
-
-            return ret;
+            ModelMesh.SetSubsetTable(Subsets);
+            ModelMesh.SetVertices(device, Vertices);
+            ModelMesh.SetIndices(device, Indices);
         }
 
-
-        public static BasicModel CreateBox(Device device, float width, float height, float depth) {
+        public override void CreateBox(Device device, float width, float height, float depth) {
             var box = GeometryGenerator.CreateBox(width, height, depth);
-            return BuildFromMeshData(device, box);
+            InitFromMeshData(device, box);
         }
-        public static BasicModel CreateSphere(Device device, float radius, int slices, int stacks) {
+
+        public override void CreateSphere(Device device, float radius, int slices, int stacks) {
             var sphere = GeometryGenerator.CreateSphere(radius, slices, stacks);
-            return BuildFromMeshData(device, sphere);
+            InitFromMeshData(device, sphere);
         }
-        public static BasicModel CreateCylinder(Device device, float bottomRadius, float topRadius, float height, int sliceCount, int stackCount) {
+
+        public override void CreateCylinder(Device device, float bottomRadius, float topRadius, float height, int sliceCount, int stackCount) {
             var cylinder = GeometryGenerator.CreateCylinder(bottomRadius, topRadius, height, sliceCount, stackCount);
-            return BuildFromMeshData(device, cylinder);
+            InitFromMeshData(device, cylinder);
         }
-        public static BasicModel CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
+
+        public override void CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
             var grid = GeometryGenerator.CreateGrid(width, depth, xVerts, zVerts);
-            return BuildFromMeshData(device, grid);
+            InitFromMeshData(device, grid);
         }
 
         public static BasicModel LoadFromTxtFile(Device device, string filename) {
@@ -252,7 +209,7 @@ namespace Core.Model {
                 VertexCount = vertices.Count,
                 VertexStart = 0
             };
-            ret._subsets.Add(subset);
+            ret.Subsets.Add(subset);
             var max = new Vector3(float.MinValue);
             var min = new Vector3(float.MaxValue);
             foreach (var vertex in vertices) {
@@ -261,16 +218,16 @@ namespace Core.Model {
             }
             ret.BoundingBox = new BoundingBox(min, max);
 
-            ret._vertices.AddRange(vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.Tex, new Vector3(1, 0, 0))).ToList());
-            ret._indices.AddRange(indices.Select(i => (short)i));
+            ret.Vertices.AddRange(vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.Tex, new Vector3(1, 0, 0))).ToList());
+            ret.Indices.AddRange(indices.Select(i => (short)i));
 
             ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
             ret.DiffuseMapSRV.Add(null);
             ret.NormalMapSRV.Add(null);
 
-            ret._modelMesh.SetSubsetTable(ret._subsets);
-            ret._modelMesh.SetVertices(device, ret._vertices);
-            ret._modelMesh.SetIndices(device, ret._indices);
+            ret.ModelMesh.SetSubsetTable(ret.Subsets);
+            ret.ModelMesh.SetVertices(device, ret.Vertices);
+            ret.ModelMesh.SetIndices(device, ret.Indices);
 
             return ret;
 

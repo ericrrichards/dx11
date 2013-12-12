@@ -130,7 +130,8 @@ namespace SkinnedModels {
             }
             _soldierInstance.LoopClips = true;
 
-            _grid = BasicModel.CreateGrid(Device, 30, 30, 60, 60);
+            _grid = new BasicModel();
+                _grid.CreateGrid(Device, 30, 30, 60, 60);
             _grid.DiffuseMapSRV[0] = (_texMgr.CreateTexture("Textures/floor.dds"));
             _grid.NormalMapSRV[0]= (_texMgr.CreateTexture("Textures/floor_nmap.dds"));
             _gridInstance = new BasicModelInstance() {

@@ -17,14 +17,18 @@ namespace Core {
     using Resource = SlimDX.Direct3D11.Resource;
 
     public static class Util {
+        private static byte[] _unmanagedStaging = new byte[1024];
+
         public static byte[] GetArray(object o) {
             var len = Marshal.SizeOf(o);
-            var arr = new byte[len];
+            if (len >= _unmanagedStaging.Length) {
+                _unmanagedStaging = new byte[len];
+            }
             var ptr = Marshal.AllocHGlobal(len);
             Marshal.StructureToPtr(o, ptr, true);
-            Marshal.Copy(ptr, arr, 0, len);
+            Marshal.Copy(ptr, _unmanagedStaging, 0, len);
             Marshal.FreeHGlobal(ptr);
-            return arr;
+            return _unmanagedStaging;
 
         }
 

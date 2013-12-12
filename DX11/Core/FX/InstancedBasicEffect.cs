@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using SlimDX;
 using SlimDX.Direct3D11;
 
@@ -40,6 +41,8 @@ namespace Core.FX {
         private readonly EffectScalarVariable _fogStart;
         private readonly EffectScalarVariable _fogRange;
         private readonly EffectVariable _dirLights;
+        public const int MaxLights = 3;
+        private readonly byte[] _dirLightsArray = new byte[DirectionalLight.Stride * MaxLights];
         private readonly EffectVariable _mat;
 
         private readonly EffectResourceVariable _diffuseMap;
@@ -52,18 +55,19 @@ namespace Core.FX {
             _eyePosW.Set(v);
         }
         public void SetDirLights(DirectionalLight[] lights) {
-            System.Diagnostics.Debug.Assert(lights.Length <= 3, "BasicEffect only supports up to 3 lights");
-            var array = new List<byte>();
-            foreach (var light in lights) {
+            System.Diagnostics.Debug.Assert(lights.Length <= MaxLights, "BasicEffect only supports up to 3 lights");
+
+            for (int i = 0; i < lights.Length && i < MaxLights; i++) {
+                var light = lights[i];
                 var d = Util.GetArray(light);
-                array.AddRange(d);
+                Array.Copy(d, 0, _dirLightsArray, i * DirectionalLight.Stride, DirectionalLight.Stride);
             }
 
-            _dirLights.SetRawValue(new DataStream(array.ToArray(), false, false), array.Count);
+            _dirLights.SetRawValue(new DataStream(_dirLightsArray, false, false), _dirLightsArray.Length);
         }
         public void SetMaterial(Material m) {
             var d = Util.GetArray(m);
-            _mat.SetRawValue(new DataStream(d, false, false), d.Length);
+            _mat.SetRawValue(new DataStream(d, false, false), Material.Stride);
         }
 
         public void SetTexTransform(Matrix m) {

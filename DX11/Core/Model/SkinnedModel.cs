@@ -4,41 +4,18 @@ using System.Linq;
 using Assimp;
 using Core.Vertex;
 using SlimDX;
-using SlimDX.Direct3D11;
-
 using Device = SlimDX.Direct3D11.Device;
 
 namespace Core.Model {
-    public class SkinnedModel : DisposableClass {
-        private MeshGeometry _modelMesh;
-        public MeshGeometry ModelMesh { get { return _modelMesh; } }
-
-        private readonly List<MeshGeometry.Subset> _subsets;
-        public int SubsetCount { get { return _subsets.Count; } }
-
-        private readonly List<PosNormalTexTanSkinned> _vertices;
-        private readonly List<short> _indices;
-
-        protected internal SceneAnimator Animator { get; private set; }
-
-        public List<Material> Materials { get; private set; }
-        public List<ShaderResourceView> DiffuseMapSRV { get; private set; }
-        public List<ShaderResourceView> NormalMapSRV { get; private set; }
-
-        public BoundingBox BoundingBox { get; private set; }
+    public class SkinnedModel : IModel<PosNormalTexTanSkinned> {
+        
         private Vector3 _min;
         private Vector3 _max;
+        protected internal SceneAnimator Animator { get; private set; }
 
-        private bool _disposed;
 
         public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipTexY = false) {
-            // initialize collections
-            _subsets = new List<MeshGeometry.Subset>();
-            _vertices = new List<PosNormalTexTanSkinned>();
-            _indices = new List<short>();
-            DiffuseMapSRV = new List<ShaderResourceView>();
-            NormalMapSRV = new List<ShaderResourceView>();
-            Materials = new List<Material>();
+           
             
             var importer = new AssimpImporter();
         #if DEBUG
@@ -61,17 +38,17 @@ namespace Core.Model {
                 ExtractBoneWeightsFromMesh(mesh, vertToBoneWeight);
                 var subset = new MeshGeometry.Subset {
                     VertexCount = mesh.VertexCount,
-                    VertexStart = _vertices.Count,
-                    FaceStart = _indices.Count / 3,
+                    VertexStart = Vertices.Count,
+                    FaceStart = Indices.Count / 3,
                     FaceCount = mesh.FaceCount
                 };
-                _subsets.Add(subset);
+                Subsets.Add(subset);
 
                 var verts = ExtractVertices(mesh, vertToBoneWeight, flipTexY);
-                _vertices.AddRange(verts);
+                Vertices.AddRange(verts);
                 // extract indices and shift them to the proper offset into the combined vertex buffer
                 var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
-                _indices.AddRange(indices);
+                Indices.AddRange(indices);
 
                 // extract materials
                 var mat = model.Materials[mesh.MaterialIndex];
@@ -98,10 +75,10 @@ namespace Core.Model {
                 }
             }
             BoundingBox = new BoundingBox(_min, _max);
-            _modelMesh = new MeshGeometry();
-            _modelMesh.SetSubsetTable(_subsets);
-            _modelMesh.SetVertices(device, _vertices);
-            _modelMesh.SetIndices(device, _indices);
+            
+            ModelMesh.SetSubsetTable(Subsets);
+            ModelMesh.SetVertices(device, Vertices);
+            ModelMesh.SetIndices(device, Indices);
         }
 
         private IEnumerable<PosNormalTexTanSkinned> ExtractVertices(Mesh mesh, IReadOnlyDictionary<uint, List<VertexWeight>> vertToBoneWeights, bool flipTexY) {
@@ -152,14 +129,14 @@ namespace Core.Model {
         }
 
 
-        protected override void Dispose(bool disposing) {
-            if (!_disposed) {
-                if (disposing) {
-                    Util.ReleaseCom(ref _modelMesh);
-                }
-                _disposed = true;
-            }
-            base.Dispose(disposing);
-        }
+        protected override void InitFromMeshData(Device device, GeometryGenerator.MeshData mesh) { throw new System.NotImplementedException(); }
+
+        public override void CreateBox(Device device, float width, float height, float depth) { throw new System.NotImplementedException(); }
+
+        public override void CreateSphere(Device device, float radius, int slices, int stacks) { throw new System.NotImplementedException(); }
+
+        public override void CreateCylinder(Device device, float bottomRadius, float topRadius, float height, int sliceCount, int stackCount) { throw new System.NotImplementedException(); }
+
+        public override void CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) { throw new System.NotImplementedException(); }
     }
 }
