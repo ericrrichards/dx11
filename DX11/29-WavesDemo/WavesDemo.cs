@@ -37,7 +37,7 @@ namespace _29_WavesDemo {
 
         private bool _disposed;
 
-        protected WavesDemo(IntPtr hInstance) : base(hInstance) {
+        private WavesDemo(IntPtr hInstance) : base(hInstance) {
             
 
             MainWindowCaption = "Waves Demo";
@@ -148,6 +148,8 @@ namespace _29_WavesDemo {
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth|DepthStencilClearFlags.Stencil, 1.0f, 0 );
 
             var viewProj = _camera.ViewProj;
+            var view = _camera.View;
+            var proj = _camera.Proj;
 
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetEyePosW(_camera.Position);
@@ -196,12 +198,12 @@ namespace _29_WavesDemo {
                 var pass = activeTech.GetPassByIndex(p);
                 
                 
-                _box.DrawDisplaced(ImmediateContext, pass, viewProj);
+                _box.Draw(ImmediateContext, pass, view,proj, RenderMode.DisplacementMapped);
 
                 // draw columns
                 foreach (var cylinder in _cylinders) {
                     
-                    cylinder.DrawDisplaced(ImmediateContext, pass, viewProj);
+                    cylinder.Draw(ImmediateContext, pass, view,proj, RenderMode.DisplacementMapped);
                 }
 
             }
@@ -213,7 +215,7 @@ namespace _29_WavesDemo {
                 var pass = activeSphereTech.GetPassByIndex(p);
 
                 foreach (var sphere in _spheres) {
-                    sphere.DrawBasic(ImmediateContext, pass, viewProj);
+                    sphere.Draw(ImmediateContext, pass, view,proj, RenderMode.Basic);
                 }
 
             }
@@ -221,7 +223,7 @@ namespace _29_WavesDemo {
             ImmediateContext.Rasterizer.State = null;
             
             for (var p = 0; p < activeSkullTech.Description.PassCount; p++) {
-                _skull.DrawBasic(ImmediateContext, activeSkullTech.GetPassByIndex(p), viewProj);
+                _skull.Draw(ImmediateContext, activeSkullTech.GetPassByIndex(p), view, proj, RenderMode.Basic);
 
             }
 
@@ -262,16 +264,16 @@ namespace _29_WavesDemo {
                 Specular = new Color4(16.0f, 0.8f, 0.8f, 0.8f),
                 Reflect = new Color4(0.5f, 0.5f, 0.5f)
             };
-            
 
-            _skull = new BasicModelInstance {
-                Model = _skullModel,
+
+            _skull = new BasicModelInstance(_skullModel) {
                 World = Matrix.Scaling(0.5f, 0.5f, 0.5f) * Matrix.Translation(0, 1.0f, 0)
             };
         }
         private void BuildShapeGeometryBuffers() {
             
-            _boxModel = BasicModel.CreateBox(Device, 1, 1, 1);
+            _boxModel = new BasicModel();
+            _boxModel.CreateBox(Device, 1, 1, 1);
             _boxModel.Materials[0] = new Material {
                 Ambient = new Color4(1f, 1f, 1f),
                 Diffuse = new Color4(1f, 1f, 1f),
@@ -283,14 +285,16 @@ namespace _29_WavesDemo {
 
             
 
-            _sphereModel = BasicModel.CreateSphere(Device, 0.5f, 20, 20);
+            _sphereModel = new BasicModel();
+            _sphereModel.CreateSphere(Device, 0.5f, 20, 20);
             _sphereModel.Materials[0] = new Material {
                 Ambient = new Color4(0.2f, 0.3f, 0.4f),
                 Diffuse = new Color4(0.2f, 0.3f, 0.4f),
                 Specular = new Color4(16.0f, 0.9f, 0.9f, 0.9f),
                 Reflect = new Color4(0.4f, 0.4f, 0.4f)
             };
-            _cylinderModel = BasicModel.CreateCylinder(Device, 0.5f, 0.3f, 3.0f, 15, 15);
+            _cylinderModel = new BasicModel();
+            _cylinderModel.CreateCylinder(Device, 0.5f, 0.3f, 3.0f, 15, 15);
             _cylinderModel.Materials[0] = new Material {
                 Ambient = new Color4(1f, 1f, 1f),
                 Diffuse = new Color4(1f, 1f, 1f),
@@ -301,29 +305,24 @@ namespace _29_WavesDemo {
             _cylinderModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
 
             for (var i = 0; i < 5; i++) {
-                _cylinders[i * 2] = new BasicModelInstance {
-                    Model = _cylinderModel,
+                _cylinders[i * 2] = new BasicModelInstance(_cylinderModel) {
                     World = Matrix.Translation(-5.0f, 1.5f, -10.0f + i * 5.0f),
                     TexTransform = Matrix.Scaling(1, 2, 1)
                 };
-                _cylinders[i * 2 + 1] = new BasicModelInstance {
-                    Model = _cylinderModel,
+                _cylinders[i * 2 + 1] = new BasicModelInstance(_cylinderModel) {
                     World = Matrix.Translation(5.0f, 1.5f, -10.0f + i * 5.0f),
                     TexTransform = Matrix.Scaling(1, 2, 1)
                 };
 
-                _spheres[i * 2] = new BasicModelInstance {
-                    Model = _sphereModel,
+                _spheres[i * 2] = new BasicModelInstance(_sphereModel) {
                     World = Matrix.Translation(-5.0f, 3.45f, -10.0f + i * 5.0f)
                 };
-                _spheres[i * 2 + 1] = new BasicModelInstance {
-                    Model = _sphereModel,
+                _spheres[i * 2 + 1] = new BasicModelInstance(_sphereModel) {
                     World = Matrix.Translation(5.0f, 3.45f, -10.0f + i * 5.0f)
                 };
             }
 
-            _box = new BasicModelInstance {
-                Model = _boxModel,
+            _box = new BasicModelInstance(_boxModel) {
                 TexTransform = Matrix.Scaling(2, 1, 1),
                 World = Matrix.Scaling(3.0f, 1.0f, 3.0f) * Matrix.Translation(0, 0.5f, 0)
             };

@@ -133,8 +133,8 @@ namespace TerrainDemo {
                     x = MathF.Rand(-_terrain.Width/2, _terrain.Width/2);
                     z = MathF.Rand(-_terrain.Depth/2, _terrain.Depth/2);
                 }
-                var treeInstance = new BasicModelInstance {
-                    Model = _treeModel,
+                var treeInstance = new BasicModelInstance(_treeModel) {
+                    
                     World = Matrix.RotationX(MathF.PI / 2) * Matrix.Translation(x, _terrain.Height(x, z), z)
                 };
                 _treeInstances.Add(treeInstance);

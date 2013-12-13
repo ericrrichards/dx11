@@ -22,8 +22,6 @@ namespace _28_SsaoDemo {
 
         private Buffer _skullVB;
         private Buffer _skullIB;
-        private Buffer _screenQuadVB;
-        private Buffer _screenQuadIB;
 
         private TextureManager _texMgr;
 
@@ -160,7 +158,8 @@ namespace _28_SsaoDemo {
             _texMgr = new TextureManager();
             _texMgr.Init(Device);
 
-            _boxModel = BasicModel.CreateBox(Device, 1, 1, 1);
+            _boxModel =new BasicModel(); 
+            _boxModel.CreateBox(Device, 1, 1, 1);
             _boxModel.Materials[0] = new Material {
                 Ambient = new Color4(0.8f, 0.8f, 0.8f),
                 Diffuse = new Color4(0.4f, 0.4f, 0.4f),
@@ -170,7 +169,8 @@ namespace _28_SsaoDemo {
             _boxModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/bricks.dds");
             _boxModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
 
-            _gridModel = BasicModel.CreateGrid(Device, 20, 30, 50, 40);
+            _gridModel = new BasicModel(); 
+            _gridModel.CreateGrid(Device, 20, 30, 50, 40);
             _gridModel.Materials[0] = new Material {
                 Ambient = new Color4(0.7f, 0.7f, 0.7f),
                 Diffuse = new Color4(0.6f, 0.6f, 0.6f),
@@ -181,14 +181,16 @@ namespace _28_SsaoDemo {
             _gridModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/floor_nmap.dds");
 
 
-            _sphereModel = BasicModel.CreateSphere(Device, 0.5f, 20, 20);
+            _sphereModel = new BasicModel(); 
+            _sphereModel.CreateSphere(Device, 0.5f, 20, 20);
             _sphereModel.Materials[0] = new Material {
                 Ambient = new Color4(0.3f, 0.4f, 0.5f),
                 Diffuse = new Color4(0.2f, 0.3f, 0.4f),
                 Specular = new Color4(16.0f, 0.9f, 0.9f, 0.9f),
                 Reflect = new Color4(0.3f, 0.3f, 0.3f)
             };
-            _cylinderModel = BasicModel.CreateCylinder(Device, 0.5f, 0.5f, 3.0f, 15, 15);
+            _cylinderModel = new BasicModel(); 
+            _cylinderModel.CreateCylinder(Device, 0.5f, 0.5f, 3.0f, 15, 15);
             _cylinderModel.Materials[0] = new Material {
                 Ambient = new Color4(0.8f, 0.8f, 0.8f),
                 Diffuse = new Color4(0.4f, 0.4f, 0.4f),
@@ -199,35 +201,29 @@ namespace _28_SsaoDemo {
             _cylinderModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
 
             for (var i = 0; i < 5; i++) {
-                _cylinders[i * 2] = new BasicModelInstance {
-                    Model = _cylinderModel,
+                _cylinders[i * 2] = new BasicModelInstance(_cylinderModel) {
                     World = Matrix.Translation(-5.0f, 1.5f, -10.0f + i * 5.0f),
                     TexTransform = Matrix.Scaling(1, 2, 1)
                 };
-                _cylinders[i * 2 + 1] = new BasicModelInstance {
-                    Model = _cylinderModel,
+                _cylinders[i * 2 + 1] = new BasicModelInstance(_cylinderModel) {
                     World = Matrix.Translation(5.0f, 1.5f, -10.0f + i * 5.0f),
                     TexTransform = Matrix.Scaling(1, 2, 1)
                 };
 
-                _spheres[i * 2] = new BasicModelInstance {
-                    Model = _sphereModel,
+                _spheres[i * 2] = new BasicModelInstance(_sphereModel) {
                     World = Matrix.Translation(-5.0f, 3.5f, -10.0f + i * 5.0f)
                 };
-                _spheres[i * 2 + 1] = new BasicModelInstance {
-                    Model = _sphereModel,
+                _spheres[i * 2 + 1] = new BasicModelInstance(_sphereModel) {
                     World = Matrix.Translation(5.0f, 3.5f, -10.0f + i * 5.0f)
                 };
             }
 
-            _grid = new BasicModelInstance {
-                Model = _gridModel,
+            _grid = new BasicModelInstance(_gridModel) {
                 TexTransform = Matrix.Scaling(8, 10, 1),
                 World = Matrix.Identity
             };
 
-            _box = new BasicModelInstance {
-                Model = _boxModel,
+            _box = new BasicModelInstance(_boxModel) {
                 TexTransform = Matrix.Scaling(2, 1, 1),
                 World = Matrix.Scaling(3.0f, 1.0f, 3.0f) * Matrix.Translation(0, 0.5f, 0)
             };
@@ -259,7 +255,7 @@ namespace _28_SsaoDemo {
                         input = reader.ReadLine();
                     } while (input != null && !input.StartsWith("{"));
                     // Get the vertices  
-                    for (int i = 0; i < vcount; i++) {
+                    for (var i = 0; i < vcount; i++) {
                         input = reader.ReadLine();
                         if (input != null) {
                             var vals = input.Split(new[] { ' ' });
@@ -352,7 +348,7 @@ namespace _28_SsaoDemo {
             _lightRotationAngle += 0.1f * dt;
 
             var r = Matrix.RotationY(_lightRotationAngle);
-            for (int i = 0; i < 3; i++) {
+            for (var i = 0; i < 3; i++) {
                 var lightDir = _originalLightDirs[i];
                 lightDir = Vector3.TransformNormal(lightDir, r);
                 _dirLights[i].Direction = lightDir;
@@ -427,6 +423,8 @@ namespace _28_SsaoDemo {
 
 
             var viewProj = _camera.ViewProj;
+            var view = _camera.View;
+            var proj = _camera.Proj;
 
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetEyePosW(_camera.Position);
@@ -463,17 +461,17 @@ namespace _28_SsaoDemo {
                 var pass = activeTech.GetPassByIndex(p);
                 _grid.ShadowTransform = _shadowTransform;
                 _grid.ToTexSpace = toTexSpace;
-                _grid.Draw(ImmediateContext, pass, viewProj);
+                _grid.Draw(ImmediateContext, pass, view,proj);
                 // draw box
                 _box.ShadowTransform = _shadowTransform;
                 _box.ToTexSpace = toTexSpace;
-                _box.Draw(ImmediateContext, pass, viewProj);
+                _box.Draw(ImmediateContext, pass, view,proj);
 
                 // draw columns
                 foreach (var cylinder in _cylinders) {
                     cylinder.ShadowTransform = _shadowTransform;
                     cylinder.ToTexSpace = toTexSpace;
-                    cylinder.Draw(ImmediateContext, pass, viewProj);
+                    cylinder.Draw(ImmediateContext, pass, view,proj);
                 }
 
             }
@@ -487,7 +485,7 @@ namespace _28_SsaoDemo {
                 foreach (var sphere in _spheres) {
                     sphere.ShadowTransform = _shadowTransform;
                     sphere.ToTexSpace = toTexSpace;
-                    sphere.DrawBasic(ImmediateContext, pass, viewProj);
+                    sphere.Draw(ImmediateContext, pass, view,proj, RenderMode.Basic);
                 }
 
             }
@@ -500,7 +498,7 @@ namespace _28_SsaoDemo {
             ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
-            for (int p = 0; p < activeSkullTech.Description.PassCount; p++) {
+            for (var p = 0; p < activeSkullTech.Description.PassCount; p++) {
                 var world = _skullWorld;
                 var wit = MathF.InverseTranspose(world);
                 var wvp = world * viewProj;
@@ -528,7 +526,7 @@ namespace _28_SsaoDemo {
             ImmediateContext.OutputMerger.DepthStencilReference = 0;
 
             var srvs = new List<ShaderResourceView>();
-            for (int i = 0; i < 16; i++) {
+            for (var i = 0; i < 16; i++) {
                 srvs.Add(null);
             }
 
@@ -545,15 +543,15 @@ namespace _28_SsaoDemo {
 
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 var pass = tech.GetPassByIndex(p);
-                _grid.DrawSsaoDepth(ImmediateContext, pass, view, proj);
-                _box.DrawSsaoDepth(ImmediateContext, pass, view, proj);
+                _grid.Draw(ImmediateContext, pass, view, proj, RenderMode.NormalDepthMap);
+                _box.Draw(ImmediateContext, pass, view, proj, RenderMode.NormalDepthMap);
                 foreach (var cylinder in _cylinders) {
-                    cylinder.DrawSsaoDepth(ImmediateContext, pass, view, proj);
+                    cylinder.Draw(ImmediateContext, pass, view, proj, RenderMode.NormalDepthMap);
                 }
                 foreach (var sphere in _spheres) {
-                    sphere.DrawSsaoDepth(ImmediateContext, pass, view, proj);
+                    sphere.Draw(ImmediateContext, pass, view, proj, RenderMode.NormalDepthMap);
                 }
 
             }
@@ -564,7 +562,7 @@ namespace _28_SsaoDemo {
             ImmediateContext.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_skullVB, stride, Offset));
             ImmediateContext.InputAssembler.SetIndexBuffer(_skullIB, Format.R32_UInt, 0);
 
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 var world = _skullWorld;
                 var wit = MathF.InverseTranspose(world);
                 var wv = world*view;
@@ -602,14 +600,14 @@ namespace _28_SsaoDemo {
                     ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
                 }
 
-                for (int p = 0; p < smapTech.Description.PassCount; p++) {
+                for (var p = 0; p < smapTech.Description.PassCount; p++) {
                     var pass = smapTech.GetPassByIndex(p);
-                    _grid.DrawShadow(ImmediateContext, pass, viewProj);
+                    _grid.Draw(ImmediateContext, pass, view,proj,RenderMode.ShadowMap);
 
-                    _box.DrawShadow(ImmediateContext, pass, viewProj);
+                    _box.Draw(ImmediateContext, pass, view, proj, RenderMode.ShadowMap);
 
                     foreach (var cylinder in _cylinders) {
-                        cylinder.DrawShadow(ImmediateContext, pass, viewProj);
+                        cylinder.Draw(ImmediateContext, pass, view, proj, RenderMode.ShadowMap);
                     }
                 }
 
@@ -620,10 +618,10 @@ namespace _28_SsaoDemo {
                 for (var p = 0; p < smapTech.Description.PassCount; p++) {
                     var pass = smapTech.GetPassByIndex(p);
                     foreach (var sphere in _spheres) {
-                        sphere.DrawShadow(ImmediateContext, pass, viewProj);
+                        sphere.Draw(ImmediateContext, pass, view, proj, RenderMode.ShadowMap);
                     }
                 }
-                int stride = Basic32.Stride;
+                var stride = Basic32.Stride;
                 ImmediateContext.Rasterizer.State = null;
 
                 ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
@@ -665,7 +663,7 @@ namespace _28_SsaoDemo {
                 M44 = 1.0f
             };
             var tech = Effects.DebugTexFX.ViewRedTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 Effects.DebugTexFX.SetWorldViewProj(world);
                 Effects.DebugTexFX.SetTexture(srv);
                 tech.GetPassByIndex(p).Apply(ImmediateContext);

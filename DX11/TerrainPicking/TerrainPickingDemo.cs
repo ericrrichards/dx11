@@ -189,7 +189,7 @@ namespace TerrainPicking {
             };
             _sphereModel.DiffuseMapSRV[0] = _whiteTex;
 
-            _sphere = new BasicModelInstance { Model = _sphereModel };
+            _sphere = new BasicModelInstance (_sphereModel );
             _spherePos = new Vector3(float.MaxValue);
             _path = null;
             return true;
@@ -349,7 +349,7 @@ namespace TerrainPicking {
                 _sphere.World = Matrix.Translation(_spherePos);
                 for (var p = 0; p < Effects.BasicFX.Light1Tech.Description.PassCount; p++) {
                     var pass = Effects.BasicFX.Light1Tech.GetPassByIndex(p);
-                    _sphere.DrawBasic(ImmediateContext, pass, _camera.ViewProj);
+                    _sphere.Draw(ImmediateContext, pass, _camera.View, _camera.Proj, RenderMode.Basic);
                 }
             }
 

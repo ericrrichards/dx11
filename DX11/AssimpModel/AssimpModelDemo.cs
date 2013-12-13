@@ -85,14 +85,13 @@ namespace AssimpModel {
 
             _treeModel = new BasicModel(Device, _texMgr, "Models/tree.x", "Textures");
 
-            _modelInstance = new BasicModelInstance {
-                Model = _treeModel,
+            _modelInstance = new BasicModelInstance (_treeModel) {
+                
                 World = Matrix.RotationX(MathF.PI / 2)
             };
 
             _stoneModel = new BasicModel(Device, _texMgr, "Models/stone.x", "Textures");
-            _stoneInstance = new BasicModelInstance {
-                Model = _stoneModel,
+            _stoneInstance = new BasicModelInstance(_stoneModel) {
                 World = Matrix.Scaling(0.1f, 0.1f, 0.1f) * Matrix.Translation(2, 0, 2)
             };
 
@@ -137,15 +136,17 @@ namespace AssimpModel {
 
             _camera.UpdateViewMatrix();
             var viewProj = _camera.ViewProj;
+            var view = _camera.View;
+            var proj = _camera.Proj;
 
             Effects.NormalMapFX.SetDirLights(_dirLights);
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
 
             var activeTech = Effects.NormalMapFX.Light3TexTech;
-            for (int p = 0; p < activeTech.Description.PassCount; p++) {
+            for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
-                _modelInstance.Draw(ImmediateContext, pass, viewProj);
-                _stoneInstance.Draw(ImmediateContext, pass, viewProj);
+                _modelInstance.Draw(ImmediateContext, pass, view,proj);
+                _stoneInstance.Draw(ImmediateContext, pass, view,proj);
             }
 
             SwapChain.Present(0, PresentFlags.None);

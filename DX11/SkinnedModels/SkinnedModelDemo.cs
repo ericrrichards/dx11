@@ -134,8 +134,7 @@ namespace SkinnedModels {
                 _grid.CreateGrid(Device, 30, 30, 60, 60);
             _grid.DiffuseMapSRV[0] = (_texMgr.CreateTexture("Textures/floor.dds"));
             _grid.NormalMapSRV[0]= (_texMgr.CreateTexture("Textures/floor_nmap.dds"));
-            _gridInstance = new BasicModelInstance() {
-                Model = _grid,
+            _gridInstance = new BasicModelInstance(_grid) {
                 World = Matrix.Translation(0, -1.5f, 0)
                 
             };
@@ -184,21 +183,23 @@ namespace SkinnedModels {
 
             _camera.UpdateViewMatrix();
             var viewProj = _camera.ViewProj;
+            var view = _camera.View;
+            var proj = _camera.Proj;
 
             Effects.NormalMapFX.SetDirLights(_dirLights);
             Effects.NormalMapFX.SetEyePosW(_camera.Position);
 
 
 
-            for (int p = 0; p < Effects.NormalMapFX.Light3TexSkinnedTech.Description.PassCount; p++) {
+            for (var p = 0; p < Effects.NormalMapFX.Light3TexSkinnedTech.Description.PassCount; p++) {
                 var pass = Effects.NormalMapFX.Light3TexSkinnedTech.GetPassByIndex(p);
-                _mageInstance.Draw(ImmediateContext, viewProj, pass);
-                _droneInstance.Draw(ImmediateContext, viewProj, pass);
-                _soldierInstance.Draw(ImmediateContext, viewProj, pass);
+                _mageInstance.Draw(ImmediateContext, pass, view,proj );
+                _droneInstance.Draw(ImmediateContext, pass, view, proj);
+                _soldierInstance.Draw(ImmediateContext, pass, view, proj);
             }
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
-            for (int p = 0; p < Effects.NormalMapFX.Light3Tech.Description.PassCount; p++) {
-                _gridInstance.Draw(ImmediateContext, Effects.NormalMapFX.Light3Tech.GetPassByIndex(p), viewProj);
+            for (var p = 0; p < Effects.NormalMapFX.Light3Tech.Description.PassCount; p++) {
+                _gridInstance.Draw(ImmediateContext, Effects.NormalMapFX.Light3Tech.GetPassByIndex(p), view, proj);
             }
             
 

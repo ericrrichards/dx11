@@ -105,9 +105,7 @@ namespace Core.Model {
                 Reflect = new Color4(0.4f, 0.4f, 0.4f)
             };
 
-            _grid = new BasicModelInstance {
-                Model = _gridModel
-            };
+            _grid = new BasicModelInstance(_gridModel);
             TexTransform = Matrix.Identity;
             World = Matrix.Translation(0, -0.2f, 0);
         }

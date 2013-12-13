@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace _27_ShapeModels {
     using System.Diagnostics;
@@ -39,7 +35,8 @@ namespace _27_ShapeModels {
         private Point _lastMousePos;
         private bool _disposed;
 
-        protected ShapeModelsDemo(IntPtr hInstance) : base(hInstance) {
+        private ShapeModelsDemo(IntPtr hInstance)
+            : base(hInstance) {
             MainWindowCaption = "ShapeModels Demo";
 
             _lastMousePos = new Point();
@@ -76,7 +73,7 @@ namespace _27_ShapeModels {
                     Util.ReleaseCom(ref _boxModel);
                     Util.ReleaseCom(ref _sphereModel);
                     Util.ReleaseCom(ref _cylinderModel);
-                    
+
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();
                     RenderStates.DestroyAll();
@@ -96,43 +93,44 @@ namespace _27_ShapeModels {
             _texMgr.Init(Device);
 
 
-            _gridModel = BasicModel.CreateGrid(Device, 20, 20, 40, 40);
-            _gridModel.Materials[0] = new Material() { Diffuse = Color.SaddleBrown, Specular = new Color4(16, .9f, .9f, .9f)};
+            _gridModel = new BasicModel();
+            _gridModel.CreateGrid(Device, 20, 20, 40, 40);
+            _gridModel.Materials[0] = new Material() { Diffuse = Color.SaddleBrown, Specular = new Color4(16, .9f, .9f, .9f) };
             _gridModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/floor.dds");
             _gridModel.NormalMapSRV[0] = _texMgr.CreateTexture("textures/floor_nmap.dds");
-            
-            _boxModel = BasicModel.CreateBox(Device, 1, 1, 1);
-            _boxModel.Materials[0] = new Material() { Ambient = Color.Red, Diffuse = Color.Red, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f)};
+
+            _boxModel = new BasicModel();
+            _boxModel.CreateBox(Device, 1, 1, 1);
+            _boxModel.Materials[0] = new Material() { Ambient = Color.Red, Diffuse = Color.Red, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
             _boxModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
 
-            _sphereModel = BasicModel.CreateSphere(Device, 1, 20, 20);
-            _sphereModel.Materials[0] = new Material() { Ambient = Color.Blue, Diffuse = Color.Blue, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f)};
+            _sphereModel = new BasicModel();
+            _sphereModel.CreateSphere(Device, 1, 20, 20);
+            _sphereModel.Materials[0] = new Material() { Ambient = Color.Blue, Diffuse = Color.Blue, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
             _sphereModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/stones_nmap.dds");
 
-            _cylinderModel = BasicModel.CreateCylinder(Device, 1, 1, 3, 20, 20);
-            _cylinderModel.Materials[0] = new Material() { Ambient = Color.Green, Diffuse = Color.Green, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f)};
+            _cylinderModel = new BasicModel();
+            _cylinderModel.CreateCylinder(Device, 1, 1, 3, 20, 20);
+            _cylinderModel.Materials[0] = new Material() { Ambient = Color.Green, Diffuse = Color.Green, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
             _cylinderModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/stones_nmap.dds");
 
-            _grid = new BasicModelInstance() {
-                Model = _gridModel, TexTransform = Matrix.Scaling(10, 10, 1),
+            _grid = new BasicModelInstance(_gridModel) {
+                TexTransform = Matrix.Scaling(10, 10, 1),
                 World = Matrix.Identity
             };
 
-            _box = new BasicModelInstance() {
-                Model = _boxModel,
+            _box = new BasicModelInstance(_boxModel) {
                 World = Matrix.Translation(-3, 1, 0)
             };
 
-            _sphere = new BasicModelInstance() {
-                Model = _sphereModel,
+            _sphere = new BasicModelInstance(_sphereModel) {
                 World = Matrix.Translation(0, 1, 0)
             };
 
-            _cylinder = new BasicModelInstance() {
-                Model = _cylinderModel,
+            _cylinder = new BasicModelInstance(_cylinderModel) {
                 World = Matrix.Translation(3, 1.5f, 0)
             };
-            
+
             return true;
         }
 
@@ -183,38 +181,39 @@ namespace _27_ShapeModels {
             _lastMousePos = e.Location;
         }
 
-public override void DrawScene() {
-    ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
-    ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
+        public override void DrawScene() {
+            ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Silver);
+            ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
 
-    var viewProj = _camera.ViewProj;
+            var view = _camera.View;
+            var proj = _camera.Proj;
 
-    Effects.NormalMapFX.SetDirLights(_dirLights);
-    Effects.NormalMapFX.SetEyePosW(_camera.Position);
+            Effects.NormalMapFX.SetDirLights(_dirLights);
+            Effects.NormalMapFX.SetEyePosW(_camera.Position);
 
-    var floorTech = Effects.NormalMapFX.Light3TexTech;
-    var activeTech = Effects.NormalMapFX.Light3Tech;
+            var floorTech = Effects.NormalMapFX.Light3TexTech;
+            var activeTech = Effects.NormalMapFX.Light3Tech;
 
-    ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
-    ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
+            ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
-    if (Util.IsKeyDown(Keys.W)) {
-        ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
-    }
+            if (Util.IsKeyDown(Keys.W)) {
+                ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
+            }
 
-    for (int p = 0; p < activeTech.Description.PassCount; p++) {
-        var pass = activeTech.GetPassByIndex(p);
-        _box.Draw(ImmediateContext, pass, viewProj);
-        _sphere.Draw(ImmediateContext, pass, viewProj);
-        _cylinder.Draw(ImmediateContext, pass, viewProj);
-    }
-    for (int p = 0; p < floorTech.Description.PassCount; p++) {
-        var pass = activeTech.GetPassByIndex(p);
-        _grid.Draw(ImmediateContext, pass, viewProj);
-    }
-    SwapChain.Present(0, PresentFlags.None);
-    ImmediateContext.Rasterizer.State = null;
-}
+            for (var p = 0; p < activeTech.Description.PassCount; p++) {
+                var pass = activeTech.GetPassByIndex(p);
+                _box.Draw(ImmediateContext, pass, view,proj);
+                _sphere.Draw(ImmediateContext, pass, view,proj);
+                _cylinder.Draw(ImmediateContext, pass, view,proj);
+            }
+            for (var p = 0; p < floorTech.Description.PassCount; p++) {
+                var pass = activeTech.GetPassByIndex(p);
+                _grid.Draw(ImmediateContext, pass, view,proj);
+            }
+            SwapChain.Present(0, PresentFlags.None);
+            ImmediateContext.Rasterizer.State = null;
+        }
 
         static void Main(string[] args) {
             Configuration.EnableObjectTracking = true;
