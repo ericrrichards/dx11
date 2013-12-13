@@ -139,14 +139,17 @@ namespace Core.FX {
         public const int MaxLights = 3;
         private readonly byte[] _dirLightsArray = new byte[DirectionalLight.Stride*MaxLights];
 
+        private readonly EffectMatrixVariable _boneTransforms;
+        public const int MaxBones = 96;
+        private readonly Matrix[] _boneTransformsArray = new Matrix[MaxBones];
+
+
         private readonly EffectVariable _mat;
 
         private readonly EffectResourceVariable _diffuseMap;
         private readonly EffectResourceVariable _shadowMap;
         private readonly EffectResourceVariable _cubeMap;
-        private readonly EffectMatrixVariable _boneTransforms;
-        public const int MaxBones = 96;
-        private readonly Matrix[] _boneTransformsArray = new Matrix[MaxBones];
+        
         private readonly EffectResourceVariable _ssaoMap;
         private readonly EffectMatrixVariable _worldViewProjTex;
 
@@ -283,7 +286,7 @@ namespace Core.FX {
             _cubeMap = FX.GetVariableByName("gCubeMap").AsResource();
 
             _boneTransforms = FX.GetVariableByName("gBoneTransforms").AsMatrix();
-
+            
             _shadowTransform = FX.GetVariableByName("gShadowTransform").AsMatrix();
 
             _ssaoMap = FX.GetVariableByName("gSsaoMap").AsResource();
