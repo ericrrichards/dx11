@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -14,6 +15,29 @@ using SlimDX.DXGI;
 
 
 namespace TerrainPicking {
+
+    public class Unit : DisposableClass {
+        private bool _disposed;
+        private SkinnedModelInstance ModelInstance;
+
+        protected override void Dispose(bool disposing) {
+            if (!_disposed) {
+                if (disposing) {
+
+                }
+                _disposed = true;
+            }
+            base.Dispose(disposing);
+        }
+
+    }
+
+
+
+
+
+
+
     internal class TerrainPickingDemo : D3DApp {
         private Sky _sky;
         private Terrain _terrain;
@@ -27,7 +51,7 @@ namespace TerrainPicking {
 
         private Ssao _ssao;
 
-        
+
         private ShaderResourceView _whiteTex;
 
         private BoundingSphere _sceneBounds;
@@ -47,6 +71,7 @@ namespace TerrainPicking {
         private BasicModelInstance _sphere;
         private bool _showSphere;
         private Vector3 _spherePos;
+        private List<MapTile> _path;
 
         private TerrainPickingDemo(IntPtr hInstance)
             : base(hInstance) {
@@ -140,7 +165,7 @@ namespace TerrainPicking {
             _terrain = new Terrain();
             //_terrain.DebugQuadTree = true;
             _terrain.Init(Device, ImmediateContext, tii);
-            
+
             _camera.Height = _terrain.Height;
 
 
@@ -155,7 +180,8 @@ namespace TerrainPicking {
 
             _minimap = new Minimap(Device, ImmediateContext, MinimapSize, MinimapSize, _terrain, _camera);
 
-            _sphereModel = BasicModel.CreateSphere(Device, 0.25f, 10, 10);
+            _sphereModel = new BasicModel();
+            _sphereModel.CreateSphere(Device, 0.25f, 10, 10);
             _sphereModel.Materials[0] = new Material {
                 Ambient = Color.Red,
                 Diffuse = Color.Red,
@@ -163,12 +189,12 @@ namespace TerrainPicking {
             };
             _sphereModel.DiffuseMapSRV[0] = _whiteTex;
 
-            _sphere = new BasicModelInstance {Model = _sphereModel};
+            _sphere = new BasicModelInstance { Model = _sphereModel };
             _spherePos = new Vector3(float.MaxValue);
-
+            _path = null;
             return true;
         }
-        
+
 
 
         public override void OnResize() {
@@ -205,7 +231,7 @@ namespace TerrainPicking {
             if (Util.IsKeyDown(Keys.D3)) {
                 _camWalkMode = false;
             }
-           
+
             if (_camWalkMode) {
                 var camPos = _camera.Target;
                 var y = _terrain.Height(camPos.X, camPos.Z);
@@ -225,7 +251,10 @@ namespace TerrainPicking {
             BuildShadowTransform();
 
             _camera.UpdateViewMatrix();
+
+
         }
+
 
         private void BuildShadowTransform() {
             var lightDir = _dirLights[0].Direction;
@@ -271,7 +300,7 @@ namespace TerrainPicking {
             _minimap.RenderMinimap(_dirLights);
 
 
-            
+
 
             var view = _lightView;
             var proj = _lightProj;
@@ -330,7 +359,7 @@ namespace TerrainPicking {
 
             ImmediateContext.Rasterizer.State = null;
 
-            
+
 
 
             _sky.Draw(ImmediateContext, _camera);
@@ -340,7 +369,7 @@ namespace TerrainPicking {
             ImmediateContext.OutputMerger.DepthStencilState = null;
             ImmediateContext.OutputMerger.DepthStencilReference = 0;
 
-            
+
             _minimap.Draw(ImmediateContext);
             SwapChain.Present(0, PresentFlags.None);
 
@@ -356,9 +385,11 @@ namespace TerrainPicking {
                 var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
 
                 var tile = new MapTile();
-                _showSphere = _terrain.Intersect(ray, ref _spherePos, ref tile);
-                
-                //_terrain.Intersect(ray, ref _spherePos, ref tile);
+                var worldPos = new Vector3();
+
+                _showSphere = _terrain.Intersect(ray, ref worldPos, ref tile);
+
+                _spherePos = worldPos;
 
                 Console.WriteLine("Clicked at " + _spherePos.ToString());
                 if (tile != null) {

@@ -91,6 +91,7 @@
     <Compile Include="Model\BasicModel.cs" />
     <Compile Include="Model\BasicModelInstance.cs" />
     <Compile Include="Model\Bone.cs" />
+    <Compile Include="Model\IModel.cs" />
     <Compile Include="Model\MeshGeometry.cs" />
     <Compile Include="Model\MutableTuple.cs" />
     <Compile Include="Model\SceneAnimator.cs" />
@@ -106,6 +107,7 @@
     <Compile Include="ShadowMap.cs" />
     <Compile Include="Sky.cs" />
     <Compile Include="SSAO.cs" />
+    <Compile Include="Terrain\MapTile.cs" />
     <Compile Include="Terrain\QuadTree.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
     <Compile Include="Terrain\InitInfo.cs" />

@@ -15,6 +15,7 @@ namespace Core {
         public Vector3 Direction;
         public float Pad;
 
+        public static int Stride = Marshal.SizeOf(typeof(DirectionalLight));
     }
     [StructLayout(LayoutKind.Sequential)]
     public struct PointLight {
@@ -44,5 +45,7 @@ namespace Core {
         public Color4 Diffuse;
         public Color4 Specular;
         public Color4 Reflect;
+        public static int Stride = Marshal.SizeOf(typeof(Material));
+
     }
 }

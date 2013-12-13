@@ -94,7 +94,10 @@ namespace Core.Model {
             NormalMap0 = texMgr.CreateTexture(texture1);
             NormalMap1 = texMgr.CreateTexture(texture2);
 
-            _gridModel = BasicModel.CreateGrid(device, width, depth, ((int)width) * 2, ((int)depth) * 2);
+            _gridModel = new BasicModel();
+            _gridModel.CreateGrid(device, width, depth, ((int)width) * 2, ((int)depth) * 2);
+                
+            //    BasicModel.CreateGrid(device, width, depth, ((int)width) * 2, ((int)depth) * 2);
             Material = new Material {
                 Ambient = new Color4(0.1f, 0.1f, 0.3f),
                 Diffuse = new Color4(0.4f, 0.4f, 0.7f),

@@ -6,9 +6,9 @@
     using System.Runtime.InteropServices;
     using System.Windows.Forms;
 
-    using Core.Camera;
-    using Core.FX;
-    using Core.Vertex;
+    using Camera;
+    using FX;
+    using Vertex;
 
     using SlimDX;
     using SlimDX.Direct3D11;
@@ -51,11 +51,13 @@
         public bool DebugQuadTree { get; set; }
 
         public bool Shadows { get; set; }
+        public Matrix World { get; set; }
 
         public TerrainRenderer(Material material, Terrain terrain) {
             _material = material;
             _patches = new List<Patch>();
             _terrain = terrain;
+            World = Matrix.Identity;
         }
 
         protected override void Dispose(bool disposing) {
@@ -125,7 +127,192 @@
             }
             D3DApp.GD3DApp.ProgressUpdate.Draw(1.0f, "Terrain initialized");
         }
+        #region DX11 Terrain Mesh Creation
+        private void CalcAllPatchBoundsY() {
+            _patchBoundsY = new List<Vector2>(new Vector2[_numPatchQuadFaces]);
 
+            for (var i = 0; i < NumPatchVertRows - 1; i++) {
+                for (var j = 0; j < NumPatchVertCols - 1; j++) {
+                    CalcPatchBoundsY(i, j);
+                }
+            }
+        }
+
+        private void CalcPatchBoundsY(int i, int j) {
+            var x0 = j * Terrain.CellsPerPatch;
+            var x1 = (j + 1) * Terrain.CellsPerPatch;
+
+            var y0 = i * Terrain.CellsPerPatch;
+            var y1 = (i + 1) * Terrain.CellsPerPatch;
+
+            var minY = float.MaxValue;
+            var maxY = float.MinValue;
+
+            for (var y = y0; y <= y1; y++) {
+                for (var x = x0; x <= x1; x++) {
+                    minY = Math.Min(minY, _terrain.HeightMap[y, x]);
+                    maxY = Math.Max(maxY, _terrain.HeightMap[y, x]);
+                }
+            }
+            var patchID = i * (NumPatchVertCols - 1) + j;
+            _patchBoundsY[patchID] = new Vector2(minY, maxY);
+        }
+
+        private void BuildQuadPatchVB(Device device) {
+            var patchVerts = new TerrainCP[_numPatchVertices];
+            var halfWidth = 0.5f * _terrain.Width;
+            var halfDepth = 0.5f * _terrain.Depth;
+
+            var patchWidth = _terrain.Width / (NumPatchVertCols - 1);
+            var patchDepth = _terrain.Depth / (NumPatchVertRows - 1);
+            var du = 1.0f / (NumPatchVertCols - 1);
+            var dv = 1.0f / (NumPatchVertRows - 1);
+
+            for (var i = 0; i < NumPatchVertRows; i++) {
+                var z = halfDepth - i * patchDepth;
+                for (var j = 0; j < NumPatchVertCols; j++) {
+                    var x = -halfWidth + j * patchWidth;
+                    var vertId = i * NumPatchVertCols + j;
+                    patchVerts[vertId] = new TerrainCP(
+                        new Vector3(x, 0, z),
+                        new Vector2(j * du, i * dv),
+                        new Vector2()
+                        );
+                }
+            }
+            for (var i = 0; i < NumPatchVertRows - 1; i++) {
+                for (var j = 0; j < NumPatchVertCols - 1; j++) {
+                    var patchID = i * (NumPatchVertCols - 1) + j;
+                    var vertID = i * NumPatchVertCols + j;
+                    patchVerts[vertID].BoundsY = _patchBoundsY[patchID];
+                }
+            }
+
+            var vbd = new BufferDescription(
+                TerrainCP.Stride * patchVerts.Length,
+                ResourceUsage.Immutable,
+                BindFlags.VertexBuffer,
+                CpuAccessFlags.None,
+                ResourceOptionFlags.None, 0
+                );
+            _quadPatchVB = new Buffer(
+                device,
+                new DataStream(patchVerts, false, false),
+                vbd
+                );
+        }
+
+        private void BuildQuadPatchIB(Device device) {
+            var indices = new List<int>();
+            for (var i = 0; i < NumPatchVertRows - 1; i++) {
+                for (var j = 0; j < NumPatchVertCols - 1; j++) {
+                    indices.Add(i * NumPatchVertCols + j);
+                    indices.Add(i * NumPatchVertCols + j + 1);
+                    indices.Add((i + 1) * NumPatchVertCols + j);
+                    indices.Add((i + 1) * NumPatchVertCols + j + 1);
+                }
+            }
+            var ibd = new BufferDescription(
+                sizeof(short) * indices.Count,
+                ResourceUsage.Immutable,
+                BindFlags.IndexBuffer,
+                CpuAccessFlags.None,
+                ResourceOptionFlags.None, 0
+                );
+            _quadPatchIB = new Buffer(
+                device,
+                new DataStream(indices.Select(i => (short)i).ToArray(), false, false),
+                ibd
+                );
+        }
+        #endregion
+        #region DX10 Terrain Mesh Creation
+        private void BuildPatches(Device device) {
+            foreach (var p in _patches) {
+                var patch = p;
+                Util.ReleaseCom(ref patch);
+            }
+            _patches.Clear();
+
+            for (var z = 0; z < (NumPatchVertRows - 1); z++) {
+                var z1 = z * Terrain.CellsPerPatch;
+                for (var x = 0; x < (NumPatchVertCols - 1); x++) {
+                    var x1 = x * Terrain.CellsPerPatch;
+                    var r = new Rectangle(x1, z1, Terrain.CellsPerPatch, Terrain.CellsPerPatch);
+                    var p = new Patch();
+                    p.CreateMesh(_terrain, r, device);
+                    _patches.Add(p);
+                }
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f + 0.1f * ((float)z / (NumPatchVertRows - 2)), "Building terrain patches");
+            }
+        }
+        #endregion
+        #region BlendMap
+        private static ShaderResourceView CreateBlendMap(HeightMap hm, Device device, Terrain terrain) {
+            var colors = new List<Color4>();
+            for (var y = 0; y < terrain.HeightMap.HeightMapHeight; y++) {
+                for (var x = 0; x < terrain.HeightMap.HeightMapWidth; x++) {
+                    var elev = terrain.HeightMap[y, x];
+                    var color = new Color4(0);
+                    if (elev > hm.MaxHeight * (0.05f + MathF.Rand(-0.05f, 0.05f))) {
+                        // dark green grass texture
+                        color.Red = elev / (hm.MaxHeight) + MathF.Rand(-0.05f, 0.05f);
+                    }
+                    if (elev > hm.MaxHeight * (0.4f + MathF.Rand(-0.15f, 0.15f))) {
+                        // stone texture
+                        color.Green = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
+                    }
+                    if (elev > hm.MaxHeight * (0.75f + MathF.Rand(-0.1f, 0.1f))) {
+                        // snow texture
+                        color.Alpha = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
+                    }
+                    colors.Add(color);
+                }
+                D3DApp.GD3DApp.ProgressUpdate.Draw(0.70f + 0.05f * ((float)y / terrain.HeightMap.HeightMapHeight), "Generating blendmap");
+            }
+            SmoothBlendMap(hm, colors, terrain);
+            SmoothBlendMap(hm, colors, terrain);
+            var texDec = new Texture2DDescription {
+                ArraySize = 1, 
+                BindFlags = BindFlags.ShaderResource, 
+                CpuAccessFlags = CpuAccessFlags.None, 
+                Format = Format.R32G32B32A32_Float, 
+                SampleDescription = new SampleDescription(1, 0), 
+                Height = terrain.HeightMap.HeightMapHeight, 
+                Width = terrain.HeightMap.HeightMapWidth, 
+                MipLevels = 1, 
+                OptionFlags = ResourceOptionFlags.None, 
+                Usage = ResourceUsage.Default
+            };
+            var blendTex = new Texture2D(device, texDec, new DataRectangle(terrain.HeightMap.HeightMapWidth * Marshal.SizeOf(typeof(Color4)), new DataStream(colors.ToArray(), false, false))) { DebugName = "terrain blend texture" };
+            var srvDesc = new ShaderResourceViewDescription { Format = texDec.Format, Dimension = ShaderResourceViewDimension.Texture2D, MostDetailedMip = 0, MipLevels = -1 };
+
+            var srv = new ShaderResourceView(device, blendTex, srvDesc);
+
+            Util.ReleaseCom(ref blendTex);
+            return srv;
+        }
+
+        private static void SmoothBlendMap(HeightMap hm, List<Color4> colors, Terrain terrain) {
+            for (var y = 0; y < terrain.HeightMap.HeightMapHeight; y++) {
+                for (var x = 0; x < terrain.HeightMap.HeightMapWidth; x++) {
+                    var sum = colors[x + y * hm.HeightMapHeight];
+                    var num = 0;
+                    for (var y1 = y - 1; y1 < y + 2; y1++) {
+                        for (var x1 = x - 1; x1 < x + 1; x1++) {
+                            if (!hm.InBounds(y1, x1)) {
+                                continue;
+                            }
+                            sum += colors[x1 + y1 * hm.HeightMapHeight];
+                            num++;
+                        }
+                    }
+                    colors[x + y * hm.HeightMapHeight] = new Color4(sum.Alpha / num, sum.Red / num, sum.Green / num, sum.Blue / num);
+                }
+            }
+        }
+        #endregion
+        #region Debug QuadTree
         private void BuildQuadTreeDebugBuffers(Device device) {
             GetQuadTreeVerticesAndIndices(_terrain.QuadTree.Root);
             var vbd = new BufferDescription(VertexPC.Stride * _bvhVerts.Count, ResourceUsage.Immutable,
@@ -170,83 +357,22 @@
 
         }
 
-        public void ComputeSsao(DeviceContext dc, CameraBase cam, Ssao ssao, DepthStencilView depthStencilView) {
-            ssao.SetNormalDepthRenderTarget(depthStencilView);
+        private void DrawQuadTreeDebugBuffers(DeviceContext dc, CameraBase cam, int offset) {
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+            dc.InputAssembler.InputLayout = InputLayouts.PosColor;
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_bvhVB, VertexPC.Stride, offset));
+            dc.InputAssembler.SetIndexBuffer(_bvhIB, Format.R32_UInt, 0);
 
-            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
-            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
-
-            var stride = TerrainCP.Stride;
-            const int offset = 0;
-
-            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
-            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
-
-            var viewProj = cam.ViewProj;
-            var planes = cam.FrustumPlanes;
-
-
-            Effects.TerrainFX.SetViewProj(viewProj);
-            Effects.TerrainFX.SetEyePosW(cam.Position);
-            Effects.TerrainFX.SetMinDist(MinDist);
-            Effects.TerrainFX.SetMaxDist(MaxDist);
-            Effects.TerrainFX.SetMinTess(MinTess);
-            Effects.TerrainFX.SetMaxTess(MaxTess);
-            Effects.TerrainFX.SetTexelCellSpaceU(1.0f / _terrain.Info.HeightMapWidth);
-            Effects.TerrainFX.SetTexelCellSpaceV(1.0f / _terrain.Info.HeightMapHeight);
-            Effects.TerrainFX.SetWorldCellSpace(_terrain.Info.CellSpacing);
-            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
-            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-            Effects.TerrainFX.SetView(cam.View);
-
-            var tech = Effects.TerrainFX.NormalDepthTech;
-            for (var p = 0; p < tech.Description.PassCount; p++) {
-                var pass = tech.GetPassByIndex(p);
-                pass.Apply(dc);
-                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
+            //dc.OutputMerger.DepthStencilState = RenderStates.NoDepthDSS;
+            Effects.ColorFX.SetWorldViewProj(cam.ViewProj);
+            for (var p = 0; p < Effects.ColorFX.ColorTech.Description.PassCount; p++) {
+                Effects.ColorFX.ColorTech.GetPassByIndex(p).Apply(dc);
+                dc.DrawIndexed(_bvhIndices.Count, 0, 0);
             }
-            dc.HullShader.Set(null);
-            dc.DomainShader.Set(null);
-
-            ssao.ComputeSsao(cam);
-            ssao.BlurAmbientMap(4);
+            dc.OutputMerger.DepthStencilState = null;
         }
 
-        public void DrawToShadowMap(DeviceContext dc, ShadowMap sMap, Matrix viewProj) {
-            sMap.BindDsvAndSetNullRenderTarget(dc);
-
-            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
-            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
-
-            var stride = TerrainCP.Stride;
-            const int offset = 0;
-
-            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
-            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
-
-
-            var frustum = Frustum.FromViewProj(viewProj);
-            var planes = frustum.Planes;
-
-            Effects.TerrainFX.SetViewProj(viewProj);
-            Effects.TerrainFX.SetEyePosW(new Vector3(viewProj.M41, viewProj.M42, viewProj.M43));
-            Effects.TerrainFX.SetMinDist(MinDist);
-            Effects.TerrainFX.SetMaxDist(MaxDist);
-            Effects.TerrainFX.SetMinTess(MinTess);
-            Effects.TerrainFX.SetMaxTess(MaxTess);
-            Effects.TerrainFX.SetWorldCellSpace(_terrain.Info.CellSpacing);
-            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
-            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-
-            var tech = Effects.TerrainFX.TessBuildShadowMapTech;
-            for (var p = 0; p < tech.Description.PassCount; p++) {
-                var pass = tech.GetPassByIndex(p);
-                pass.Apply(dc);
-                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
-            }
-            dc.HullShader.Set(null);
-            dc.DomainShader.Set(null);
-        }
+        #endregion
 
         public void Draw(DeviceContext dc, CameraBase cam, DirectionalLight[] lights) {
             if (_useTessellation) {
@@ -350,200 +476,82 @@
 
         }
 
-        private void DrawQuadTreeDebugBuffers(DeviceContext dc, CameraBase cam, int offset) {
-            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
-            dc.InputAssembler.InputLayout = InputLayouts.PosColor;
-            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_bvhVB, VertexPC.Stride, offset));
-            dc.InputAssembler.SetIndexBuffer(_bvhIB, Format.R32_UInt, 0);
+        public void ComputeSsao(DeviceContext dc, CameraBase cam, Ssao ssao, DepthStencilView depthStencilView) {
+            ssao.SetNormalDepthRenderTarget(depthStencilView);
 
-            //dc.OutputMerger.DepthStencilState = RenderStates.NoDepthDSS;
-            Effects.ColorFX.SetWorldViewProj(cam.ViewProj);
-            for (var p = 0; p < Effects.ColorFX.ColorTech.Description.PassCount; p++) {
-                Effects.ColorFX.ColorTech.GetPassByIndex(p).Apply(dc);
-                dc.DrawIndexed(_bvhIndices.Count, 0, 0);
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+
+            var stride = TerrainCP.Stride;
+            const int offset = 0;
+
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
+            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+
+            var viewProj = cam.ViewProj;
+            var planes = cam.FrustumPlanes;
+
+
+            Effects.TerrainFX.SetViewProj(viewProj);
+            Effects.TerrainFX.SetEyePosW(cam.Position);
+            Effects.TerrainFX.SetMinDist(MinDist);
+            Effects.TerrainFX.SetMaxDist(MaxDist);
+            Effects.TerrainFX.SetMinTess(MinTess);
+            Effects.TerrainFX.SetMaxTess(MaxTess);
+            Effects.TerrainFX.SetTexelCellSpaceU(1.0f / _terrain.Info.HeightMapWidth);
+            Effects.TerrainFX.SetTexelCellSpaceV(1.0f / _terrain.Info.HeightMapHeight);
+            Effects.TerrainFX.SetWorldCellSpace(_terrain.Info.CellSpacing);
+            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+            Effects.TerrainFX.SetView(cam.View);
+
+            var tech = Effects.TerrainFX.NormalDepthTech;
+            for (var p = 0; p < tech.Description.PassCount; p++) {
+                var pass = tech.GetPassByIndex(p);
+                pass.Apply(dc);
+                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
             }
-            dc.OutputMerger.DepthStencilState = null;
+            dc.HullShader.Set(null);
+            dc.DomainShader.Set(null);
+
+            ssao.ComputeSsao(cam);
+            ssao.BlurAmbientMap(4);
         }
 
-        private void BuildQuadPatchIB(Device device) {
-            var indices = new List<int>();
-            for (var i = 0; i < NumPatchVertRows - 1; i++) {
-                for (var j = 0; j < NumPatchVertCols - 1; j++) {
-                    indices.Add(i * NumPatchVertCols + j);
-                    indices.Add(i * NumPatchVertCols + j + 1);
-                    indices.Add((i + 1) * NumPatchVertCols + j);
-                    indices.Add((i + 1) * NumPatchVertCols + j + 1);
-                }
+        public void DrawToShadowMap(DeviceContext dc, ShadowMap sMap, Matrix viewProj) {
+            sMap.BindDsvAndSetNullRenderTarget(dc);
+
+            dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
+            dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
+
+            var stride = TerrainCP.Stride;
+            const int offset = 0;
+
+            dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_quadPatchVB, stride, offset));
+            dc.InputAssembler.SetIndexBuffer(_quadPatchIB, Format.R16_UInt, 0);
+
+
+            var frustum = Frustum.FromViewProj(viewProj);
+            var planes = frustum.Planes;
+
+            Effects.TerrainFX.SetViewProj(viewProj);
+            Effects.TerrainFX.SetEyePosW(new Vector3(viewProj.M41, viewProj.M42, viewProj.M43));
+            Effects.TerrainFX.SetMinDist(MinDist);
+            Effects.TerrainFX.SetMaxDist(MaxDist);
+            Effects.TerrainFX.SetMinTess(MinTess);
+            Effects.TerrainFX.SetMaxTess(MaxTess);
+            Effects.TerrainFX.SetWorldCellSpace(_terrain.Info.CellSpacing);
+            Effects.TerrainFX.SetWorldFrustumPlanes(planes);
+            Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+
+            var tech = Effects.TerrainFX.TessBuildShadowMapTech;
+            for (var p = 0; p < tech.Description.PassCount; p++) {
+                var pass = tech.GetPassByIndex(p);
+                pass.Apply(dc);
+                dc.DrawIndexed(_numPatchQuadFaces * 4, 0, 0);
             }
-            var ibd = new BufferDescription(
-                sizeof(short) * indices.Count,
-                ResourceUsage.Immutable,
-                BindFlags.IndexBuffer,
-                CpuAccessFlags.None,
-                ResourceOptionFlags.None, 0
-                );
-            _quadPatchIB = new Buffer(
-                device,
-                new DataStream(indices.Select(i => (short)i).ToArray(), false, false),
-                ibd
-                );
-        }
-
-        private void BuildQuadPatchVB(Device device) {
-            var patchVerts = new TerrainCP[_numPatchVertices];
-            var halfWidth = 0.5f * _terrain.Width;
-            var halfDepth = 0.5f * _terrain.Depth;
-
-            var patchWidth = _terrain.Width / (NumPatchVertCols - 1);
-            var patchDepth = _terrain.Depth / (NumPatchVertRows - 1);
-            var du = 1.0f / (NumPatchVertCols - 1);
-            var dv = 1.0f / (NumPatchVertRows - 1);
-
-            for (var i = 0; i < NumPatchVertRows; i++) {
-                var z = halfDepth - i * patchDepth;
-                for (var j = 0; j < NumPatchVertCols; j++) {
-                    var x = -halfWidth + j * patchWidth;
-                    var vertId = i * NumPatchVertCols + j;
-                    patchVerts[vertId] = new TerrainCP(
-                        new Vector3(x, 0, z),
-                        new Vector2(j * du, i * dv),
-                        new Vector2()
-                        );
-                }
-            }
-            for (var i = 0; i < NumPatchVertRows - 1; i++) {
-                for (var j = 0; j < NumPatchVertCols - 1; j++) {
-                    var patchID = i * (NumPatchVertCols - 1) + j;
-                    var vertID = i * NumPatchVertCols + j;
-                    patchVerts[vertID].BoundsY = _patchBoundsY[patchID];
-                }
-            }
-
-            var vbd = new BufferDescription(
-                TerrainCP.Stride * patchVerts.Length,
-                ResourceUsage.Immutable,
-                BindFlags.VertexBuffer,
-                CpuAccessFlags.None,
-                ResourceOptionFlags.None, 0
-                );
-            _quadPatchVB = new Buffer(
-                device,
-                new DataStream(patchVerts, false, false),
-                vbd
-                );
-        }
-
-        private void BuildPatches(Device device) {
-            foreach (var p in _patches) {
-                var patch = p;
-                Util.ReleaseCom(ref patch);
-            }
-            _patches.Clear();
-
-            for (var z = 0; z < (NumPatchVertRows - 1); z++) {
-                var z1 = z * Terrain.CellsPerPatch;
-                for (var x = 0; x < (NumPatchVertCols - 1); x++) {
-                    var x1 = x * Terrain.CellsPerPatch;
-                    var r = new Rectangle(x1, z1, Terrain.CellsPerPatch, Terrain.CellsPerPatch);
-                    var p = new Patch();
-                    p.CreateMesh(_terrain, r, device);
-                    _patches.Add(p);
-                }
-                D3DApp.GD3DApp.ProgressUpdate.Draw(0.75f + 0.1f * ((float)z / (NumPatchVertRows - 2)), "Building terrain patches");
-            }
-        }
-
-        private void CalcAllPatchBoundsY() {
-            _patchBoundsY = new List<Vector2>(new Vector2[_numPatchQuadFaces]);
-
-            for (var i = 0; i < NumPatchVertRows - 1; i++) {
-                for (var j = 0; j < NumPatchVertCols - 1; j++) {
-                    CalcPatchBoundsY(i, j);
-                }
-            }
-        }
-        private void CalcPatchBoundsY(int i, int j) {
-            var x0 = j * Terrain.CellsPerPatch;
-            var x1 = (j + 1) * Terrain.CellsPerPatch;
-
-            var y0 = i * Terrain.CellsPerPatch;
-            var y1 = (i + 1) * Terrain.CellsPerPatch;
-
-            var minY = float.MaxValue;
-            var maxY = float.MinValue;
-
-            for (var y = y0; y <= y1; y++) {
-                for (var x = x0; x <= x1; x++) {
-                    minY = Math.Min(minY, _terrain.HeightMap[y, x]);
-                    maxY = Math.Max(maxY, _terrain.HeightMap[y, x]);
-                }
-            }
-            var patchID = i * (NumPatchVertCols - 1) + j;
-            _patchBoundsY[patchID] = new Vector2(minY, maxY);
-        }
-
-        private static ShaderResourceView CreateBlendMap(HeightMap hm, Device device, Terrain terrain) {
-            var colors = new List<Color4>();
-            for (var y = 0; y < terrain.HeightMap.HeightMapHeight; y++) {
-                for (var x = 0; x < terrain.HeightMap.HeightMapWidth; x++) {
-                    var elev = terrain.HeightMap[y, x];
-                    var color = new Color4(0);
-                    if (elev > hm.MaxHeight * (0.05f + MathF.Rand(-0.05f, 0.05f))) {
-                        // dark green grass texture
-                        color.Red = elev / (hm.MaxHeight) + MathF.Rand(-0.05f, 0.05f);
-                    }
-                    if (elev > hm.MaxHeight * (0.4f + MathF.Rand(-0.15f, 0.15f))) {
-                        // stone texture
-                        color.Green = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
-                    }
-                    if (elev > hm.MaxHeight * (0.75f + MathF.Rand(-0.1f, 0.1f))) {
-                        // snow texture
-                        color.Alpha = elev / hm.MaxHeight + MathF.Rand(-0.05f, 0.05f);
-                    }
-                    colors.Add(color);
-                }
-                D3DApp.GD3DApp.ProgressUpdate.Draw(0.70f + 0.05f * ((float)y / terrain.HeightMap.HeightMapHeight), "Generating blendmap");
-            }
-            SmoothBlendMap(hm, colors, terrain);
-            SmoothBlendMap(hm, colors, terrain);
-            var texDec = new Texture2DDescription {
-                ArraySize = 1, 
-                BindFlags = BindFlags.ShaderResource, 
-                CpuAccessFlags = CpuAccessFlags.None, 
-                Format = Format.R32G32B32A32_Float, 
-                SampleDescription = new SampleDescription(1, 0), 
-                Height = terrain.HeightMap.HeightMapHeight, 
-                Width = terrain.HeightMap.HeightMapWidth, 
-                MipLevels = 1, 
-                OptionFlags = ResourceOptionFlags.None, 
-                Usage = ResourceUsage.Default
-            };
-            var blendTex = new Texture2D(device, texDec, new DataRectangle(terrain.HeightMap.HeightMapWidth * Marshal.SizeOf(typeof(Color4)), new DataStream(colors.ToArray(), false, false))) { DebugName = "terrain blend texture" };
-            var srvDesc = new ShaderResourceViewDescription { Format = texDec.Format, Dimension = ShaderResourceViewDimension.Texture2D, MostDetailedMip = 0, MipLevels = -1 };
-
-            var srv = new ShaderResourceView(device, blendTex, srvDesc);
-
-            Util.ReleaseCom(ref blendTex);
-            return srv;
-        }
-
-        private static void SmoothBlendMap(HeightMap hm, List<Color4> colors, Terrain terrain) {
-            for (var y = 0; y < terrain.HeightMap.HeightMapHeight; y++) {
-                for (var x = 0; x < terrain.HeightMap.HeightMapWidth; x++) {
-                    var sum = colors[x + y * hm.HeightMapHeight];
-                    var num = 0;
-                    for (var y1 = y - 1; y1 < y + 2; y1++) {
-                        for (var x1 = x - 1; x1 < x + 1; x1++) {
-                            if (!hm.InBounds(y1, x1)) {
-                                continue;
-                            }
-                            sum += colors[x1 + y1 * hm.HeightMapHeight];
-                            num++;
-                        }
-                    }
-                    colors[x + y * hm.HeightMapHeight] = new Color4(sum.Alpha / num, sum.Red / num, sum.Green / num, sum.Blue / num);
-                }
-            }
+            dc.HullShader.Set(null);
+            dc.DomainShader.Set(null);
         }
     }
 }
