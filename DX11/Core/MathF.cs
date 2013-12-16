@@ -8,6 +8,9 @@ namespace Core {
     using SlimDX;
 
     public static partial class MathF {
+        public static float Sqrt2 = (float) Math.Sqrt(2);
+        
+
         private static Random _rand = new Random();
         public const float PI = (float)Math.PI;
 

@@ -16,21 +16,7 @@ using SlimDX.DXGI;
 
 namespace TerrainPicking {
 
-    public class Unit : DisposableClass {
-        private bool _disposed;
-        private SkinnedModelInstance ModelInstance;
-
-        protected override void Dispose(bool disposing) {
-            if (!_disposed) {
-                if (disposing) {
-
-                }
-                _disposed = true;
-            }
-            base.Dispose(disposing);
-        }
-
-    }
+    
 
 
 
@@ -345,6 +331,8 @@ namespace TerrainPicking {
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetSsaoMap(_whiteTex);
             Effects.BasicFX.SetSsaoMap(_whiteTex);
+
+            
             if (_showSphere) {
                 _sphere.World = Matrix.Translation(_spherePos);
                 for (var p = 0; p < Effects.BasicFX.Light1Tech.Description.PassCount; p++) {

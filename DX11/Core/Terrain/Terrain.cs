@@ -1,4 +1,6 @@
-﻿namespace Core.Terrain {
+﻿using System.Diagnostics;
+
+namespace Core.Terrain {
     #region
 
     using System;
@@ -72,15 +74,25 @@
             }
         }
 
-        private static float H(Point start, Point goal) { return MathF.Sqrt((goal.X - start.X) * (goal.X - start.X) + (goal.Y - start.Y) * (goal.Y - start.Y)); }
+        private static float H(Point start, Point goal) {
+            var dx = Math.Abs(start.X - goal.X);
+            var dy = Math.Abs(start.Y - goal.Y);
+            var h = (dx + dy) + (MathF.Sqrt2 - 2)*Math.Min(dx, dy);
+            if (h < 0) {
+                Debugger.Break();
+            }
+            return h;
+            
+            return MathF.Sqrt((goal.X - start.X) * (goal.X - start.X) + (goal.Y - start.Y) * (goal.Y - start.Y));
+        }
 
         private bool Within(Point p) {
             return p.X >= 0 && p.X < Info.HeightMapWidth / TileSize && p.Y >= 0 && p.Y < Info.HeightMapHeight / TileSize;
         }
 
-        private MapTile GetTile(Point point) { return GetTile(point.X, point.Y); }
+        public MapTile GetTile(Point point) { return GetTile(point.X, point.Y); }
 
-        private MapTile GetTile(int x, int y) {
+        public MapTile GetTile(int x, int y) {
             if (_tiles == null)
                 return null;
             return _tiles[x + y * Info.HeightMapHeight / TileSize];
@@ -153,8 +165,8 @@
             for (var y = 0; y < Info.HeightMapWidth/TileSize; y++) {
                 for (var x = 0; x < Info.HeightMapHeight/TileSize; x++) {
                     var tile = GetTile(x, y);
-                    var worldX = x*Info.CellSpacing - Width/2;
-                    var worldZ = -y*Info.CellSpacing + Depth/2;
+                    var worldX = x * Info.CellSpacing * 2 + Info.CellSpacing - Width / 2;
+                    var worldZ = -y * Info.CellSpacing * 2 - Info.CellSpacing + Depth / 2;
                     tile.Height = Height(worldX, worldZ);
                     tile.MapPosition = new Point(x, y);
                     tile.WorldPos = new Vector3(worldX, tile.Height, worldZ);

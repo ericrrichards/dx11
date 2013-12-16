@@ -1,0 +1,108 @@
+﻿using System;
+using System.Collections.Generic;
+using Core;
+using Core.Model;
+using Core.Terrain;
+using SlimDX;
+using SlimDX.Direct3D11;
+
+namespace _33_Pathfinding {
+    public class Unit : DisposableClass {
+        private bool _disposed;
+        private readonly BasicModelInstance _modelInstance;
+
+        public MapTile MapPos { get; set; }
+
+        private List<MapTile> _path = new List<MapTile>();
+        private Vector3 _lastWP, _nextWP;
+        private Vector3 _position;
+        private int _activeWP;
+        private readonly Terrain _terrain;
+        public bool Moving { get; private set; }
+        public float MovePrc { get; private set; }
+        public float Time { get; set; }
+        public float Speed { get; set; }
+        public Vector3 Position { get { return _position; }}
+
+        protected override void Dispose(bool disposing) {
+            if (!_disposed) {
+                if (disposing) {
+
+                }
+                _disposed = true;
+            }
+            base.Dispose(disposing);
+        }
+
+        public Unit( BasicModelInstance model, MapTile mp, Terrain terrain ) {
+            _modelInstance = model;
+            MapPos = mp;
+            _terrain = terrain;
+            _position = mp.WorldPos;
+            _position.Y += 0.5f;
+            Time = 0.0f;
+            _activeWP = 0;
+            Moving = false;
+            MovePrc = 0;
+
+            Speed = 1.0f;
+
+        }
+
+        public void Update(float dt) {
+            Time += dt*0.8f*Speed;
+
+            if (Moving) {
+                if (MovePrc < 1.0f) {
+                    MovePrc += dt*Speed;
+                }
+                if (MovePrc > 1.0f) {
+                    MovePrc = 1.0f;
+                }
+                if (Math.Abs(MovePrc - 1.0f) < float.Epsilon) {
+                    if (_activeWP + 1 >= _path.Count) {
+                        Moving = false;
+                    } else {
+                        _activeWP++;
+                        MoveUnit(_path[_activeWP]);
+                    }
+                }
+                _position = Vector3.Lerp(_lastWP, _nextWP, MovePrc);
+            }
+            _modelInstance.World = Matrix.Translation(_position);
+        }
+
+        public void Render(DeviceContext dc, EffectPass effectPass, Matrix view, Matrix proj) {
+            _modelInstance.Draw(dc, effectPass, view, proj, RenderMode.Basic);
+        }
+
+        public void Goto(MapTile mp) {
+            if (_terrain == null) return;
+
+            _path.Clear();
+            _activeWP = 0;
+
+            if (Moving) {
+                _path.Add(MapPos);
+                var tmpPath = _terrain.GetPath(MapPos.MapPosition, mp.MapPosition);
+                _path.AddRange(tmpPath);
+            } else {
+                _path = _terrain.GetPath(MapPos.MapPosition, mp.MapPosition);
+                if (_path.Count > 0) {
+                    Moving = true;
+                    MoveUnit(_path[_activeWP]);
+
+                }
+            }
+        }
+
+        private void MoveUnit(MapTile to) {
+            _lastWP = MapPos.WorldPos;
+            _lastWP.Y += 0.5f;
+            MapPos = to;
+            MovePrc = 0.0f;
+            _nextWP = MapPos.WorldPos;
+            _nextWP.Y += 0.5f;
+        }
+    }
+}
