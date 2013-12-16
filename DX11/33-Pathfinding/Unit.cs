@@ -8,6 +8,7 @@ using SlimDX.Direct3D11;
 
 namespace _33_Pathfinding {
     public class Unit : DisposableClass {
+        private const float HeightOffset = 0.1f;
         private bool _disposed;
         private readonly BasicModelInstance _modelInstance;
 
@@ -39,7 +40,7 @@ namespace _33_Pathfinding {
             MapPos = mp;
             _terrain = terrain;
             _position = mp.WorldPos;
-            _position.Y += 0.5f;
+            _position.Y += HeightOffset;
             Time = 0.0f;
             _activeWP = 0;
             Moving = false;
@@ -68,6 +69,7 @@ namespace _33_Pathfinding {
                     }
                 }
                 _position = Vector3.Lerp(_lastWP, _nextWP, MovePrc);
+                //_position.Y = _terrain.Height(_position.X, _position.Z) + 0.25f;
             }
             _modelInstance.World = Matrix.Translation(_position);
         }
@@ -98,11 +100,11 @@ namespace _33_Pathfinding {
 
         private void MoveUnit(MapTile to) {
             _lastWP = MapPos.WorldPos;
-            _lastWP.Y += 0.5f;
+            _lastWP.Y = _terrain.Height(_lastWP.X, _lastWP.Z) + HeightOffset;
             MapPos = to;
             MovePrc = 0.0f;
             _nextWP = MapPos.WorldPos;
-            _nextWP.Y += 0.5f;
+            _nextWP.Y = _terrain.Height(_nextWP.X, _nextWP.Z)+ HeightOffset;
         }
     }
 }

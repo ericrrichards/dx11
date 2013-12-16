@@ -324,9 +324,7 @@ namespace _33_Pathfinding {
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
             for (var p = 0; p < Effects.BasicFX.Light1Tech.Description.PassCount; p++) {
                 var pass = Effects.BasicFX.Light1Tech.GetPassByIndex(p);
-                _unit.Render(ImmediateContext, pass, view, proj);
-                _sphere.World = Matrix.Translation(_unit.Position);
-                _sphere.Draw(ImmediateContext, pass, _camera.View, _camera.Proj, RenderMode.Basic);
+                _unit.Render(ImmediateContext, pass, _camera.View, _camera.Proj);
 
             }
 

@@ -327,7 +327,7 @@ namespace Core.Terrain {
                     var inList = false;
                     var newG = best.G + 1.0f;
                     var d = H(best.MapPosition, best.Neighbors[i].MapPosition);
-                    var newF = newG + H(best.Neighbors[i].MapPosition, goal) + best.Neighbors[i].Cost * 5.0f * d;
+                    var newF = newG + H(best.Neighbors[i].MapPosition, goal) + best.Neighbors[i].Cost /* * 5.0f*/ * d;
 
                     if (best.Neighbors[i].Open || best.Neighbors[i].Closed) {
                         if (newF < best.Neighbors[i].F) {
