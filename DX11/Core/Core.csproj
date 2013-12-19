@@ -107,7 +107,9 @@
     <Compile Include="ShadowMap.cs" />
     <Compile Include="Sky.cs" />
     <Compile Include="SSAO.cs" />
+    <Compile Include="Terrain\Heuristics.cs" />
     <Compile Include="Terrain\MapTile.cs" />
+    <Compile Include="Terrain\PriorityQueue.cs" />
     <Compile Include="Terrain\QuadTree.cs" />
     <Compile Include="Terrain\HeightMap.cs" />
     <Compile Include="Terrain\InitInfo.cs" />

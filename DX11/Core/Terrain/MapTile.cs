@@ -1,8 +1,9 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using SlimDX;
 
 namespace Core.Terrain {
-    public class MapTile {
+    public class MapTile : PriorityQueueNode {
 
         public float Height { get; set; }
         public Point MapPosition { get; set; }
@@ -12,11 +13,32 @@ namespace Core.Terrain {
         public int Set { get; set; }
         public float F { get; set; }
         public float G { get; set; }
-        public bool Open { get; set; }
-        public bool Closed { get; set; }
         public MapTile Parent { get; set; }
         public Vector3 WorldPos { get; set; }
 
         public MapTile[] Neighbors = new MapTile[8];
+    }
+
+    public class MapEdge {
+        public MapTile Node1 { get; private set; }
+        public MapTile Node2 { get; private set; }
+        public float Cost { get; private set; }
+
+        public MapEdge(MapTile n1, MapTile n2) {
+            Node1 = n1;
+            Node2 = n2;
+            Cost = CalculateCost(n1, n2);
+        }
+
+        private static float CalculateCost(MapTile n1, MapTile n2) {
+            var dx = Math.Abs(n1.WorldPos.X - n2.WorldPos.X);
+            var dz = Math.Abs(n1.WorldPos.Z - n2.WorldPos.Z);
+            var dy = Math.Abs(n1.WorldPos.Y - n2.WorldPos.Y);
+
+            var dxz = MathF.Sqrt(dx*dx + dz*dz);
+            var slope = dy/dxz;
+
+            return slope;
+        }
     }
 }

@@ -12,7 +12,7 @@ namespace _33_Pathfinding {
         private bool _disposed;
         private readonly BasicModelInstance _modelInstance;
 
-        public MapTile MapPos { get; set; }
+        public MapTile MapTile { get; set; }
 
         private List<MapTile> _path = new List<MapTile>();
         private Vector3 _lastWP, _nextWP;
@@ -37,7 +37,7 @@ namespace _33_Pathfinding {
 
         public Unit( BasicModelInstance model, MapTile mp, Terrain terrain ) {
             _modelInstance = model;
-            MapPos = mp;
+            MapTile = mp;
             _terrain = terrain;
             _position = mp.WorldPos;
             _position.Y += HeightOffset;
@@ -69,7 +69,6 @@ namespace _33_Pathfinding {
                     }
                 }
                 _position = Vector3.Lerp(_lastWP, _nextWP, MovePrc);
-                //_position.Y = _terrain.Height(_position.X, _position.Z) + 0.25f;
             }
             _modelInstance.World = Matrix.Translation(_position);
         }
@@ -85,11 +84,11 @@ namespace _33_Pathfinding {
             _activeWP = 0;
 
             if (Moving) {
-                _path.Add(MapPos);
-                var tmpPath = _terrain.GetPath(MapPos.MapPosition, mp.MapPosition);
+                _path.Add(MapTile);
+                var tmpPath = _terrain.GetPath2(MapTile.MapPosition, mp.MapPosition);
                 _path.AddRange(tmpPath);
             } else {
-                _path = _terrain.GetPath(MapPos.MapPosition, mp.MapPosition);
+                _path = _terrain.GetPath2(MapTile.MapPosition, mp.MapPosition);
                 if (_path.Count > 0) {
                     Moving = true;
                     MoveUnit(_path[_activeWP]);
@@ -99,11 +98,11 @@ namespace _33_Pathfinding {
         }
 
         private void MoveUnit(MapTile to) {
-            _lastWP = MapPos.WorldPos;
+            _lastWP = MapTile.WorldPos;
             _lastWP.Y = _terrain.Height(_lastWP.X, _lastWP.Z) + HeightOffset;
-            MapPos = to;
+            MapTile = to;
             MovePrc = 0.0f;
-            _nextWP = MapPos.WorldPos;
+            _nextWP = MapTile.WorldPos;
             _nextWP.Y = _terrain.Height(_nextWP.X, _nextWP.Z)+ HeightOffset;
         }
     }

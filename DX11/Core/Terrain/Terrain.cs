@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Core.Terrain {
+﻿namespace Core.Terrain {
     #region
 
     using System;
@@ -32,8 +30,10 @@ namespace Core.Terrain {
 
         private TerrainRenderer _renderer;
         public TerrainRenderer Renderer { get { return _renderer; } }
+        public static Heuristics.Distance H;
 
         public Terrain() {
+            H = Heuristics.DiagonalDistance2;
             _renderer = new TerrainRenderer(new Material { Ambient = Color.White, Diffuse = Color.White, Specular = new Color4(64.0f, 0, 0, 0), Reflect = Color.Black }, this);
         }
         
@@ -74,17 +74,6 @@ namespace Core.Terrain {
             }
         }
 
-        private static float H(Point start, Point goal) {
-            var dx = Math.Abs(start.X - goal.X);
-            var dy = Math.Abs(start.Y - goal.Y);
-            var h = (dx + dy) + (MathF.Sqrt2 - 2)*Math.Min(dx, dy);
-            if (h < 0) {
-                Debugger.Break();
-            }
-            return h;
-            
-            return MathF.Sqrt((goal.X - start.X) * (goal.X - start.X) + (goal.Y - start.Y) * (goal.Y - start.Y));
-        }
 
         private bool Within(Point p) {
             return p.X >= 0 && p.X < Info.HeightMapWidth / TileSize && p.Y >= 0 && p.Y < Info.HeightMapHeight / TileSize;
@@ -171,12 +160,14 @@ namespace Core.Terrain {
                     tile.MapPosition = new Point(x, y);
                     tile.WorldPos = new Vector3(worldX, tile.Height, worldZ);
 
-                    if (tile.Height > HeightMap.MaxHeight*(0.05f)) {
+                    if (tile.Height < HeightMap.MaxHeight*(0.05f)) {
                         tile.Type = 0;
-                    } else if (tile.Height > HeightMap.MaxHeight*(0.4f)) {
+                    } else if (tile.Height < HeightMap.MaxHeight*(0.4f)) {
                         tile.Type = 1;
-                    } else if (tile.Height > HeightMap.MaxHeight*(0.75f)) {
+                    } else if (tile.Height < HeightMap.MaxHeight*(0.75f)) {
                         tile.Type = 2;
+                    } else {
+                        tile.Type = 3;
                     }
                 }
             }
@@ -273,82 +264,72 @@ namespace Core.Terrain {
                 }
             }
         }
-
-        public List<MapTile> GetPath(Point start, Point goal) {
+        
+        public List<MapTile> GetPath2(Point start, Point goal) {
             var startTile = GetTile(start);
             var goalTile = GetTile(goal);
 
+            // check that the start and goal positions are valid, and are not the same
             if (!Within(start) || !Within(goal) || start == goal || startTile == null || goalTile == null) {
                 return new List<MapTile>();
             }
+            // Check that start and goal are walkable and that a path can exist between them
             if (!startTile.Walkable || !goalTile.Walkable || startTile.Set != goalTile.Set) {
                 return new List<MapTile>();
             }
-            var numTiles = Info.HeightMapWidth / TileSize * Info.HeightMapHeight / TileSize;
-            for (var i = 0; i < numTiles; i++) {
-                _tiles[i].F = _tiles[i].G = float.MaxValue;
-                _tiles[i].Open = _tiles[i].Closed = false;
-            }
 
-            var open = new List<MapTile>();
+
+            // reset costs
+            foreach (var t in _tiles) {
+                t.F = t.G = float.MaxValue;
+            }
+            var open = new PriorityQueue<MapTile>(_tiles.Length);
+            var closed = new HashSet<MapTile>();
+
             startTile.G = 0;
             startTile.F = H(start, goal);
-            startTile.Open = true;
-            open.Add(startTile);
 
-            while (open.Any()) {
-                var best = open.First();
-                var bestPlace = 0;
-                for (var i = 0; i < open.Count; i++) {
-                    if (open[i].F < best.F) {
-                        best = open[i];
-                        bestPlace = i;
-                    }
-                }
-                if (best == null)
-                    break;
+            open.Enqueue(startTile, startTile.F);
 
-                open[bestPlace].Open = false;
-                open.RemoveAt(bestPlace);
-                if (best.MapPosition == goal) {
-                    var p = new List<MapTile>();
-                    var point = best;
-                    while (point.MapPosition != start) {
-                        p.Add(point);
-                        point = point.Parent;
-                    }
-                    p.Reverse();
-                    return p;
-                }
+            MapTile current = null;
+            while (open.Any() && current != goalTile) {
+                current = open.Dequeue();
+                closed.Add(current);
                 for (var i = 0; i < 8; i++) {
-                    if (best.Neighbors[i] == null) {
+                    var neighbor = current.Neighbors[i];
+                    if (neighbor == null) {
                         continue;
                     }
-                    var inList = false;
-                    var newG = best.G + 1.0f;
-                    var d = H(best.MapPosition, best.Neighbors[i].MapPosition);
-                    var newF = newG + H(best.Neighbors[i].MapPosition, goal) + best.Neighbors[i].Cost /* * 5.0f*/ * d;
+                    var cost = current.G + neighbor.Cost;
+                    
+                    
 
-                    if (best.Neighbors[i].Open || best.Neighbors[i].Closed) {
-                        if (newF < best.Neighbors[i].F) {
-                            best.Neighbors[i].G = newG;
-                            best.Neighbors[i].F = newF;
-                            best.Neighbors[i].Parent = best;
-                        }
-                        inList = true;
+                    if (open.Contains(neighbor) && cost < neighbor.G ) {
+                        open.Remove(neighbor);
                     }
-                    if (inList) {
-                        continue;
+                    if (closed.Contains(neighbor) && cost < neighbor.G) {
+                        closed.Remove(neighbor);
                     }
-                    best.Neighbors[i].F = newF;
-                    best.Neighbors[i].G = newG;
-                    best.Neighbors[i].Parent = best;
-                    best.Neighbors[i].Open = true;
-                    open.Add(best.Neighbors[i]);
+                    if (!open.Contains(neighbor) && !closed.Contains(neighbor)) {
+                        neighbor.G = cost;
+                        var f = cost + H(neighbor.MapPosition, goal);
+                        open.Enqueue(neighbor, f);
+                        neighbor.Parent = current;
+
+                    }
                 }
-                best.Closed = true;
             }
-            return new List<MapTile>();
+            System.Diagnostics.Debug.Assert(current == goalTile);
+            var path = new List<MapTile>();
+            
+
+            while (current != startTile) {
+                path.Add(current);
+                current = current.Parent;
+            }
+            path.Reverse();
+            return path;
+
         }
         #endregion
 
