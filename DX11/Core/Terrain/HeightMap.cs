@@ -15,7 +15,7 @@
     using Device = SlimDX.Direct3D11.Device;
 
     public class HeightMap {
-        private List<float> _heightMap;
+        private float[] _heightMap;
         private Bitmap _bitmap;
         public int HeightMapWidth { get; private set; }
         public int HeightMapHeight { get; private set; }
@@ -28,7 +28,7 @@
             HeightMapWidth = width;
             HeightMapHeight = height;
             MaxHeight = maxHeight;
-            _heightMap = new List<float>(new float[HeightMapWidth * HeightMapHeight]);
+            _heightMap = new float[HeightMapWidth * HeightMapHeight];
         }
 
         public float this[int row, int col] {
@@ -48,14 +48,14 @@
         public void LoadHeightmap(string heightMapFilename) {
             var input = File.ReadAllBytes(heightMapFilename);
 
-            _heightMap = input.Select(i => (i / 255.0f * MaxHeight)).ToList();
+            _heightMap = input.Select(i => (i / 255.0f * MaxHeight)).ToArray();
         }
 
         public void Smooth(bool drawProgress = false) {
-            var dest = new List<float>();
+            var dest = new float[HeightMapHeight * HeightMapWidth];
             for (var i = 0; i < HeightMapHeight; i++) {
                 for (var j = 0; j < HeightMapWidth; j++) {
-                    dest.Add(Average(i, j));
+                    dest[i * HeightMapHeight + j] = Average(i, j);
                 }
                 if (drawProgress) {
                     D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f + 0.25f * ((float)i / HeightMapHeight), "Smoothing terrain");
@@ -145,8 +145,8 @@
         // procedural heightmap stuff
         public static HeightMap operator *(HeightMap lhs, HeightMap rhs) {
             var hm = new HeightMap(lhs.HeightMapWidth, lhs.HeightMapHeight, lhs.MaxHeight);
-            for (int y = 0; y < lhs.HeightMapHeight; y++) {
-                for (int x = 0; x < lhs.HeightMapWidth; x++) {
+            for (var y = 0; y < lhs.HeightMapHeight; y++) {
+                for (var x = 0; x < lhs.HeightMapWidth; x++) {
                     var a = lhs[y, x] / lhs.MaxHeight;
                     var b = 1.0f;
                     if (rhs.InBounds(y, x)) {
@@ -216,11 +216,11 @@
 
             for (var y = 0; y < HeightMapHeight; y++) {
                 var tasks = new List<Action>();
-                int y1 = y;
+                var y1 = y;
 
 
                 for (var x = 0; x < HeightMapWidth; x++) {
-                    int x1 = x;
+                    var x1 = x;
                     tasks.Add(() => {
                         var xf = (x1 / (float)HeightMapWidth) * noiseSize;
                         var yf = (y1 / (float)HeightMapHeight) * noiseSize;

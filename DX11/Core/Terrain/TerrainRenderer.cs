@@ -479,6 +479,9 @@
         public void ComputeSsao(DeviceContext dc, CameraBase cam, Ssao ssao, DepthStencilView depthStencilView) {
             ssao.SetNormalDepthRenderTarget(depthStencilView);
 
+            Effects.SsaoFX.SetOcclusionRadius(0.1f);
+            Effects.SsaoFX.SetOcclusionFadeEnd(0.75f);
+
             dc.InputAssembler.PrimitiveTopology = PrimitiveTopology.PatchListWith4ControlPoints;
             dc.InputAssembler.InputLayout = InputLayouts.TerrainCP;
 
@@ -516,6 +519,7 @@
 
             ssao.ComputeSsao(cam);
             ssao.BlurAmbientMap(4);
+            Effects.SsaoFX.SetOcclusionRadius(0.5f);
         }
 
         public void DrawToShadowMap(DeviceContext dc, ShadowMap sMap, Matrix viewProj) {

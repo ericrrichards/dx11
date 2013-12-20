@@ -25,7 +25,7 @@ cbuffer cbPerFrame
 	float gTexelCellSpaceU;
 	float gTexelCellSpaceV;
 	float gWorldCellSpace;
-	float2 gTexScale = 66.0f;
+	float2 gTexScale = 128.0f;
 
 	float4 gWorldFrustumPlanes[6];
 };

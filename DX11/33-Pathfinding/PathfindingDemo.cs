@@ -60,7 +60,7 @@ namespace _33_Pathfinding {
                     Ambient = new Color4(0.8f, 0.8f, 0.8f),
                     Diffuse = new Color4(0.6f, 0.6f, 0.5f),
                     Specular = new Color4(0.8f, 0.8f, 0.7f),
-                    Direction = new Vector3(0, 0, 0.707f)
+                    Direction = new Vector3(0, -.36f, 1.06f)
                 },
                 new DirectionalLight {
                     Ambient = new Color4(0,0,0),
@@ -114,18 +114,21 @@ namespace _33_Pathfinding {
 
             var tii = new InitInfo {
                 HeightMapFilename = null,
-                LayerMapFilename0 = "textures/grass.dds",
-                LayerMapFilename1 = "textures/darkdirt.dds",
-                LayerMapFilename2 = "textures/stone.dds",
+                LayerMapFilename0 = "textures/grass.png",
+                LayerMapFilename1 = "textures/hills.png",
+                LayerMapFilename2 = "textures/stone.png",
                 LayerMapFilename3 = "Textures/lightdirt.dds",
-                LayerMapFilename4 = "textures/snow.dds",
+                LayerMapFilename4 = "textures/snow.png",
+                Material = new Material() {
+                    Ambient = Color.LightGray, Diffuse = Color.LightGray, Specular = new Color4(64, 0,0,0)
+                },
                 BlendMapFilename = null,
                 HeightScale = 50.0f,
                 HeightMapWidth = 2049,
                 HeightMapHeight = 2049,
                 CellSpacing = 0.5f,
 
-                Seed = 0,
+                Seed = MathF.Rand(),
                 NoiseSize1 = 3.0f,
                 Persistence1 = 0.7f,
                 Octaves1 = 7,
@@ -212,7 +215,7 @@ namespace _33_Pathfinding {
                 _camera.Target = new Vector3(camPos.X, y, camPos.Z);
 
             }
-
+            /*
             _lightRotationAngle += 0.1f * dt;
 
             var r = Matrix.RotationX(_lightRotationAngle);
@@ -221,7 +224,7 @@ namespace _33_Pathfinding {
                 lightDir = Vector3.TransformNormal(lightDir, r);
                 _dirLights[i].Direction = lightDir;
             }
-
+            */
             BuildShadowTransform();
 
             _camera.UpdateViewMatrix();

@@ -8,7 +8,6 @@ namespace Core.Terrain {
         public float Height { get; set; }
         public Point MapPosition { get; set; }
         public int Type { get; set; }
-        public float Cost { get; set; }
         public bool Walkable { get; set; }
         public int Set { get; set; }
         public float F { get; set; }
@@ -16,7 +15,10 @@ namespace Core.Terrain {
         public MapTile Parent { get; set; }
         public Vector3 WorldPos { get; set; }
 
-        public MapTile[] Neighbors = new MapTile[8];
+        //public MapTile[] Neighbors = new MapTile[8];
+        public MapEdge[] Edges = new MapEdge[8];
+
+        
     }
 
     public class MapEdge {
@@ -30,15 +32,29 @@ namespace Core.Terrain {
             Cost = CalculateCost(n1, n2);
         }
 
+        private MapEdge(MapTile n1, MapTile n2, float cost) {
+            Node1 = n1;
+            Node2 = n2;
+            Cost = cost;
+        }
+
         private static float CalculateCost(MapTile n1, MapTile n2) {
             var dx = Math.Abs(n1.WorldPos.X - n2.WorldPos.X);
             var dz = Math.Abs(n1.WorldPos.Z - n2.WorldPos.Z);
             var dy = Math.Abs(n1.WorldPos.Y - n2.WorldPos.Y);
 
-            var dxz = MathF.Sqrt(dx*dx + dz*dz);
-            var slope = dy/dxz;
+            var dxz = MathF.Sqrt(dx * dx + dz * dz);
+            var slope = dy / dxz;
 
             return slope;
+        }
+
+        public static MapEdge Create(MapTile tile, MapTile neighbor) {
+            var cost = CalculateCost(tile, neighbor);
+            if (cost < 0.6f) {
+                return new MapEdge(tile, neighbor, cost);
+            }
+            return null;
         }
     }
 }

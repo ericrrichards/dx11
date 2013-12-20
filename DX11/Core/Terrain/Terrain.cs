@@ -30,11 +30,14 @@
 
         private TerrainRenderer _renderer;
         public TerrainRenderer Renderer { get { return _renderer; } }
-        public static Heuristics.Distance H;
+        private static Heuristics.Distance h;
+        private int _widthInTiles;
+        private int _heightInTiles;
 
         public Terrain() {
-            H = Heuristics.DiagonalDistance2;
+            h = Heuristics.DiagonalDistance2;
             _renderer = new TerrainRenderer(new Material { Ambient = Color.White, Diffuse = Color.White, Specular = new Color4(64.0f, 0, 0, 0), Reflect = Color.Black }, this);
+            
         }
         
         protected override void Dispose(bool disposing) {
@@ -76,15 +79,13 @@
 
 
         private bool Within(Point p) {
-            return p.X >= 0 && p.X < Info.HeightMapWidth / TileSize && p.Y >= 0 && p.Y < Info.HeightMapHeight / TileSize;
+            return p.X >= 0 && p.X < _widthInTiles && p.Y >= 0 && p.Y < _heightInTiles;
         }
 
         public MapTile GetTile(Point point) { return GetTile(point.X, point.Y); }
 
         public MapTile GetTile(int x, int y) {
-            if (_tiles == null)
-                return null;
-            return _tiles[x + y * Info.HeightMapHeight / TileSize];
+            return _tiles == null ? null : _tiles[x + y * _heightInTiles];
         }
 
         private Vector2 GetMinMaxY(Vector2 tl, Vector2 br) {
@@ -102,8 +103,12 @@
 
         public void Init(Device device, DeviceContext dc, InitInfo info) {
             D3DApp.GD3DApp.ProgressUpdate.Draw(0, "Initializing terrain");
+            
 
             Info = info;
+            _widthInTiles = Info.HeightMapWidth / TileSize;
+            _heightInTiles = Info.HeightMapHeight / TileSize;
+
             HeightMap = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, Info.HeightScale);
             if (!string.IsNullOrEmpty(Info.HeightMapFilename)) {
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.1f, "Loading terrain from file");
@@ -144,15 +149,15 @@
         }
 
         private void ResetPathfinding() {
-            _tiles = new MapTile[Info.HeightMapWidth/TileSize*Info.HeightMapHeight/TileSize];
+            _tiles = new MapTile[_widthInTiles*_heightInTiles];
             for (var i = 0; i < _tiles.Length; i++) {
                 _tiles[i] = new MapTile();
             }
         }
 
         private void SetTilePositionsAndTypes() {
-            for (var y = 0; y < Info.HeightMapWidth/TileSize; y++) {
-                for (var x = 0; x < Info.HeightMapHeight/TileSize; x++) {
+            for (var y = 0; y < _heightInTiles; y++) {
+                for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
                     var worldX = x * Info.CellSpacing * 2 + Info.CellSpacing - Width / 2;
                     var worldZ = -y * Info.CellSpacing * 2 - Info.CellSpacing + Depth / 2;
@@ -174,8 +179,8 @@
         }
 
         private void CalculateWalkability() {
-            for (var y = 0; y < Info.HeightMapWidth/TileSize; y++) {
-                for (var x = 0; x < Info.HeightMapHeight/TileSize; x++) {
+            for (var y = 0; y < _heightInTiles; y++) {
+                for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
 
                     if (tile == null) {
@@ -201,21 +206,20 @@
                         nr++;
                     }
                     variance /= nr;
-                    tile.Cost = variance + 0.1f;
-                    if (tile.Cost > 1.0f)
-                        tile.Cost = 1.0f;
-                    tile.Walkable = tile.Cost < 0.5f;
+                    
+                    tile.Walkable = variance < 0.5f;
                 }
             }
         }
 
         private void ConnectNeighboringTiles() {
-            for (var y = 0; y < Info.HeightMapWidth/TileSize; y++) {
-                for (var x = 0; x < Info.HeightMapHeight/TileSize; x++) {
+            for (var y = 0; y < _heightInTiles; y++) {
+                for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
-                    if (tile != null && tile.Walkable) {
+                    if (tile != null  && tile.Walkable) {
                         for (var i = 0; i < 8; i++) {
-                            tile.Neighbors[i] = null;
+                            //tile.Neighbors[i] = null;
+                            tile.Edges[i] = null;
                         }
                         var p = new[] {
                             new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
@@ -228,7 +232,8 @@
                             }
                             var neighbor = GetTile(p[i]);
                             if (neighbor != null && neighbor.Walkable) {
-                                tile.Neighbors[i] = neighbor;
+                                //tile.Neighbors[i] = neighbor;
+                                tile.Edges[i] = MapEdge.Create(tile, neighbor);
                             }
                         }
                     }
@@ -238,8 +243,8 @@
 
         private void CreateTileSets() {
             var setNo = 0;
-            for (var y = 0; y < Info.HeightMapWidth / TileSize; y++) {
-                for (var x = 0; x < Info.HeightMapHeight / TileSize; x++) {
+            for (var y = 0; y < _heightInTiles; y++) {
+                for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
                     tile.Set = setNo++;
                 }
@@ -247,25 +252,29 @@
             var changed = true;
             while (changed) {
                 changed = false;
-                for (var y = 0; y < Info.HeightMapWidth / TileSize; y++) {
-                    for (var x = 0; x < Info.HeightMapHeight / TileSize; x++) {
+                for (var y = 0; y < _heightInTiles; y++) {
+                    for (var x = 0; x < _widthInTiles; x++) {
                         var tile = GetTile(x, y);
-                        if (tile == null || !tile.Walkable) {
+                        if (tile == null ) {
                             continue;
                         }
-                        foreach (var neighbor in tile.Neighbors) {
-                            if (neighbor == null || !neighbor.Walkable || neighbor.Set >= tile.Set) {
+                        
+                        foreach (var edge in tile.Edges) {
+                            if (edge == null ) {
+                                continue;
+                            }
+                            if (edge.Node2.Set >= tile.Set) {
                                 continue;
                             }
                             changed = true;
-                            tile.Set = neighbor.Set;
+                            tile.Set = edge.Node2.Set;
                         }
                     }
                 }
             }
         }
         
-        public List<MapTile> GetPath2(Point start, Point goal) {
+        public List<MapTile> GetPath(Point start, Point goal) {
             var startTile = GetTile(start);
             var goalTile = GetTile(goal);
 
@@ -274,7 +283,7 @@
                 return new List<MapTile>();
             }
             // Check that start and goal are walkable and that a path can exist between them
-            if (!startTile.Walkable || !goalTile.Walkable || startTile.Set != goalTile.Set) {
+            if (startTile.Set != goalTile.Set) {
                 return new List<MapTile>();
             }
 
@@ -287,7 +296,7 @@
             var closed = new HashSet<MapTile>();
 
             startTile.G = 0;
-            startTile.F = H(start, goal);
+            startTile.F = h(start, goal);
 
             open.Enqueue(startTile, startTile.F);
 
@@ -296,11 +305,13 @@
                 current = open.Dequeue();
                 closed.Add(current);
                 for (var i = 0; i < 8; i++) {
-                    var neighbor = current.Neighbors[i];
-                    if (neighbor == null) {
+                    var edge = current.Edges[i];
+                    
+                    if (edge == null) {
                         continue;
                     }
-                    var cost = current.G + neighbor.Cost;
+                    var neighbor = edge.Node2;
+                    var cost = current.G + edge.Cost;
                     
                     
 
@@ -312,7 +323,7 @@
                     }
                     if (!open.Contains(neighbor) && !closed.Contains(neighbor)) {
                         neighbor.G = cost;
-                        var f = cost + H(neighbor.MapPosition, goal);
+                        var f = cost + h(neighbor.MapPosition, goal);
                         open.Enqueue(neighbor, f);
                         neighbor.Parent = current;
 

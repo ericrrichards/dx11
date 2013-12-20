@@ -19,11 +19,11 @@ namespace _33_Pathfinding {
         private Vector3 _position;
         private int _activeWP;
         private readonly Terrain _terrain;
+
         public bool Moving { get; private set; }
         public float MovePrc { get; private set; }
         public float Time { get; set; }
         public float Speed { get; set; }
-        public Vector3 Position { get { return _position; }}
 
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
@@ -69,6 +69,7 @@ namespace _33_Pathfinding {
                     }
                 }
                 _position = Vector3.Lerp(_lastWP, _nextWP, MovePrc);
+                //_position.Y = _terrain.Height(_position.X, _position.Z) + HeightOffset;
             }
             _modelInstance.World = Matrix.Translation(_position);
         }
@@ -85,10 +86,10 @@ namespace _33_Pathfinding {
 
             if (Moving) {
                 _path.Add(MapTile);
-                var tmpPath = _terrain.GetPath2(MapTile.MapPosition, mp.MapPosition);
+                var tmpPath = _terrain.GetPath(MapTile.MapPosition, mp.MapPosition);
                 _path.AddRange(tmpPath);
             } else {
-                _path = _terrain.GetPath2(MapTile.MapPosition, mp.MapPosition);
+                _path = _terrain.GetPath(MapTile.MapPosition, mp.MapPosition);
                 if (_path.Count > 0) {
                     Moving = true;
                     MoveUnit(_path[_activeWP]);
