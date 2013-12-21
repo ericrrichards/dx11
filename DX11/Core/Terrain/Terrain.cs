@@ -52,6 +52,9 @@
 
         #region Utility Functions
 
+        private float Height(Vector3 center) {
+            return Height(center.X, center.Z);
+        }
         public float Height(float x, float z) {
             var c = (x + 0.5f * Width) / Info.CellSpacing;
             var d = (z - 0.5f * Depth) / -Info.CellSpacing;
@@ -141,11 +144,13 @@
 
         private void InitPathfinding() {
             ResetPathfinding();
-
+            
+            
             SetTilePositionsAndTypes();
             CalculateWalkability();
             ConnectNeighboringTiles();
             CreateTileSets();
+            
         }
 
         private void ResetPathfinding() {
@@ -376,10 +381,14 @@
                 var mapX = (int)Math.Floor(center.X);
                 var mapY = (int)Math.Floor(center.Y);
                 quadNode.MapTile = GetTile(mapX, mapY);
+
+                
             }
 
             return quadNode;
         }
+
+        
 
         #region Intersection tests
         public bool Intersect(Ray ray, ref Vector3 spherePos) {

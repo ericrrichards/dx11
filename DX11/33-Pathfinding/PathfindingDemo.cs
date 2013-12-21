@@ -394,6 +394,18 @@ namespace _33_Pathfinding {
             _lastMousePos = e.Location;
         }
 
+        protected override void OnMouseWheel(object sender, MouseEventArgs e) {
+            var zoom = e.Delta;
+            if (zoom > 0) {
+                _camera.Zoom(1);
+            } else {
+                _camera.Zoom(-1);
+            }
+            
+
+
+        }
+
         private static void Main() {
             Configuration.EnableObjectTracking = true;
             var app = new PathfindingDemo(Process.GetCurrentProcess().Handle);

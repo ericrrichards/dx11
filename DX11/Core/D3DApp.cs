@@ -86,6 +86,7 @@ namespace Core {
                 Window.MouseDown += OnMouseDown;
                 Window.MouseUp += OnMouseUp;
                 Window.MouseMove += OnMouseMove;
+                Window.MouseWheel += OnMouseWheel;
                 Window.ResizeBegin += (sender, args) => {
                     AppPaused = true;
                     Resizing = true;
@@ -107,6 +108,8 @@ namespace Core {
                 return false;
             }
         }
+
+        protected virtual void OnMouseWheel(object sender, MouseEventArgs e) {  }
 
         protected virtual void OnMouseMove(object sender, MouseEventArgs e) {
 

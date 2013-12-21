@@ -16,24 +16,27 @@ namespace Core {
     using MapFlags = SlimDX.Direct3D11.MapFlags;
     using Resource = SlimDX.Direct3D11.Resource;
 
-public static class Util {
-    private static byte[] _unmanagedStaging = new byte[1024];
+    public static class Util {
+        private static byte[] _unmanagedStaging = new byte[1024];
 
-    public static byte[] GetArray(object o) {
-        Array.Clear(_unmanagedStaging, 0, _unmanagedStaging.Length);
-        var len = Marshal.SizeOf(o);
-        if (len >= _unmanagedStaging.Length) {
-            _unmanagedStaging = new byte[len];
+        public static byte[] GetArray(object o) {
+            Array.Clear(_unmanagedStaging, 0, _unmanagedStaging.Length);
+            var len = Marshal.SizeOf(o);
+            if (len >= _unmanagedStaging.Length) {
+                _unmanagedStaging = new byte[len];
+            }
+            var ptr = Marshal.AllocHGlobal(len);
+            Marshal.StructureToPtr(o, ptr, true);
+            Marshal.Copy(ptr, _unmanagedStaging, 0, len);
+            Marshal.FreeHGlobal(ptr);
+            return _unmanagedStaging;
+
         }
-        var ptr = Marshal.AllocHGlobal(len);
-        Marshal.StructureToPtr(o, ptr, true);
-        Marshal.Copy(ptr, _unmanagedStaging, 0, len);
-        Marshal.FreeHGlobal(ptr);
-        return _unmanagedStaging;
 
-    }
+        public static Vector3 Center(this BoundingBox b) {
+            return (b.Maximum + b.Minimum) / 2;
+        }
 
-        
         public static Vector3 ToVector3(this Vector4 v) {
             return new Vector3(v.X, v.Y, v.Z);
         }
@@ -58,17 +61,17 @@ public static class Util {
                 ret.Diffuse = Color.White;
             }
 
-            if (m.ColorSpecular == new Color4D(0, 0, 0, 0) ||  m.ColorSpecular == new Color4D(0,0,0)) {
+            if (m.ColorSpecular == new Color4D(0, 0, 0, 0) || m.ColorSpecular == new Color4D(0, 0, 0)) {
                 ret.Specular = new Color4(ret.Specular.Alpha, 0.5f, 0.5f, 0.5f);
             }
 
             return ret;
-        } 
+        }
         public static Matrix ToMatrix(this Matrix4x4 m) {
             var ret = Matrix.Identity;
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    ret[i, j] = m[i+1, j+1];
+                    ret[i, j] = m[i + 1, j + 1];
                 }
             }
             return ret;
@@ -84,7 +87,7 @@ public static class Util {
             return (i >> 16) & 0xFFFF;
         }
 
-        public static void ReleaseCom<T>(ref T x) where T: class, IDisposable{
+        public static void ReleaseCom<T>(ref T x) where T : class, IDisposable {
             if (x != null) {
                 x.Dispose();
                 x = null;
@@ -97,7 +100,7 @@ public static class Util {
             return (GetAsyncKeyState(key) & 0x8000) != 0;
         }
 
-        public static ShaderResourceView CreateTexture2DArraySRV(Device device, DeviceContext immediateContext, string[] filenames, Format format, FilterFlags filter=FilterFlags.None, FilterFlags mipFilter=FilterFlags.Linear) {
+        public static ShaderResourceView CreateTexture2DArraySRV(Device device, DeviceContext immediateContext, string[] filenames, Format format, FilterFlags filter = FilterFlags.None, FilterFlags mipFilter = FilterFlags.Linear) {
             var srcTex = new Texture2D[filenames.Length];
             for (int i = 0; i < filenames.Length; i++) {
                 var loadInfo = new ImageLoadInformation {
@@ -128,14 +131,14 @@ public static class Util {
             };
 
             var texArray = new Texture2D(device, texArrayDesc);
-            texArray.DebugName = "texture array: + " + filenames.Aggregate((i,j) => i + ", " + j);
+            texArray.DebugName = "texture array: + " + filenames.Aggregate((i, j) => i + ", " + j);
             for (int texElement = 0; texElement < srcTex.Length; texElement++) {
                 for (int mipLevel = 0; mipLevel < texElementDesc.MipLevels; mipLevel++) {
                     var mappedTex2D = immediateContext.MapSubresource(srcTex[texElement], mipLevel, 0, MapMode.Read, MapFlags.None);
 
                     immediateContext.UpdateSubresource(
-                        mappedTex2D, 
-                        texArray, 
+                        mappedTex2D,
+                        texArray,
                         Resource.CalculateSubresourceIndex(mipLevel, texElement, texElementDesc.MipLevels)
                         );
                     immediateContext.UnmapSubresource(srcTex[texElement], mipLevel);
@@ -143,7 +146,7 @@ public static class Util {
             }
             var viewDesc = new ShaderResourceViewDescription {
                 Format = texArrayDesc.Format,
-                Dimension = ShaderResourceViewDimension.Texture2DArray, 
+                Dimension = ShaderResourceViewDimension.Texture2DArray,
                 MostDetailedMip = 0,
                 MipLevels = texArrayDesc.MipLevels,
                 FirstArraySlice = 0,
