@@ -166,9 +166,9 @@
                     var tile = GetTile(x, y);
                     var worldX = x * Info.CellSpacing * 2 + Info.CellSpacing - Width / 2;
                     var worldZ = -y * Info.CellSpacing * 2 - Info.CellSpacing + Depth / 2;
-                    tile.Height = Height(worldX, worldZ);
+                    var height = Height(worldX, worldZ);
                     tile.MapPosition = new Point(x, y);
-                    tile.WorldPos = new Vector3(worldX, tile.Height, worldZ);
+                    tile.WorldPos = new Vector3(worldX, height, worldZ);
 
                     if (tile.Height < HeightMap.MaxHeight*(0.05f)) {
                         tile.Type = 0;
@@ -400,14 +400,14 @@
             spherePos = ret;
             return true;
         }
-        public bool Intersect(Ray ray, ref Vector3 spherePos, ref MapTile mapPos) {
+        public bool Intersect(Ray ray, ref Vector3 worldPos, ref MapTile mapPos) {
             Vector3 ret;
             QuadTreeNode ret2;
             if (!QuadTree.Intersects(ray, out ret, out ret2)) {
                 return false;
             }
             ret.Y = Height(ret.X, ret.Z);
-            spherePos = ret;
+            worldPos = ret;
             mapPos = ret2.MapTile;
             return true;
         }
