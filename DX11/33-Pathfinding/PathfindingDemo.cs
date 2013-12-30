@@ -357,6 +357,8 @@ namespace _33_Pathfinding {
 
         protected override void OnMouseDown(object sender, MouseEventArgs e) {
             if (e.Button == MouseButtons.Left) {
+                _minimap.OnClick(e);
+
                 _lastMousePos = e.Location;
                 Window.Capture = true;
             } else if (e.Button == MouseButtons.Right) {
@@ -397,9 +399,9 @@ namespace _33_Pathfinding {
         protected override void OnMouseWheel(object sender, MouseEventArgs e) {
             var zoom = e.Delta;
             if (zoom > 0) {
-                _camera.Zoom(1);
-            } else {
                 _camera.Zoom(-1);
+            } else {
+                _camera.Zoom(1);
             }
             
 

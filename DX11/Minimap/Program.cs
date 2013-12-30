@@ -638,16 +638,7 @@ namespace Minimap {
 
 
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
-            var x = (float)mouseEventArgs.X / Window.ClientSize.Width;
-            var y = (float)mouseEventArgs.Y / Window.ClientSize.Height;
-            var p = new Vector2(x, y);
-            if (_minimap.Contains(ref p)) {
-                // convert minimap-space to world-space and set the camera target
-                var terrainX = _terrain.Width * p.X - _terrain.Width / 2;
-                var terrainZ = -_terrain.Depth * p.Y + _terrain.Depth / 2;
-                _camera.Target = new Vector3(terrainX, _terrain.Height(terrainX, terrainZ), terrainZ);
-                return;
-            }
+            _minimap.OnClick(mouseEventArgs);
 
             _lastMousePos = mouseEventArgs.Location;
             Window.Capture = true;
