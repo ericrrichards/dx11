@@ -86,7 +86,7 @@ namespace Core.Terrain {
             var dxz = MathF.Sqrt(dx * dx + dz * dz);
             var slope = dy / dxz;
 
-            return slope;
+            return 1 +slope;
         }
         /// <summary>
         /// Factory method to create an edge between two terrain tiles
@@ -97,7 +97,7 @@ namespace Core.Terrain {
         /// <returns></returns>
         public static MapEdge Create(MapTile tile, MapTile neighbor) {
             var cost = CalculateCost(tile, neighbor);
-            if (cost < MapTile.MaxSlope) {
+            if (cost < 1+MapTile.MaxSlope) {
                 return new MapEdge(tile, neighbor, cost);
             }
             return null;

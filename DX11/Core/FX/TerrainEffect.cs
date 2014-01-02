@@ -57,9 +57,10 @@ namespace Core.FX {
 
         private readonly EffectMatrixVariable _view;
         private readonly EffectResourceVariable _ambientMap;
-        private readonly EffectMatrixVariable _ViewProjTex;
+        private readonly EffectMatrixVariable _viewProjTex;
         private readonly EffectMatrixVariable _shadowTransform;
         private readonly EffectResourceVariable _shadowMap;
+        private readonly EffectResourceVariable _walkMap;
 
         public TerrainEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -111,9 +112,10 @@ namespace Core.FX {
 
             _view = FX.GetVariableByName("gView").AsMatrix();
             _ambientMap = FX.GetVariableByName("gSsaoMap").AsResource();
-            _ViewProjTex = FX.GetVariableByName("gViewProjTex").AsMatrix();
+            _viewProjTex = FX.GetVariableByName("gViewProjTex").AsMatrix();
             _shadowTransform = FX.GetVariableByName("gShadowTransform").AsMatrix();
             _shadowMap = FX.GetVariableByName("gShadowMap").AsResource();
+            _walkMap = FX.GetVariableByName("gWalkMap").AsResource();
         }
         public void SetView(Matrix m) {
             _view.SetMatrix(m);
@@ -199,7 +201,9 @@ namespace Core.FX {
         }
 
         public void SetViewProjTex(Matrix matrix) {
-            _ViewProjTex.SetMatrix(matrix);
+            _viewProjTex.SetMatrix(matrix);
         }
+
+        public void SetWalkMap(ShaderResourceView walkableTiles) { _walkMap.SetResource(walkableTiles); }
     }
 }

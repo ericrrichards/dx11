@@ -132,6 +132,7 @@
 
 
             Renderer.Init(device, dc, this);
+            _renderer.CreateWalkableTexture(_tiles, _widthInTiles, _heightInTiles);
         }
 
         private void GenerateRandomTerrain() {
@@ -150,6 +151,7 @@
             CalculateWalkability();
             ConnectNeighboringTiles();
             CreateTileSets();
+            
         }
 
         private void ResetTileMap() {
@@ -298,7 +300,7 @@
                 return new List<MapTile>();
             }
             // Check that start and goal are walkable and that a path can exist between them
-            if (startTile.Walkable && goalTile.Walkable && startTile.Set != goalTile.Set) {
+            if (startTile.Set != goalTile.Set) {
                 return new List<MapTile>();
             }
 
@@ -386,7 +388,8 @@
             if (width >= TileSize && depth >= TileSize) {
                 quadNode.Children = new[] { BuildQuadTree(topLeft, new Vector2(topLeft.X + width, topLeft.Y + depth)), BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y), new Vector2(bottomRight.X, topLeft.Y + depth)), BuildQuadTree(new Vector2(topLeft.X, topLeft.Y + depth), new Vector2(topLeft.X + depth, bottomRight.Y)), BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y + depth), bottomRight) };
             } else {
-                var center = (topLeft / 2 + bottomRight / 2) / 2;
+                // set the maptile corresponding to this leaf node of the quad tree
+                var center = (topLeft / TileSize + bottomRight / TileSize) / 2;
                 var mapX = (int)Math.Floor(center.X);
                 var mapY = (int)Math.Floor(center.Y);
                 quadNode.MapTile = GetTile(mapX, mapY);

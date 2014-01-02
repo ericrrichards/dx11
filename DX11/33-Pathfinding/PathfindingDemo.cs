@@ -159,7 +159,7 @@ namespace _33_Pathfinding {
             _sphereModel = new BasicModel();
             _sphereModel.CreateSphere(Device, 0.25f, 10, 10);
             _sphereModel.Materials[0] = new Material {
-                Ambient = Color.Red,
+                Ambient = new Color4(63, 0,0),
                 Diffuse = Color.Red,
                 Specular = new Color4(32, 1.0f, 1.0f, 1.0f)
             };
@@ -367,7 +367,7 @@ namespace _33_Pathfinding {
                 var tile = new MapTile();
                 var worldPos = new Vector3();
 
-                var hit = _terrain.Intersect(ray, ref worldPos, ref tile);
+                _terrain.Intersect(ray, ref worldPos, ref tile);
 
                 
 
@@ -394,6 +394,19 @@ namespace _33_Pathfinding {
 
             }
             _lastMousePos = e.Location;
+
+            var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
+
+            var tile = new MapTile();
+            var worldPos = new Vector3();
+
+            _terrain.Intersect(ray, ref worldPos, ref tile);
+
+            if (tile != null && tile.Walkable) {
+                Cursor.Current = Cursors.Arrow;
+            } else {
+                Cursor.Current = Cursors.No;
+            }
         }
 
         protected override void OnMouseWheel(object sender, MouseEventArgs e) {

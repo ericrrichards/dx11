@@ -54,6 +54,8 @@ Texture2D gShadowMap;
 // new for ssao
 Texture2D gSsaoMap;
 
+Texture2D gWalkMap;
+
 
 SamplerState samLinear
 {
@@ -406,6 +408,12 @@ float4 PS(DomainOut pin,
 
 		litColor = texColor*(ambient + diffuse) + spec;
 	}
+
+	float walkFactor = gWalkMap.SampleLevel(samLinear, pin.Tex, 0);
+	
+
+	litColor *= walkFactor;
+	
 
 	//
 	// Fogging

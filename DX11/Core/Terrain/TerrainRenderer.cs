@@ -52,6 +52,8 @@
 
         public bool Shadows { get; set; }
         public Matrix World { get; set; }
+        private ShaderResourceView _walkableTiles;
+        private Device _device;
 
         public TerrainRenderer(Material material, Terrain terrain) {
             _material = material;
@@ -69,6 +71,7 @@
                     Util.ReleaseCom(ref _layerMapArraySRV);
                     Util.ReleaseCom(ref _blendMapSRV);
                     Util.ReleaseCom(ref _heightMapSRV);
+                    Util.ReleaseCom(ref _walkableTiles);
 
                     foreach (var p in _patches) {
                         var patch = p;
@@ -82,6 +85,7 @@
         }
 
         public void Init(Device device, DeviceContext dc, Terrain terrain) {
+            _device = device;
             NumPatchVertRows = ((terrain.Info.HeightMapHeight - 1) / Terrain.CellsPerPatch) + 1;
             NumPatchVertCols = ((terrain.Info.HeightMapWidth - 1) / Terrain.CellsPerPatch) + 1;
             _numPatchVertices = NumPatchVertRows * NumPatchVertCols;
@@ -547,6 +551,7 @@
             Effects.TerrainFX.SetWorldCellSpace(_terrain.Info.CellSpacing);
             Effects.TerrainFX.SetWorldFrustumPlanes(planes);
             Effects.TerrainFX.SetHeightMap(_heightMapSRV);
+            Effects.TerrainFX.SetWalkMap(_walkableTiles);
 
             var tech = Effects.TerrainFX.TessBuildShadowMapTech;
             for (var p = 0; p < tech.Description.PassCount; p++) {
@@ -556,6 +561,35 @@
             }
             dc.HullShader.Set(null);
             dc.DomainShader.Set(null);
+        }
+
+        public void CreateWalkableTexture(MapTile[] tiles, int widthInTiles, int heightInTiles) {
+            var desc = new Texture2DDescription() {
+                ArraySize = 1,
+                BindFlags = BindFlags.ShaderResource,
+                CpuAccessFlags = CpuAccessFlags.None,
+                Format = Format.R8_UNorm,
+                Height = heightInTiles,
+                Width = widthInTiles,
+                MipLevels = 1,
+                OptionFlags = ResourceOptionFlags.None,
+                SampleDescription = new SampleDescription(1, 0),
+                Usage = ResourceUsage.Default
+            };
+
+
+            var colors = new List<byte>();
+            for (int y = 0; y < heightInTiles; y++) {
+                for (int x = 0; x < widthInTiles; x++) {
+                    colors.Add((byte) (tiles[x + widthInTiles*y].Walkable ? 255 : 127));
+                }
+            }
+
+
+            var walkMap = new Texture2D(_device, desc, new DataRectangle(widthInTiles*sizeof(byte), new DataStream(colors.ToArray(), false, false)));
+            _walkableTiles = new ShaderResourceView(_device, walkMap);
+            
+            Util.ReleaseCom(ref walkMap);
         }
     }
 }
