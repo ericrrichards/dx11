@@ -298,7 +298,7 @@
                 return new List<MapTile>();
             }
             // Check that start and goal are walkable and that a path can exist between them
-            if (startTile.Set != goalTile.Set) {
+            if (startTile.Walkable && goalTile.Walkable && startTile.Set != goalTile.Set) {
                 return new List<MapTile>();
             }
 
@@ -355,7 +355,6 @@
             }
             path.Reverse();
             return path;
-
         }
         #endregion
 
