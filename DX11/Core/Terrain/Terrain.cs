@@ -30,6 +30,9 @@
 
         private TerrainRenderer _renderer;
         public TerrainRenderer Renderer { get { return _renderer; } }
+        public MapTile[] Tiles { get { return _tiles; } }
+        public int WidthInTiles { get { return _widthInTiles; } }
+        public int HeightInTiles { get { return _heightInTiles; } }
         private static Heuristics.Distance h;
 
         private MapTile[] _tiles;
@@ -55,9 +58,6 @@
 
         #region Utility Functions
 
-        private float Height(Vector3 center) {
-            return Height(center.X, center.Z);
-        }
         public float Height(float x, float z) {
             var c = (x + 0.5f * Width) / Info.CellSpacing;
             var d = (z - 0.5f * Depth) / -Info.CellSpacing;
@@ -132,7 +132,7 @@
 
 
             Renderer.Init(device, dc, this);
-            _renderer.CreateWalkableTexture(_tiles, _widthInTiles, _heightInTiles);
+            
         }
 
         private void GenerateRandomTerrain() {

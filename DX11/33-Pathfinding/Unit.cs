@@ -55,7 +55,7 @@ namespace _33_Pathfinding {
 
             if (Moving) {
                 if (MovePrc < 1.0f) {
-                    MovePrc += dt*Speed;
+                    MovePrc += dt * Speed;
                 }
                 if (MovePrc > 1.0f) {
                     MovePrc = 1.0f;
@@ -70,7 +70,7 @@ namespace _33_Pathfinding {
                 }
                 _position = Vector3.Lerp(_lastWP, _nextWP, MovePrc);
                 //_position.Y = _terrain.Height(_position.X, _position.Z) + HeightOffset;
-            }
+            } 
             _modelInstance.World = Matrix.Translation(_position);
         }
 

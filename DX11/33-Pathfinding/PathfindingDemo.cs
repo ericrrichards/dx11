@@ -394,19 +394,6 @@ namespace _33_Pathfinding {
 
             }
             _lastMousePos = e.Location;
-
-            var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
-
-            var tile = new MapTile();
-            var worldPos = new Vector3();
-
-            _terrain.Intersect(ray, ref worldPos, ref tile);
-
-            if (tile != null && tile.Walkable) {
-                Cursor.Current = Cursors.Arrow;
-            } else {
-                Cursor.Current = Cursors.No;
-            }
         }
 
         protected override void OnMouseWheel(object sender, MouseEventArgs e) {

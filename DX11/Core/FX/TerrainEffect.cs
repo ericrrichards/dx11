@@ -61,6 +61,7 @@ namespace Core.FX {
         private readonly EffectMatrixVariable _shadowTransform;
         private readonly EffectResourceVariable _shadowMap;
         private readonly EffectResourceVariable _walkMap;
+        private readonly EffectResourceVariable _unwalkableSRV;
 
         public TerrainEffect(Device device, string filename) : base(device, filename) {
             Light1Tech = FX.GetTechniqueByName("Light1");
@@ -116,6 +117,7 @@ namespace Core.FX {
             _shadowTransform = FX.GetVariableByName("gShadowTransform").AsMatrix();
             _shadowMap = FX.GetVariableByName("gShadowMap").AsResource();
             _walkMap = FX.GetVariableByName("gWalkMap").AsResource();
+            _unwalkableSRV = FX.GetVariableByName("gUnwalkable").AsResource();
         }
         public void SetView(Matrix m) {
             _view.SetMatrix(m);
@@ -145,9 +147,9 @@ namespace Core.FX {
         }
 
         public void SetDirLights(DirectionalLight[] lights) {
-            System.Diagnostics.Debug.Assert(lights.Length <= MaxLights, "BasicEffect only supports up to 3 lights");
+            Debug.Assert(lights.Length <= MaxLights, "BasicEffect only supports up to 3 lights");
 
-            for (int i = 0; i < lights.Length && i < MaxLights; i++) {
+            for (var i = 0; i < lights.Length && i < MaxLights; i++) {
                 var light = lights[i];
                 var d = Util.GetArray(light);
                 Array.Copy(d, 0, _dirLightsArray, i * DirectionalLight.Stride, DirectionalLight.Stride);
@@ -205,5 +207,7 @@ namespace Core.FX {
         }
 
         public void SetWalkMap(ShaderResourceView walkableTiles) { _walkMap.SetResource(walkableTiles); }
+        public void SetUnwalkableTex(ShaderResourceView shaderResourceView) { _unwalkableSRV.SetResource(shaderResourceView); }
+        
     }
 }
