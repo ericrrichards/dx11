@@ -132,7 +132,7 @@
 
 
             Renderer.Init(device, dc, this);
-            
+
         }
 
         private void GenerateRandomTerrain() {
@@ -150,8 +150,8 @@
             SetTilePositionsAndTypes();
             CalculateWalkability();
             ConnectNeighboringTiles();
-            CreateTileSets();
-            
+            CreateTileSets2();
+
         }
 
         private void ResetTileMap() {
@@ -235,23 +235,25 @@
             for (var y = 0; y < _heightInTiles; y++) {
                 for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
-                    if (tile != null && tile.Walkable) {
-                        for (var i = 0; i < 8; i++) {
-                            tile.Edges[i] = null;
+                    if (tile == null || !tile.Walkable) {
+                        continue;
+                    }
+                    for (var i = 0; i < 8; i++) {
+                        tile.Edges[i] = null;
+                    }
+                    var p = new[] {
+                        new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
+                        new Point(x - 1, y), new Point(x + 1, y),
+                        new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
+                    };
+                    for (var i = 0; i < 8; i++) {
+                        var point = p[i];
+                        if (!Within(point)) {
+                            continue;
                         }
-                        var p = new[] {
-                    new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
-                    new Point(x - 1, y), new Point(x + 1, y),
-                    new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
-                };
-                        for (var i = 0; i < 8; i++) {
-                            if (!Within(p[i])) {
-                                continue;
-                            }
-                            var neighbor = GetTile(p[i]);
-                            if (neighbor != null && neighbor.Walkable) {
-                                tile.Edges[i] = MapEdge.Create(tile, neighbor);
-                            }
+                        var neighbor = GetTile(point);
+                        if (neighbor != null && neighbor.Walkable) {
+                            tile.Edges[i] = MapEdge.Create(tile, neighbor);
                         }
                     }
                 }
@@ -276,18 +278,53 @@
                             continue;
                         }
 
-                        foreach (var edge in tile.Edges) {
-                            if (edge == null) {
-                                continue;
-                            }
-                            if (edge.Node2.Set >= tile.Set) {
-                                continue;
-                            }
+                        foreach (var edge in tile.Edges.Where(edge => edge != null).Where(edge => edge.Node2.Set < tile.Set)) {
                             changed = true;
                             tile.Set = edge.Node2.Set;
                         }
                     }
                 }
+            }
+        }
+
+        private void CreateTileSets2() {
+            var setNo = 0;
+            var unvisited = new HashSet<MapTile>();
+            for (var y = 0; y < _heightInTiles; y++) {
+                for (var x = 0; x < _widthInTiles; x++) {
+                    var tile = GetTile(x, y);
+                    if (tile.Edges.Any(e => e != null)) {
+                        if (tile.Walkable) {
+                            unvisited.Add(tile);
+                        } else {
+                            tile.Set = --setNo;
+                        }
+                    } else {
+                        tile.Set = --setNo;
+                    }
+
+                }
+            }
+            setNo = 0;
+            var stack = new Stack<MapTile>();
+
+            while (unvisited.Any()) {
+                var newFirst = unvisited.First();
+                stack.Push(newFirst);
+                unvisited.Remove(newFirst);
+
+                while (stack.Any()) {
+                    var next = stack.Pop();
+                    next.Set = setNo;
+                    foreach (var mapTile in next.Edges.Where(e => e != null && unvisited.Contains(e.Node2)).Select(e => e.Node2)) {
+                        stack.Push(mapTile);
+                        unvisited.Remove(mapTile);
+                    }
+                }
+
+
+
+                setNo++;
             }
         }
 
