@@ -8,22 +8,33 @@ using SlimDX.Direct3D11;
 
 namespace _33_Pathfinding {
     public class Unit : DisposableClass {
+        // offset from the terrain surface to render the model
         private const float HeightOffset = 0.1f;
         private bool _disposed;
+
+        // 3D model instance for this entity
         private readonly BasicModelInstance _modelInstance;
 
-        public MapTile MapTile { get; set; }
+        // current MapTile this entity is occupying
+        private MapTile MapTile { get; set; }
 
+        // current path the entity is following
         private List<MapTile> _path = new List<MapTile>();
+        // world-positions of the MapTiles the entity is traveling between
         private Vector3 _lastWP, _nextWP;
-        private Vector3 _position;
+        // index of the current node in the path the entity is following
         private int _activeWP;
+
+        // world-space position of the entity
+        private Vector3 _position;
+
         private readonly Terrain _terrain;
 
-        public bool Moving { get; private set; }
-        public float MovePrc { get; private set; }
-        public float Time { get; set; }
-        public float Speed { get; set; }
+        // movement related properties
+        private bool Moving { get; set; }
+        private float MovePrc { get; set; }
+        private float Time { get; set; }
+        private float Speed { get; set; }
 
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
@@ -35,7 +46,7 @@ namespace _33_Pathfinding {
             base.Dispose(disposing);
         }
 
-        public Unit( BasicModelInstance model, MapTile mp, Terrain terrain ) {
+        public Unit(BasicModelInstance model, MapTile mp, Terrain terrain) {
             _modelInstance = model;
             MapTile = mp;
             _terrain = terrain;
@@ -47,11 +58,10 @@ namespace _33_Pathfinding {
             MovePrc = 0;
 
             Speed = 1.0f;
-
         }
 
         public void Update(float dt) {
-            Time += dt*0.8f*Speed;
+            Time += dt * Speed;
 
             if (Moving) {
                 if (MovePrc < 1.0f) {
@@ -62,15 +72,18 @@ namespace _33_Pathfinding {
                 }
                 if (Math.Abs(MovePrc - 1.0f) < float.Epsilon) {
                     if (_activeWP + 1 >= _path.Count) {
+                        // done following path
                         Moving = false;
                     } else {
+                        // move to the next leg of the path
                         _activeWP++;
                         MoveUnit(_path[_activeWP]);
                     }
                 }
+                // move the unit towards the next waypoint on the path
                 _position = Vector3.Lerp(_lastWP, _nextWP, MovePrc);
-                //_position.Y = _terrain.Height(_position.X, _position.Z) + HeightOffset;
-            } 
+            }
+            // set the world position of the model for rendering
             _modelInstance.World = Matrix.Translation(_position);
         }
 
@@ -90,21 +103,25 @@ namespace _33_Pathfinding {
                 _path.AddRange(tmpPath);
             } else {
                 _path = _terrain.GetPath(MapTile.MapPosition, mp.MapPosition);
-                if (_path.Count > 0) {
-                    Moving = true;
-                    MoveUnit(_path[_activeWP]);
-
+                if (_path.Count <= 0) {
+                    // unit is already at goal position
+                    return;
                 }
+                Moving = true;
+                MoveUnit(_path[_activeWP]);
             }
         }
 
         private void MoveUnit(MapTile to) {
+            // set the unit's last position to its current position
             _lastWP = MapTile.WorldPos;
             _lastWP.Y = _terrain.Height(_lastWP.X, _lastWP.Z) + HeightOffset;
+            // set the unit's position to the next leg in the path
             MapTile = to;
             MovePrc = 0.0f;
+            // set the next position to the next leg's position
             _nextWP = MapTile.WorldPos;
-            _nextWP.Y = _terrain.Height(_nextWP.X, _nextWP.Z)+ HeightOffset;
+            _nextWP.Y = _terrain.Height(_nextWP.X, _nextWP.Z) + HeightOffset;
         }
     }
 }

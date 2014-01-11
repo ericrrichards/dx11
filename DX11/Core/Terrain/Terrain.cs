@@ -150,7 +150,7 @@
             SetTilePositionsAndTypes();
             CalculateWalkability();
             ConnectNeighboringTiles();
-            CreateTileSets2();
+            CreateTileSets();
 
         }
 
@@ -262,34 +262,9 @@
 
         private void CreateTileSets() {
             var setNo = 0;
-            for (var y = 0; y < _heightInTiles; y++) {
-                for (var x = 0; x < _widthInTiles; x++) {
-                    var tile = GetTile(x, y);
-                    tile.Set = setNo++;
-                }
-            }
-            var changed = true;
-            while (changed) {
-                changed = false;
-                for (var y = 0; y < _heightInTiles; y++) {
-                    for (var x = 0; x < _widthInTiles; x++) {
-                        var tile = GetTile(x, y);
-                        if (tile == null) {
-                            continue;
-                        }
-
-                        foreach (var edge in tile.Edges.Where(edge => edge != null).Where(edge => edge.Node2.Set < tile.Set)) {
-                            changed = true;
-                            tile.Set = edge.Node2.Set;
-                        }
-                    }
-                }
-            }
-        }
-
-        private void CreateTileSets2() {
-            var setNo = 0;
             var unvisited = new HashSet<MapTile>();
+            // scan the tiles, to create the list of walkable tiles to consider
+            // assign unwalkable or unconnected tiles to unique negative tilesets
             for (var y = 0; y < _heightInTiles; y++) {
                 for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
@@ -302,28 +277,30 @@
                     } else {
                         tile.Set = --setNo;
                     }
-
                 }
             }
             setNo = 0;
+            // stack for depth-first search
             var stack = new Stack<MapTile>();
 
             while (unvisited.Any()) {
+                // extract the first unvisited node in order to seed the depth-first search
                 var newFirst = unvisited.First();
                 stack.Push(newFirst);
                 unvisited.Remove(newFirst);
 
                 while (stack.Any()) {
+                    // perform the depth-first search
                     var next = stack.Pop();
                     next.Set = setNo;
-                    foreach (var mapTile in next.Edges.Where(e => e != null && unvisited.Contains(e.Node2)).Select(e => e.Node2)) {
+                    // Get the neighbors of this node, where the neighbor is connected to this node, 
+                    // and has not been visited yet
+                    var neighbors = next.Edges.Where(e => e != null && unvisited.Contains(e.Node2)).Select(e => e.Node2);
+                    foreach (var mapTile in neighbors) {
                         stack.Push(mapTile);
                         unvisited.Remove(mapTile);
                     }
                 }
-
-
-
                 setNo++;
             }
         }
@@ -423,10 +400,16 @@
 
             // we will recurse until the terrain regions match our logical terrain tile sizes
             if (width >= TileSize && depth >= TileSize) {
-                quadNode.Children = new[] { BuildQuadTree(topLeft, new Vector2(topLeft.X + width, topLeft.Y + depth)), BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y), new Vector2(bottomRight.X, topLeft.Y + depth)), BuildQuadTree(new Vector2(topLeft.X, topLeft.Y + depth), new Vector2(topLeft.X + depth, bottomRight.Y)), BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y + depth), bottomRight) };
+                quadNode.Children = new[] {
+                    BuildQuadTree(topLeft, new Vector2(topLeft.X + width, topLeft.Y + depth)), 
+                    BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y), new Vector2(bottomRight.X, topLeft.Y + depth)), 
+                    BuildQuadTree(new Vector2(topLeft.X, topLeft.Y + depth), new Vector2(topLeft.X + depth, bottomRight.Y)), 
+                    BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y + depth), bottomRight)
+                };
             } else {
                 // set the maptile corresponding to this leaf node of the quad tree
-                var center = (topLeft / TileSize + bottomRight / TileSize) / 2;
+                var center = topLeft / TileSize;
+
                 var mapX = (int)Math.Floor(center.X);
                 var mapY = (int)Math.Floor(center.Y);
                 quadNode.MapTile = GetTile(mapX, mapY);
@@ -440,15 +423,7 @@
 
 
         #region Intersection tests
-        public bool Intersect(Ray ray, ref Vector3 spherePos) {
-            Vector3 ret;
-            if (!QuadTree.Intersects(ray, out ret)) {
-                return false;
-            }
-            ret.Y = Height(ret.X, ret.Z);
-            spherePos = ret;
-            return true;
-        }
+
         public bool Intersect(Ray ray, ref Vector3 worldPos, ref MapTile mapPos) {
             Vector3 ret;
             QuadTreeNode ret2;
@@ -460,14 +435,7 @@
             mapPos = ret2.MapTile;
             return true;
         }
-        public bool Intersect(Ray ray, ref MapTile mapPos) {
-            QuadTreeNode ret;
-            if (!QuadTree.Intersects(ray, out ret)) {
-                return false;
-            }
-            mapPos = ret.MapTile;
-            return true;
-        }
+
         #endregion
 
     }

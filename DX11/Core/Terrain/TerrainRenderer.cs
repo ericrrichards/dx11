@@ -17,7 +17,7 @@
     using Buffer = SlimDX.Direct3D11.Buffer;
     using Device = SlimDX.Direct3D11.Device;
 
-    
+
 
     public class TerrainRenderer : DisposableClass {
         internal const float MaxDist = 500.0f;
@@ -54,7 +54,7 @@
 
         public bool Shadows { get; set; }
         public Matrix World { get; set; }
-        
+
         private Device _device;
         private WalkMap _walkMap;
 
@@ -63,7 +63,7 @@
             _patches = new List<Patch>();
             _terrain = terrain;
             World = Matrix.Identity;
-            
+
         }
 
         protected override void Dispose(bool disposing) {
@@ -418,6 +418,8 @@
                 Effects.TerrainFX.SetHeightMap(_heightMapSRV);
                 Effects.TerrainFX.SetMaterial(_material);
                 Effects.TerrainFX.SetViewProjTex(viewProj * toTexSpace);
+                Effects.TerrainFX.SetWalkMap(_walkMap.WalkableTiles);
+                Effects.TerrainFX.SetUnwalkableTex(_walkMap.UnwalkableSRV);
 
                 var tech = Shadows ? Effects.TerrainFX.Light1ShadowTech : Effects.TerrainFX.Light1Tech;
                 for (var p = 0; p < tech.Description.PassCount; p++) {
@@ -452,6 +454,8 @@
                 Effects.TerrainFX.SetBlendMap(_blendMapSRV);
                 Effects.TerrainFX.SetHeightMap(_heightMapSRV);
                 Effects.TerrainFX.SetMaterial(_material);
+                Effects.TerrainFX.SetWalkMap(_walkMap.WalkableTiles);
+                Effects.TerrainFX.SetUnwalkableTex(_walkMap.UnwalkableSRV);
                 var tech = Effects.TerrainFX.Light1TechNT;
                 for (var p = 0; p < tech.Description.PassCount; p++) {
                     var pass = tech.GetPassByIndex(p);
@@ -556,8 +560,7 @@
             Effects.TerrainFX.SetWorldCellSpace(_terrain.Info.CellSpacing);
             Effects.TerrainFX.SetWorldFrustumPlanes(planes);
             Effects.TerrainFX.SetHeightMap(_heightMapSRV);
-            Effects.TerrainFX.SetWalkMap(_walkMap.WalkableTiles);
-            Effects.TerrainFX.SetUnwalkableTex(_walkMap.UnwalkableSRV);
+            
 
             var tech = Effects.TerrainFX.TessBuildShadowMapTech;
             for (var p = 0; p < tech.Description.PassCount; p++) {
@@ -577,15 +580,19 @@
 
             public WalkMap(TerrainRenderer terrainRenderer) {
                 _terrainRenderer = terrainRenderer;
-
-                CreateWalkableTexture(terrainRenderer._terrain.Tiles, terrainRenderer._terrain.WidthInTiles, terrainRenderer._terrain.HeightInTiles);
                 UnwalkableSRV = ShaderResourceView.FromFile(terrainRenderer._device, "textures/unwalkable.png");
+                CreateWalkableTexture(
+                    terrainRenderer._terrain.Tiles,
+                    terrainRenderer._terrain.WidthInTiles,
+                    terrainRenderer._terrain.HeightInTiles
+                );
             }
 
             protected override void Dispose(bool disposing) {
                 if (!_disposed) {
                     if (disposing) {
                         Util.ReleaseCom(ref WalkableTiles);
+                        Util.ReleaseCom(ref UnwalkableSRV);
                     }
                     _disposed = true;
                 }
@@ -593,6 +600,8 @@
             }
 
             private void CreateWalkableTexture(IList<MapTile> tiles, int widthInTiles, int heightInTiles) {
+                // create the texture description for the walkable map
+                // it should have the same dimensions as the tile map
                 var desc = new Texture2DDescription {
                     ArraySize = 1,
                     BindFlags = BindFlags.ShaderResource,
@@ -606,13 +615,15 @@
                     Usage = ResourceUsage.Default
                 };
 
-
+                // create the pixel data
                 var colors = new List<byte>();
                 for (var y = 0; y < heightInTiles; y++) {
                     for (var x = 0; x < widthInTiles; x++) {
+                        // walkable tiles are black, unwalkable tiles are white
                         colors.Add((byte)(tiles[x + widthInTiles * y].Walkable ? 0 : 255));
                     }
                 }
+                // do a bilinear smoothing on the walkable map, to smooth the transition between the normal and unwalkable textures
                 for (var y = 0; y < heightInTiles; y++) {
                     for (var x = 0; x < widthInTiles; x++) {
                         float temp = 0;
@@ -630,8 +641,11 @@
                     }
                 }
 
-
-                var walkMap = new Texture2D(_terrainRenderer._device, desc, new DataRectangle(widthInTiles * sizeof(byte), new DataStream(colors.ToArray(), false, false)));
+                // create the texture from the pixel data and create the ShaderResourceView
+                var walkMap = new Texture2D(
+                    _terrainRenderer._device,
+                    desc,
+                    new DataRectangle(widthInTiles * sizeof(byte), new DataStream(colors.ToArray(), false, false)));
                 WalkableTiles = new ShaderResourceView(_terrainRenderer._device, walkMap);
 
                 Util.ReleaseCom(ref walkMap);

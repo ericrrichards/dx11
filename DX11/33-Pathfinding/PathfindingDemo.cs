@@ -120,7 +120,7 @@ namespace _33_Pathfinding {
                 LayerMapFilename3 = "Textures/lightdirt.dds",
                 LayerMapFilename4 = "textures/snow.png",
                 Material = new Material() {
-                    Ambient = Color.LightGray, Diffuse = Color.LightGray, Specular = new Color4(64, 0,0,0)
+                    Ambient = Color.LightGray, Diffuse = Color.LightGray, Specular = new Color4(64, 0, 0, 0)
                 },
                 BlendMapFilename = null,
                 HeightScale = 50.0f,
@@ -159,15 +159,15 @@ namespace _33_Pathfinding {
             _sphereModel = new BasicModel();
             _sphereModel.CreateSphere(Device, 0.25f, 10, 10);
             _sphereModel.Materials[0] = new Material {
-                Ambient = new Color4(63, 0,0),
+                Ambient = new Color4(63, 0, 0),
                 Diffuse = Color.Red,
                 Specular = new Color4(32, 1.0f, 1.0f, 1.0f)
             };
             _sphereModel.DiffuseMapSRV[0] = _whiteTex;
 
-            _sphere = new BasicModelInstance (_sphereModel );
-            
-            _unit = new Unit(_sphere, _terrain.GetTile(511,511), _terrain);
+            _sphere = new BasicModelInstance(_sphereModel);
+
+            _unit = new Unit(_sphere, _terrain.GetTile(511, 511), _terrain);
 
             return true;
         }
@@ -356,27 +356,33 @@ namespace _33_Pathfinding {
 
 
         protected override void OnMouseDown(object sender, MouseEventArgs e) {
-            if (e.Button == MouseButtons.Left) {
-                _minimap.OnClick(e);
+            switch (e.Button) {
+                case MouseButtons.Left:
+                    _minimap.OnClick(e);
+                    _lastMousePos = e.Location;
+                    Window.Capture = true;
+                    break;
+                case MouseButtons.Right:
+                    // move the unit around using the right clicks
+                    var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
 
-                _lastMousePos = e.Location;
-                Window.Capture = true;
-            } else if (e.Button == MouseButtons.Right) {
-                var ray = _camera.GetPickingRay(new Vector2(e.X, e.Y), new Vector2(Viewport.Width, Viewport.Height));
+                    var tile = new MapTile();
+                    var worldPos = new Vector3();
 
-                var tile = new MapTile();
-                var worldPos = new Vector3();
-
-                _terrain.Intersect(ray, ref worldPos, ref tile);
-
-                
-
-                Console.WriteLine("Clicked at " + worldPos.ToString());
-                if (tile != null) {
+                    // do intersection test
+                    if (!_terrain.Intersect(ray, ref worldPos, ref tile)) {
+                        return;
+                    }
+                    Console.WriteLine("Clicked at " + worldPos.ToString());
+                    if (tile == null) {
+                        return;
+                    }
+                    // move the unit towards the new goal
                     Console.WriteLine("Hit tile " + tile.MapPosition);
                     Console.WriteLine("Moving unit to " + tile.MapPosition);
                     _unit.Goto(tile);
-                }
+
+                    break;
             }
         }
 
@@ -403,7 +409,7 @@ namespace _33_Pathfinding {
             } else {
                 _camera.Zoom(1);
             }
-            
+
 
 
         }

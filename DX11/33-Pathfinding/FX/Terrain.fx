@@ -386,13 +386,18 @@ float4 PS(DomainOut pin,
 	pin.SsaoPosH /= pin.SsaoPosH.w;
 	float ambientAccess = gSsaoMap.SampleLevel(samLinear, pin.SsaoPosH.xy, 0.0f).r;
 
-	float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
-	float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-	float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
-	if (gLightCount > 0)
-	{
+	// new for walkable/unwalkable
+	float walkFactor = gWalkMap.SampleLevel(samLinear, pin.Tex, 0);
+	float4 unwalkable = gUnwalkable.Sample(samLinear, pin.TiledTex);
+
+	texColor = lerp(texColor, unwalkable, walkFactor);
+	float4 litColor = texColor;
+	// lighting calculations
+	if (gLightCount > 0) {
 		// Start with a sum of zero. 
-		
+		float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 		// Sum the light contribution from each light source.  
 		[unroll]
@@ -408,14 +413,10 @@ float4 PS(DomainOut pin,
 			spec += shadow[i] * S;
 		}
 
-		
+		litColor = texColor*(ambient + diffuse) + spec;
 	}
 
-	float walkFactor = gWalkMap.SampleLevel(samLinear, pin.Tex, 0);
-	float4 unwalkable = gUnwalkable.Sample(samLinear, pin.TiledTex);
-
-	texColor = lerp(texColor, unwalkable, walkFactor);
-	float4 litColor = texColor*(ambient + diffuse) + spec;
+	
 
 	//
 	// Fogging
