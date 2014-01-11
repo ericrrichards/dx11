@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace _27_ShapeModels {
+namespace _34_Ballistic {
     using System.Diagnostics;
     using System.Drawing;
     using System.Windows.Forms;
@@ -9,40 +13,70 @@ namespace _27_ShapeModels {
     using Core.Camera;
     using Core.FX;
     using Core.Model;
+    using Core.Physics;
 
     using SlimDX;
-    using SlimDX.DXGI;
     using SlimDX.Direct3D11;
+    using SlimDX.DirectInput;
+    using SlimDX.DXGI;
 
-    class ShapeModelsDemo : D3DApp {
+    public enum ShotType {
+        Unused = 0,
+        Pistol,
+        Artillery,
+        Fireball,
+        Laser
+    };
 
-        private TextureManager _texMgr;
+    internal struct AmmoRound {
+        public Particle Particle { get; set; }
+        public ShotType ShotType { get; set; }
+        public float StartTime { get; set; }
+        public BasicModelInstance Model { get; set; }
+
+        public void Render(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj) {
+            var position = Particle.Position;
+            Model.World = Matrix.Translation(position);
+
+            Model.Draw(dc, pass, view, proj);
+
+        }
+
+    };
+
+
+    class BallisticDemo :D3DApp {
+
+        private const int MaxRounds = 16;
+        List<AmmoRound> _ammo = new List<AmmoRound>();
+        private ShotType _currentShotType;
 
         private readonly DirectionalLight[] _dirLights;
 
         private readonly FpsCamera _camera;
-
-        private BasicModel _boxModel;
         private BasicModel _gridModel;
         private BasicModel _sphereModel;
         private BasicModel _cylinderModel;
+        
 
         private BasicModelInstance _grid;
-        private BasicModelInstance _box;
         private BasicModelInstance _sphere;
         private BasicModelInstance _cylinder;
 
         private Point _lastMousePos;
         private bool _disposed;
+        private TextureManager _texMgr;
+        private float fireDelay = 0.5f;
 
-        private ShapeModelsDemo(IntPtr hInstance)
-            : base(hInstance) {
-            MainWindowCaption = "ShapeModels Demo";
+        private BallisticDemo(IntPtr hInstance) : base(hInstance) {
+            _currentShotType = ShotType.Laser;
+
+            MainWindowCaption = "Ballistic Demo";
 
             _lastMousePos = new Point();
 
-            _camera = new FpsCamera { Position = new Vector3(0, 2, -15) };
-           
+            _camera = new FpsCamera { Position = new Vector3(5, 2, -5) };
+
             _dirLights = new[] {
                 new DirectionalLight {
                     Ambient = new Color4( 0.2f, 0.2f, 0.2f),
@@ -67,12 +101,9 @@ namespace _27_ShapeModels {
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
-                    Util.ReleaseCom(ref _texMgr);
-
                     Util.ReleaseCom(ref _gridModel);
-                    Util.ReleaseCom(ref _boxModel);
                     Util.ReleaseCom(ref _sphereModel);
-                    Util.ReleaseCom(ref _cylinderModel);
+                    Util.ReleaseCom(ref _texMgr);
 
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();
@@ -84,7 +115,8 @@ namespace _27_ShapeModels {
         }
 
         public override bool Init() {
-            if (!base.Init()) return false;
+            if (!base.Init())
+                return false;
             Effects.InitAll(Device);
             InputLayouts.InitAll(Device);
             RenderStates.InitAll(Device);
@@ -92,20 +124,14 @@ namespace _27_ShapeModels {
             _texMgr = new TextureManager();
             _texMgr.Init(Device);
 
-
             _gridModel = new BasicModel();
             _gridModel.CreateGrid(Device, 20, 20, 40, 40);
             _gridModel.Materials[0] = new Material() { Diffuse = Color.SaddleBrown, Specular = new Color4(16, .9f, .9f, .9f) };
             _gridModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/floor.dds");
             _gridModel.NormalMapSRV[0] = _texMgr.CreateTexture("textures/floor_nmap.dds");
 
-            _boxModel = new BasicModel();
-            _boxModel.CreateBox(Device, 1, 1, 1);
-            _boxModel.Materials[0] = new Material() { Ambient = Color.Red, Diffuse = Color.Red, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
-            _boxModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/bricks_nmap.dds");
-
             _sphereModel = new BasicModel();
-            _sphereModel.CreateSphere(Device, 1, 20, 20);
+            _sphereModel.CreateSphere(Device, 0.3f, 5, 4);
             _sphereModel.Materials[0] = new Material() { Ambient = Color.Blue, Diffuse = Color.Blue, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
             _sphereModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/stones_nmap.dds");
 
@@ -116,19 +142,13 @@ namespace _27_ShapeModels {
 
             _grid = new BasicModelInstance(_gridModel) {
                 TexTransform = Matrix.Scaling(10, 10, 1),
-                World = Matrix.Identity
+                World = Matrix.Scaling(10, 1, 10)*Matrix.Translation(0, 0, 90)
             };
 
-            _box = new BasicModelInstance(_boxModel) {
-                World = Matrix.Translation(-3, 1, 0)
-            };
-
-            _sphere = new BasicModelInstance(_sphereModel) {
-                World = Matrix.Translation(0, 1, 0)
-            };
+            _sphere = new BasicModelInstance(_sphereModel);
 
             _cylinder = new BasicModelInstance(_cylinderModel) {
-                World = Matrix.Translation(3, 1.5f, 0)
+                World = Matrix.Translation(0, 1.5f, 0)
             };
 
             return true;
@@ -138,6 +158,7 @@ namespace _27_ShapeModels {
             base.OnResize();
             _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
         }
+
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
             if (Util.IsKeyDown(Keys.Up)) {
@@ -161,11 +182,62 @@ namespace _27_ShapeModels {
 
             _camera.UpdateViewMatrix();
 
+            for (var index = 0; index < _ammo.Count; index++) {
+                var shot = _ammo[index];
+                shot.Particle.Integrate(dt);
+                if (shot.Particle.Position.Y < 0.0f || shot.StartTime + 10.0f < Timer.TotalTime || shot.Particle.Position.Z > 200.0f) {
+                    _ammo.Remove(shot);
+                }
+            }
+            fireDelay -= dt;
+            if (Util.IsKeyDown(Keys.D1)){
+                _currentShotType = ShotType.Pistol;
+            } else if (Util.IsKeyDown(Keys.D2)) {
+                _currentShotType = ShotType.Artillery;
+            } else if (Util.IsKeyDown(Keys.D3)) {
+                _currentShotType = ShotType.Fireball;
+            } else if (Util.IsKeyDown(Keys.D4)) {
+                _currentShotType = ShotType.Laser;
+            } else if (Util.IsKeyDown(Keys.Space) && fireDelay < 0) {
+                Fire();
+                fireDelay = 0.2f;
+            }
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
             _lastMousePos = mouseEventArgs.Location;
             Window.Capture = true;
+            
         }
+
+        public void Fire() {
+            if (_ammo.Count >= MaxRounds)
+                return;
+            var shot = new AmmoRound() { Model = _sphere };
+
+            switch (_currentShotType) {
+                case ShotType.Pistol:
+                    shot.Particle = new Particle() { Mass = 2.0f, Velocity = new Vector3(0, 0, 35), Acceleration = new Vector3(0, -1, 0), Damping = 0.99f };
+                    break;
+                case ShotType.Artillery:
+                    shot.Particle = new Particle() { Mass = 200.0f, Velocity = new Vector3(0, 30, 40), Acceleration = new Vector3(0, -20, 0), Damping = 0.99f };
+                    break;
+                case ShotType.Fireball:
+                    shot.Particle = new Particle() { Mass = 1.0f, Velocity = new Vector3(0, 0, 10), Acceleration = new Vector3(0, 0.6f, 0), Damping = 0.9f };
+                    break;
+                case ShotType.Laser:
+                    shot.Particle = new Particle() { Mass = 0.1f, Velocity = new Vector3(0, 0, 100), Acceleration = new Vector3(0, 0, 0), Damping = 0.99f };
+                    break;
+            }
+            shot.Particle.Position = new Vector3(0, 1.5f, 0.0f);
+            shot.StartTime = Timer.TotalTime;
+            shot.ShotType = _currentShotType;
+
+            shot.Particle.ClearAccumulator();
+
+            _ammo.Add(shot);
+        }
+
+
         protected override void OnMouseUp(object sender, MouseEventArgs e) {
             Window.Capture = false;
         }
@@ -201,23 +273,26 @@ namespace _27_ShapeModels {
                 ImmediateContext.Rasterizer.State = RenderStates.WireframeRS;
             }
 
-            for (var p = 0; p < activeTech.Description.PassCount; p++) {
-                var pass = activeTech.GetPassByIndex(p);
-                _box.Draw(ImmediateContext, pass, view,proj);
-                _sphere.Draw(ImmediateContext, pass, view,proj);
-                _cylinder.Draw(ImmediateContext, pass, view,proj);
-            }
             for (var p = 0; p < floorTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
-                _grid.Draw(ImmediateContext, pass, view,proj);
+                _grid.Draw(ImmediateContext, pass, view, proj);
             }
+            for (var p = 0; p < activeTech.Description.PassCount; p++) {
+                var pass = activeTech.GetPassByIndex(p);
+                foreach (var ammoRound in _ammo) {
+                    ammoRound.Render(ImmediateContext, pass, view, proj);
+                }
+                _cylinder.Draw(ImmediateContext, pass, view, proj);
+            }
+
+
             SwapChain.Present(0, PresentFlags.None);
             ImmediateContext.Rasterizer.State = null;
         }
 
         static void Main(string[] args) {
             Configuration.EnableObjectTracking = true;
-            var app = new ShapeModelsDemo(Process.GetCurrentProcess().Handle);
+            var app = new BallisticDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
                 return;
             }
