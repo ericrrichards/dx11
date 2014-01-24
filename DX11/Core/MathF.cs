@@ -100,5 +100,8 @@ namespace Core {
             return (float) Math.Pow(x, y);
         }
 
+        public static Vector3 RandVector(Vector3 min, Vector3 max) {
+            return new Vector3(Rand(min.X, max.X), Rand(min.Y, max.Y), Rand(min.Z, max.Z));
+        }
     }
 }

@@ -3,11 +3,16 @@ using System.Diagnostics;
 using SlimDX;
 
 namespace Core.Physics {
+    public class Constants {
+        public static readonly Vector3 Gravity = new Vector3(0, -9.81f, 0);
+    }
+
+
 public class Particle {
 
     public Vector3 Position { get; set; }
-    public Vector3 Velocity { get; private set; }
-    public Vector3 Acceleration { get; private set; }
+    public Vector3 Velocity { get; set; }
+    public Vector3 Acceleration { get; set; }
 
     // fake tweakable "drag" force
     public float Damping { get; set; }
@@ -39,8 +44,11 @@ public class Particle {
         Mass = mass;
     }
 
+    protected Particle() {
+        
+    }
 
-        public void ClearAccumulator() {
+    public void ClearAccumulator() {
             ForceAccum = new Vector3();
         }
         public void AddForce(Vector3 force) {
