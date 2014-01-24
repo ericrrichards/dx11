@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace _35_Fireworks {
     using System.Diagnostics;
@@ -20,9 +17,9 @@ namespace _35_Fireworks {
     using SlimDX.DXGI;
 
     public class Firework : Particle {
-        public int Type { get; set; }
-        public float Age { get; set; }
-        public BasicModelInstance Model { get; set; }
+        public int Type { get; private set; }
+        private float Age { get; set; }
+        private BasicModelInstance Model { get; set; }
 
         public Firework(int type, float age, BasicModel m) {
             Type = type;
@@ -45,8 +42,8 @@ namespace _35_Fireworks {
 
     public class FireWorkRule :DisposableClass {
         public class Payload {
-            public int Type { get; set; }
-            public int Count { get; set; }
+            public int Type { get; private set; }
+            public int Count { get; private set; }
 
             public Payload(int type, int count) {
                 Type = type;
@@ -54,20 +51,20 @@ namespace _35_Fireworks {
             }
         }
 
-        public int Type { get; set; }
-        public float MinAge { get; set; }
-        public float MaxAge { get; set; }
-        public Vector3 MinVelocity { get; set; }
-        public Vector3 MaxVelocity { get; set; }
-        public float Damping { get; set; }
+        private int Type { get; set; }
+        private float MinAge { get; set; }
+        private float MaxAge { get; set; }
+        private Vector3 MinVelocity { get; set; }
+        private Vector3 MaxVelocity { get; set; }
+        private float Damping { get; set; }
 
-        public List<Payload> Payloads { get; set; }
+        public List<Payload> Payloads { get; private set; }
 
 
         private BasicModel _model;
         private bool _disposed;
 
-        public FireWorkRule() {
+        private FireWorkRule() {
             Payloads = new List<Payload>();
         }
 
@@ -93,7 +90,7 @@ namespace _35_Fireworks {
 
         public Firework CreateFirework(Firework parent = null) {
             var f = new Firework(Type, MathF.Rand(MinAge, MaxAge), _model);
-            Vector3 vel = new Vector3();
+            var vel = new Vector3();
             if (parent != null) {
                 f.Position = parent.Position;
                 vel += parent.Velocity;
@@ -115,9 +112,8 @@ namespace _35_Fireworks {
 
 
     class FireworksDemo : D3DApp {
-        private const int MaxFireworks = 1024;
-        private List<Firework> _fireworks = new List<Firework>();
-        private List<FireWorkRule> _rules = new List<FireWorkRule>();
+        private readonly List<Firework> _fireworks = new List<Firework>();
+        private readonly List<FireWorkRule> _rules = new List<FireWorkRule>();
 
         private readonly DirectionalLight[] _dirLights;
 
@@ -131,7 +127,7 @@ namespace _35_Fireworks {
         private float _fireDelay = 0.5f;
         private Sky _sky;
 
-        protected FireworksDemo(IntPtr hInstance)
+        private FireworksDemo(IntPtr hInstance)
             : base(hInstance) {
             MainWindowCaption = "Fireworks Demo";
 
@@ -167,8 +163,8 @@ namespace _35_Fireworks {
                     Util.ReleaseCom(ref _gridModel);
                     Util.ReleaseCom(ref _texMgr);
 
-                    for (var index = 0; index < _rules.Count; index++) {
-                        var fireWorkRule = _rules[index];
+                    foreach (var t in _rules) {
+                        var fireWorkRule = t;
                         Util.ReleaseCom(ref fireWorkRule);
                     }
                     _rules.Clear();
@@ -236,7 +232,6 @@ namespace _35_Fireworks {
             m1 = CreateFireworkModel(Color.Cyan);
             rule = new FireWorkRule(5, 0.5f, 1.0f, new Vector3(-20, 2, -5), new Vector3(20, 18, 5), 0.01f, m1);
             rule.Payloads.Add(new FireWorkRule.Payload(3, 5));
-            rule.Payloads.Add(new FireWorkRule.Payload(8, 2));
 
             _rules.Add(rule);
 
@@ -254,8 +249,7 @@ namespace _35_Fireworks {
 
             m1 = CreateFireworkModel(Color.White);
             rule = new FireWorkRule(8, 0.25f, 0.5f, new Vector3(-1, -1, -1), new Vector3(1, 1, 1), 0.01f, m1);
-            rule.Payloads.Add(new FireWorkRule.Payload(9, 3));
-            rule.Payloads.Add(new FireWorkRule.Payload(6, 3));
+            
             _rules.Add(rule);
 
             m1 = CreateFireworkModel(Color.Pink);
@@ -268,17 +262,17 @@ namespace _35_Fireworks {
         private BasicModel CreateFireworkModel(Color diffuse) {
             var m1 = new BasicModel();
             m1.CreateSphere(Device, .2f, 5, 5);
-            m1.Materials[0] = new Material() { Ambient = Color.White, Diffuse = diffuse, Specular = new Color4(128.0f, 1.0f, 1.0f, 1.0f) };
+            m1.Materials[0] = new Material { Ambient = Color.White, Diffuse = diffuse, Specular = new Color4(128.0f, 1.0f, 1.0f, 1.0f) };
             
             return m1;
         }
 
-        public void Create(int type, Firework parent) {
+        private void Create(int type, Firework parent) {
             var rule = _rules[type - 1];
             _fireworks.Add(rule.CreateFirework(parent));
         }
 
-        public void Create(int type, int number, Firework parent) {
+        private void Create(int type, int number, Firework parent) {
             for (var i = 0; i < number; i++) {
                 Create(type, parent);
             }
@@ -441,7 +435,7 @@ namespace _35_Fireworks {
         }
 
 
-        static void Main(string[] args) {
+        static void Main() {
             Configuration.EnableObjectTracking = true;
             var app = new FireworksDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
