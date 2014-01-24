@@ -51,11 +51,12 @@ namespace _34_Ballistic {
         private readonly FpsCamera _camera;
         private BasicModel _gridModel;
         private BasicModel _sphereModel;
-        private BasicModel _cylinderModel;
+        
 
 
         private BasicModelInstance _grid;
         private BasicModelInstance _sphere;
+        private BasicModel _cylinderModel;
         private BasicModelInstance _cylinder;
 
         private Point _lastMousePos;

@@ -95,8 +95,7 @@ namespace _35_Fireworks {
                 f.Position = parent.Position;
                 vel += parent.Velocity;
             } else {
-                var x = MathF.Rand(-1, 2)*5;
-                f.Position = new Vector3(x, 0, 0);
+                f.Position = new Vector3(0, 3.0f, 0);
             }
             vel += MathF.RandVector(MinVelocity, MaxVelocity);
             f.Velocity = vel;
@@ -126,6 +125,9 @@ namespace _35_Fireworks {
         private TextureManager _texMgr;
         private float _fireDelay = 0.5f;
         private Sky _sky;
+
+        private BasicModel _cylinderModel;
+        private BasicModelInstance _cylinder;
 
         private FireworksDemo(IntPtr hInstance)
             : base(hInstance) {
@@ -161,6 +163,8 @@ namespace _35_Fireworks {
             if (!_disposed) {
                 if (disposing) {
                     Util.ReleaseCom(ref _gridModel);
+                    Util.ReleaseCom(ref _cylinderModel);
+                    Util.ReleaseCom(ref _sky);
                     Util.ReleaseCom(ref _texMgr);
 
                     foreach (var t in _rules) {
@@ -192,15 +196,24 @@ namespace _35_Fireworks {
 
             _gridModel = new BasicModel();
             _gridModel.CreateGrid(Device, 20, 20, 40, 40);
-            _gridModel.Materials[0] = new Material { Diffuse = Color.SaddleBrown, Specular = new Color4(16, .9f, .9f, .9f) };
+            _gridModel.Materials[0] = new Material { Diffuse = Color.LightGray, Specular = new Color4(16, .9f, .9f, .9f) };
             _gridModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/floor.dds");
             _gridModel.NormalMapSRV[0] = _texMgr.CreateTexture("textures/floor_nmap.dds");
 
             _grid = new BasicModelInstance(_gridModel) {
                 TexTransform = Matrix.Scaling(10, 10, 1),
-                World = Matrix.Scaling(10, 1, 10) * Matrix.Translation(0, 0, 90)
+                World = Matrix.Scaling(10, 1, 10) 
             };
             InitFireworksRules();
+            _cylinderModel = new BasicModel();
+            _cylinderModel.CreateCylinder(Device, 1, 1, 3, 20, 20);
+            _cylinderModel.Materials[0] = new Material { Ambient = Color.Green, Diffuse = Color.Green, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
+            _cylinderModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/stones.dds");
+            _cylinderModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/stones_nmap.dds");
+
+            _cylinder = new BasicModelInstance(_cylinderModel) {
+                World = Matrix.Translation(0, 1.5f, 0)
+            };
 
             return true;
         }
@@ -414,12 +427,14 @@ namespace _35_Fireworks {
             for (var p = 0; p < floorTech.Description.PassCount; p++) {
                 var pass = floorTech.GetPassByIndex(p);
                 _grid.Draw(ImmediateContext, pass, view, proj);
+                _cylinder.Draw(ImmediateContext, pass, view, proj);
             }
             for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
                 foreach (var firework in _fireworks) {
                     firework.Render(ImmediateContext, pass, view, proj);
                 }
+                
             }
 
             _sky.Draw(ImmediateContext, _camera);
