@@ -276,9 +276,6 @@ Global
 		{46ECCDA7-F994-4A66-A5CB-3A383DD37D1A} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{CA1437FE-E75B-4F82-A3A4-2076B608CCD2} = {67416F3C-2867-486D-9AED-D8060761C148}
 	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(CodealikeProperties) = postSolution
 		SolutionGuid = 9875458a-9274-46e6-a11e-e68a4f2ef5c7
 	EndGlobalSection
