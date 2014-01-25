@@ -39,7 +39,7 @@ namespace Core.Terrain {
         public static float DiagonalDistance(Point start, Point goal) {
             var dx = Math.Abs(start.X - goal.X);
             var dy = Math.Abs(start.Y - goal.Y);
-            var h =  Math.Max(dx, dy);
+            var h = Math.Max(dx, dy);
 
             return h;
         }
@@ -55,10 +55,11 @@ namespace Core.Terrain {
         public static float DiagonalDistance2(Point start, Point goal) {
             var dx = Math.Abs(start.X - goal.X);
             var dy = Math.Abs(start.Y - goal.Y);
-            var h = (dx + dy) + (MathF.Sqrt2 - 2)*Math.Min(dx, dy);
+            var h = (dx + dy) + (MathF.Sqrt2 - 2) * Math.Min(dx, dy);
 
             return h;
         }
+
         /// <summary>
         /// Euclidean distance between two points, for use when travel in any direction is allowed, rather than just along ranks, files and diagonals
         /// http://en.wikipedia.org/wiki/Euclidean_distance
@@ -66,29 +67,25 @@ namespace Core.Terrain {
         /// <param name="start"></param>
         /// <param name="goal"></param>
         /// <returns></returns>
-        public static float EuclideanDistance(Point start, Point goal) { return MathF.Sqrt((goal.X - start.X)*(goal.X - start.X) + (goal.Y - start.Y)*(goal.Y - start.Y)); }
+        public static float EuclideanDistance(Point start, Point goal) {
+            var dx = (goal.X - start.X);
+            var dy = (goal.Y - start.Y);
+            return MathF.Sqrt(dx * dx + dy * dy);
+        }
 
         /// <summary>
         /// Hexagonal distance between two points
         /// Assumes a hexagonal coordinate system in which one axis lies along the diagonals of the hexes
         /// http://3dmdesign.com/development/hexmap-coordinates-the-easy-way
-        /// 
-        /// Example hex grid
-        /// 
-        /// [0,0]     [0,1]     [0,2]     [0,3]
-        ///      [1,1]     [1,2]     [1,3]     [1,4]
-        /// [2,1]     [2,2]     [2,3]     [2,4]
-        ///      [3,2]     [3,3]     [3,4]     [3,5]
-        /// [4,2]     [4,3]     [4,4]     [4,5]
         /// </summary>
         /// <param name="start"></param>
         /// <param name="goal"></param>
         /// <returns></returns>
         public static float HexDistance(Point start, Point goal) {
-            var dx = Math.Abs(start.X - goal.X);
-            var dy = Math.Abs(start.Y - goal.Y);
-            var dz = Math.Abs(dx - dy);
-            var h = new[] {dx, dy, dz}.Max();
+            var dx = start.X - goal.X;
+            var dy = start.Y - goal.Y;
+            var dz = dx - dy;
+            var h = Math.Max(Math.Abs(dx), Math.Max(Math.Abs(dy), Math.Abs(dz)));
 
             return h;
         }

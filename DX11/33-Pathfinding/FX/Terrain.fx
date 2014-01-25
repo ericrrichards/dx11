@@ -54,6 +54,10 @@ Texture2D gShadowMap;
 // new for ssao
 Texture2D gSsaoMap;
 
+Texture2D gWalkMap;
+Texture2D gUnwalkable;
+
+
 
 SamplerState samLinear
 {
@@ -382,9 +386,14 @@ float4 PS(DomainOut pin,
 	pin.SsaoPosH /= pin.SsaoPosH.w;
 	float ambientAccess = gSsaoMap.SampleLevel(samLinear, pin.SsaoPosH.xy, 0.0f).r;
 
+	// new for walkable/unwalkable
+	float walkFactor = gWalkMap.SampleLevel(samLinear, pin.Tex, 0);
+	float4 unwalkable = gUnwalkable.Sample(samLinear, pin.TiledTex);
+
+	texColor = lerp(texColor, unwalkable, walkFactor);
 	float4 litColor = texColor;
-	if (gLightCount > 0)
-	{
+	// lighting calculations
+	if (gLightCount > 0) {
 		// Start with a sum of zero. 
 		float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
 		float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -406,6 +415,8 @@ float4 PS(DomainOut pin,
 
 		litColor = texColor*(ambient + diffuse) + spec;
 	}
+
+	
 
 	//
 	// Fogging

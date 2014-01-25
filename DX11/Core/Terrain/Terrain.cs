@@ -15,14 +15,14 @@
 
     public class Terrain : DisposableClass {
         public const int CellsPerPatch = 64;
-        private const int TileSize = 2;
+
 
         private bool _disposed;
-        private MapTile[] _tiles;
-        
+
+
         public float Width { get { return (Info.HeightMapWidth - 1) * Info.CellSpacing; } }
         public float Depth { get { return (Info.HeightMapHeight - 1) * Info.CellSpacing; } }
-        
+
         public InitInfo Info { get; private set; }
         public HeightMap HeightMap { get; private set; }
         public Image HeightMapImg { get { return HeightMap.Bitmap; } }
@@ -30,16 +30,22 @@
 
         private TerrainRenderer _renderer;
         public TerrainRenderer Renderer { get { return _renderer; } }
+        public MapTile[] Tiles { get { return _tiles; } }
+        public int WidthInTiles { get { return _widthInTiles; } }
+        public int HeightInTiles { get { return _heightInTiles; } }
         private static Heuristics.Distance h;
+
+        private MapTile[] _tiles;
         private int _widthInTiles;
         private int _heightInTiles;
+        private const int TileSize = 2;
 
         public Terrain() {
             h = Heuristics.DiagonalDistance2;
             _renderer = new TerrainRenderer(new Material { Ambient = Color.White, Diffuse = Color.White, Specular = new Color4(64.0f, 0, 0, 0), Reflect = Color.Black }, this);
-            
+
         }
-        
+
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
                 if (disposing) {
@@ -52,9 +58,6 @@
 
         #region Utility Functions
 
-        private float Height(Vector3 center) {
-            return Height(center.X, center.Z);
-        }
         public float Height(float x, float z) {
             var c = (x + 0.5f * Width) / Info.CellSpacing;
             var d = (z - 0.5f * Depth) / -Info.CellSpacing;
@@ -106,11 +109,10 @@
 
         public void Init(Device device, DeviceContext dc, InitInfo info) {
             D3DApp.GD3DApp.ProgressUpdate.Draw(0, "Initializing terrain");
-            
+
 
             Info = info;
-            _widthInTiles = Info.HeightMapWidth / TileSize;
-            _heightInTiles = Info.HeightMapHeight / TileSize;
+
 
             HeightMap = new HeightMap(Info.HeightMapWidth, Info.HeightMapHeight, Info.HeightScale);
             if (!string.IsNullOrEmpty(Info.HeightMapFilename)) {
@@ -122,14 +124,15 @@
                 D3DApp.GD3DApp.ProgressUpdate.Draw(0.50f, "Smoothing terrain");
                 HeightMap.Smooth(true);
             }
-            InitPathfinding();
+            InitTileMap();
             D3DApp.GD3DApp.ProgressUpdate.Draw(0.55f, "Building picking quadtree...");
             QuadTree = new QuadTree {
                 Root = BuildQuadTree(new Vector2(0, 0), new Vector2((Info.HeightMapWidth - 1), (Info.HeightMapHeight - 1)))
             };
-            
+
 
             Renderer.Init(device, dc, this);
+
         }
 
         private void GenerateRandomTerrain() {
@@ -142,19 +145,19 @@
 
         #region Pathfinding
 
-        private void InitPathfinding() {
-            ResetPathfinding();
-            
-            
+        private void InitTileMap() {
+            ResetTileMap();
             SetTilePositionsAndTypes();
             CalculateWalkability();
             ConnectNeighboringTiles();
             CreateTileSets();
-            
+
         }
 
-        private void ResetPathfinding() {
-            _tiles = new MapTile[_widthInTiles*_heightInTiles];
+        private void ResetTileMap() {
+            _widthInTiles = Info.HeightMapWidth / TileSize;
+            _heightInTiles = Info.HeightMapHeight / TileSize;
+            _tiles = new MapTile[_widthInTiles * _heightInTiles];
             for (var i = 0; i < _tiles.Length; i++) {
                 _tiles[i] = new MapTile();
             }
@@ -164,17 +167,19 @@
             for (var y = 0; y < _heightInTiles; y++) {
                 for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
-                    var worldX = x * Info.CellSpacing * 2 + Info.CellSpacing - Width / 2;
-                    var worldZ = -y * Info.CellSpacing * 2 - Info.CellSpacing + Depth / 2;
-                    tile.Height = Height(worldX, worldZ);
                     tile.MapPosition = new Point(x, y);
-                    tile.WorldPos = new Vector3(worldX, tile.Height, worldZ);
+                    // Calculate world position of tile center
+                    var worldX = (x * Info.CellSpacing * TileSize) + (Info.CellSpacing * TileSize / 2) - (Width / 2);
+                    var worldZ = (-y * Info.CellSpacing * TileSize) - (Info.CellSpacing * TileSize / 2) + (Depth / 2);
+                    var height = Height(worldX, worldZ);
+                    tile.WorldPos = new Vector3(worldX, height, worldZ);
 
-                    if (tile.Height < HeightMap.MaxHeight*(0.05f)) {
+                    // Set tile type
+                    if (tile.Height < HeightMap.MaxHeight * (0.05f)) {
                         tile.Type = 0;
-                    } else if (tile.Height < HeightMap.MaxHeight*(0.4f)) {
+                    } else if (tile.Height < HeightMap.MaxHeight * (0.4f)) {
                         tile.Type = 1;
-                    } else if (tile.Height < HeightMap.MaxHeight*(0.75f)) {
+                    } else if (tile.Height < HeightMap.MaxHeight * (0.75f)) {
                         tile.Type = 2;
                     } else {
                         tile.Type = 3;
@@ -192,10 +197,10 @@
                         continue;
                     }
                     var p = new[] {
-                        new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
-                        new Point(x - 1, y), new Point(x + 1, y),
-                        new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
-                    };
+                new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
+                new Point(x - 1, y), new Point(x + 1, y),
+                new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
+            };
                     var variance = 0.0f;
                     var nr = 0;
                     foreach (var point in p) {
@@ -207,12 +212,21 @@
                             continue;
                         }
                         var v = neighbor.Height - tile.Height;
-                        variance += v*v;
+                        // ignore neighbors on the same plane as this tile
+                        if (v <= 0.01f) {
+                            continue;
+                        }
+                        variance += v * v;
+
+
                         nr++;
+
                     }
+                    // prevent divide by 0
+                    if (nr == 0) nr = 1;
                     variance /= nr;
-                    
-                    tile.Walkable = variance < 0.5f;
+
+                    tile.Walkable = variance < MapTile.MaxSlope;
                 }
             }
         }
@@ -221,25 +235,25 @@
             for (var y = 0; y < _heightInTiles; y++) {
                 for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
-                    if (tile != null  && tile.Walkable) {
-                        for (var i = 0; i < 8; i++) {
-                            //tile.Neighbors[i] = null;
-                            tile.Edges[i] = null;
+                    if (tile == null || !tile.Walkable) {
+                        continue;
+                    }
+                    for (var i = 0; i < 8; i++) {
+                        tile.Edges[i] = null;
+                    }
+                    var p = new[] {
+                        new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
+                        new Point(x - 1, y), new Point(x + 1, y),
+                        new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
+                    };
+                    for (var i = 0; i < 8; i++) {
+                        var point = p[i];
+                        if (!Within(point)) {
+                            continue;
                         }
-                        var p = new[] {
-                            new Point(x - 1, y - 1), new Point(x, y - 1), new Point(x + 1, y - 1),
-                            new Point(x - 1, y), new Point(x + 1, y),
-                            new Point(x - 1, y + 1), new Point(x, y + 1), new Point(x + 1, y + 1)
-                        };
-                        for (var i = 0; i < 8; i++) {
-                            if (!Within(p[i])) {
-                                continue;
-                            }
-                            var neighbor = GetTile(p[i]);
-                            if (neighbor != null && neighbor.Walkable) {
-                                //tile.Neighbors[i] = neighbor;
-                                tile.Edges[i] = MapEdge.Create(tile, neighbor);
-                            }
+                        var neighbor = GetTile(point);
+                        if (neighbor != null && neighbor.Walkable) {
+                            tile.Edges[i] = MapEdge.Create(tile, neighbor);
                         }
                     }
                 }
@@ -248,37 +262,49 @@
 
         private void CreateTileSets() {
             var setNo = 0;
+            var unvisited = new HashSet<MapTile>();
+            // scan the tiles, to create the list of walkable tiles to consider
+            // assign unwalkable or unconnected tiles to unique negative tilesets
             for (var y = 0; y < _heightInTiles; y++) {
                 for (var x = 0; x < _widthInTiles; x++) {
                     var tile = GetTile(x, y);
-                    tile.Set = setNo++;
-                }
-            }
-            var changed = true;
-            while (changed) {
-                changed = false;
-                for (var y = 0; y < _heightInTiles; y++) {
-                    for (var x = 0; x < _widthInTiles; x++) {
-                        var tile = GetTile(x, y);
-                        if (tile == null ) {
-                            continue;
+                    if (tile.Edges.Any(e => e != null)) {
+                        if (tile.Walkable) {
+                            unvisited.Add(tile);
+                        } else {
+                            tile.Set = --setNo;
                         }
-                        
-                        foreach (var edge in tile.Edges) {
-                            if (edge == null ) {
-                                continue;
-                            }
-                            if (edge.Node2.Set >= tile.Set) {
-                                continue;
-                            }
-                            changed = true;
-                            tile.Set = edge.Node2.Set;
-                        }
+                    } else {
+                        tile.Set = --setNo;
                     }
                 }
             }
+            setNo = 0;
+            // stack for depth-first search
+            var stack = new Stack<MapTile>();
+
+            while (unvisited.Any()) {
+                // extract the first unvisited node in order to seed the depth-first search
+                var newFirst = unvisited.First();
+                stack.Push(newFirst);
+                unvisited.Remove(newFirst);
+
+                while (stack.Any()) {
+                    // perform the depth-first search
+                    var next = stack.Pop();
+                    next.Set = setNo;
+                    // Get the neighbors of this node, where the neighbor is connected to this node, 
+                    // and has not been visited yet
+                    var neighbors = next.Edges.Where(e => e != null && unvisited.Contains(e.Node2)).Select(e => e.Node2);
+                    foreach (var mapTile in neighbors) {
+                        stack.Push(mapTile);
+                        unvisited.Remove(mapTile);
+                    }
+                }
+                setNo++;
+            }
         }
-        
+
         public List<MapTile> GetPath(Point start, Point goal) {
             var startTile = GetTile(start);
             var goalTile = GetTile(goal);
@@ -311,16 +337,16 @@
                 closed.Add(current);
                 for (var i = 0; i < 8; i++) {
                     var edge = current.Edges[i];
-                    
+
                     if (edge == null) {
                         continue;
                     }
                     var neighbor = edge.Node2;
                     var cost = current.G + edge.Cost;
-                    
-                    
 
-                    if (open.Contains(neighbor) && cost < neighbor.G ) {
+
+
+                    if (open.Contains(neighbor) && cost < neighbor.G) {
                         open.Remove(neighbor);
                     }
                     if (closed.Contains(neighbor) && cost < neighbor.G) {
@@ -337,7 +363,7 @@
             }
             System.Diagnostics.Debug.Assert(current == goalTile);
             var path = new List<MapTile>();
-            
+
 
             while (current != startTile) {
                 path.Add(current);
@@ -345,7 +371,6 @@
             }
             path.Reverse();
             return path;
-
         }
         #endregion
 
@@ -375,50 +400,42 @@
 
             // we will recurse until the terrain regions match our logical terrain tile sizes
             if (width >= TileSize && depth >= TileSize) {
-                quadNode.Children = new[] { BuildQuadTree(topLeft, new Vector2(topLeft.X + width, topLeft.Y + depth)), BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y), new Vector2(bottomRight.X, topLeft.Y + depth)), BuildQuadTree(new Vector2(topLeft.X, topLeft.Y + depth), new Vector2(topLeft.X + depth, bottomRight.Y)), BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y + depth), bottomRight) };
+                quadNode.Children = new[] {
+                    BuildQuadTree(topLeft, new Vector2(topLeft.X + width, topLeft.Y + depth)), 
+                    BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y), new Vector2(bottomRight.X, topLeft.Y + depth)), 
+                    BuildQuadTree(new Vector2(topLeft.X, topLeft.Y + depth), new Vector2(topLeft.X + depth, bottomRight.Y)), 
+                    BuildQuadTree(new Vector2(topLeft.X + width, topLeft.Y + depth), bottomRight)
+                };
             } else {
-                var center = (topLeft / 2 + bottomRight / 2) / 2;
+                // set the maptile corresponding to this leaf node of the quad tree
+                var center = topLeft / TileSize;
+
                 var mapX = (int)Math.Floor(center.X);
                 var mapY = (int)Math.Floor(center.Y);
                 quadNode.MapTile = GetTile(mapX, mapY);
 
-                
+
             }
 
             return quadNode;
         }
 
-        
+
 
         #region Intersection tests
-        public bool Intersect(Ray ray, ref Vector3 spherePos) {
-            Vector3 ret;
-            if (!QuadTree.Intersects(ray, out ret)) {
-                return false;
-            }
-            ret.Y = Height(ret.X, ret.Z);
-            spherePos = ret;
-            return true;
-        }
-        public bool Intersect(Ray ray, ref Vector3 spherePos, ref MapTile mapPos) {
+
+        public bool Intersect(Ray ray, ref Vector3 worldPos, ref MapTile mapPos) {
             Vector3 ret;
             QuadTreeNode ret2;
             if (!QuadTree.Intersects(ray, out ret, out ret2)) {
                 return false;
             }
             ret.Y = Height(ret.X, ret.Z);
-            spherePos = ret;
+            worldPos = ret;
             mapPos = ret2.MapTile;
             return true;
         }
-        public bool Intersect(Ray ray, ref MapTile mapPos) {
-            QuadTreeNode ret;
-            if (!QuadTree.Intersects(ray, out ret)) {
-                return false;
-            }
-            mapPos = ret.MapTile;
-            return true;
-        }
+
         #endregion
 
     }

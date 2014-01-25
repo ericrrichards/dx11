@@ -42,7 +42,7 @@ namespace _27_ShapeModels {
             _lastMousePos = new Point();
 
             _camera = new FpsCamera { Position = new Vector3(0, 2, -15) };
-
+           
             _dirLights = new[] {
                 new DirectionalLight {
                     Ambient = new Color4( 0.2f, 0.2f, 0.2f),

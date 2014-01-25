@@ -1,4 +1,6 @@
-﻿namespace Core.Terrain {
+﻿using System.Windows.Forms;
+
+namespace Core.Terrain {
     using System;
     using System.Drawing;
 
@@ -128,6 +130,21 @@
             _terrain.Renderer.Draw(_dc, _orthoCamera, lights);
 
             DrawCameraFrustum();
+        }
+
+        public void OnClick(MouseEventArgs e) {
+            var x = (float)e.X / D3DApp.GD3DApp.Window.ClientSize.Width;
+            var y = (float)e.Y / D3DApp.GD3DApp.Window.ClientSize.Height;
+            var p = new Vector2(x, y);
+            if (Contains(ref p)) {
+                // convert minimap-space to world-space and set the camera target
+                var terrainX = _terrain.Width * p.X - _terrain.Width / 2;
+                var terrainZ = -_terrain.Depth * p.Y + _terrain.Depth / 2;
+                var cam = _viewCam as LookAtCamera;
+                if (cam != null) {
+                    cam.Target = new Vector3(terrainX, _terrain.Height(terrainX, terrainZ), terrainZ);
+                }
+            }
         }
 
         private void DrawCameraFrustum() {

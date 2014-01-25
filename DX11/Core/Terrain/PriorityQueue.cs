@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Core.Terrain {
@@ -122,7 +123,9 @@ namespace Core.Terrain {
             node2.QueueIndex = temp;
         }
 
-        private static bool HasHigherPriority(T higher, T lower) { return higher.Priority < lower.Priority || (higher.Priority == lower.Priority && higher.InsertionIndex < lower.InsertionIndex); }
+        private static bool HasHigherPriority(T higher, T lower) {
+            return higher.Priority < lower.Priority || (Math.Abs(higher.Priority - lower.Priority) < float.Epsilon && higher.InsertionIndex < lower.InsertionIndex);
+        }
 
         public T Dequeue() {
             var ret = _nodes[1];

@@ -1,59 +1,80 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using SlimDX;
 
 namespace Core.Physics {
+    public static class Constants {
+        public static readonly Vector3 Gravity = new Vector3(0, -9.81f, 0);
+    }
+
+
     public class Particle {
 
-        protected float inverseMass;
-        protected float damping;
-        protected Vector3 position;
-        protected Vector3 velocity;
-        protected Vector3 forceAccum;
-        protected Vector3 acceleration;
+        public Vector3 Position { get; set; }
+        public Vector3 Velocity { get; set; }
+        public Vector3 Acceleration { get; set; }
 
-        public void Integrate(float duration) {
-            if (inverseMass <= 0.0f) {
-                return;
-            }
-            Debug.Assert(duration > 0.0f);
-            position += velocity*duration;
-            var resultingAcc = acceleration;
-            resultingAcc += forceAccum*inverseMass;
+        // fake tweakable "drag" force
+        public float Damping { get; set; }
 
-            velocity += resultingAcc*duration;
-
-            velocity *= MathF.Pow(damping, duration);
-            
-            ClearAccumulator();
-        }
+        // using inverse-mass rather than mass avoids 0-mass particles, and allows infinite mass objects
+        public float InverseMass { get; set; }
         public float Mass {
             get {
-                if (Math.Abs(inverseMass - 0) < float.Epsilon) {
+                if (InverseMass <= 0) {
                     return float.MaxValue;
                 }
-                return 1.0f / inverseMass;
+                return 1.0f / InverseMass;
             }
             set {
-                Debug.Assert(Math.Abs(value - 0) > float.Epsilon);
-                inverseMass = 1.0f/value;
+                Debug.Assert(value > 0);
+                InverseMass = 1.0f / value;
             }
         }
-        public float InverseMass {
-            get { return inverseMass; }
-            set { inverseMass = value; }
+        public bool HasFiniteMass { get { return InverseMass >= 0; } }
+
+        // store forces applied during a frame
+        protected Vector3 ForceAccum;
+
+
+        public Particle(Vector3 position, Vector3 initVelocity, Vector3 initAcceleration, float mass) {
+            Position = position;
+            Velocity = initVelocity;
+            Acceleration = initAcceleration;
+            Mass = mass;
         }
-        public bool HasFiniteMass { get { return inverseMass >= 0; } }
-        public float Damping { get { return damping; } set { damping = value; } }
-        public Vector3 Position { get { return position; } set { position = value; } }
-        public Vector3 Velocity { get { return velocity; } set { velocity = value; } }
-        public Vector3 Acceleration { get { return acceleration; } set { acceleration = value; } }
+
+        protected Particle() {
+
+        }
 
         public void ClearAccumulator() {
-            forceAccum = new Vector3();
+            ForceAccum = new Vector3();
         }
         public void AddForce(Vector3 force) {
-            forceAccum += force;
+            ForceAccum += force;
         }
+
+        public void Integrate(float dt) {
+            Debug.Assert(dt > 0);
+
+            // ignore immovable, infinitely massive objects
+            if (InverseMass <= 0.0f) {
+                return;
+            }
+            // update position
+            Position += Velocity * dt;
+
+            // calculate the acceleration
+            var resultingAcc = Acceleration;
+            resultingAcc += ForceAccum * InverseMass;
+
+            // update velocity
+            Velocity += resultingAcc * dt;
+            // apply damping, accounting for frame-time
+            Velocity *= MathF.Pow(Damping, dt);
+
+            ClearAccumulator();
+        }
+
     }
 }

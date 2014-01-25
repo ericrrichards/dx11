@@ -1,17 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Core {
     using SlimDX;
 
     public static partial class MathF {
-        public static float Sqrt2 = (float) Math.Sqrt(2);
+        public static readonly float Sqrt2 = (float) Math.Sqrt(2);
         
 
-        private static Random _rand = new Random();
+        private static readonly Random _rand = new Random();
         public const float PI = (float)Math.PI;
 
         public static float Sin(float a) {
@@ -100,5 +96,8 @@ namespace Core {
             return (float) Math.Pow(x, y);
         }
 
+        public static Vector3 RandVector(Vector3 min, Vector3 max) {
+            return new Vector3(Rand(min.X, max.X), Rand(min.Y, max.Y), Rand(min.Z, max.Z));
+        }
     }
 }
