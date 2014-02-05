@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace _34_Ballistic {
     using System.Diagnostics;
@@ -17,11 +14,9 @@ namespace _34_Ballistic {
 
     using SlimDX;
     using SlimDX.Direct3D11;
-    using SlimDX.DirectInput;
     using SlimDX.DXGI;
 
     public enum ShotType {
-        Unused = 0,
         Pistol,
         Artillery,
         Fireball,
@@ -36,7 +31,7 @@ namespace _34_Ballistic {
 
         public void Render(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj) {
             var position = Particle.Position;
-            Model.World = Matrix.Translation(position);
+            Model.World = Matrix.Scaling(new Vector3(1 + Particle.Mass / 100)) * Matrix.Translation(position);
 
             Model.Draw(dc, pass, view, proj);
 
@@ -45,10 +40,10 @@ namespace _34_Ballistic {
     };
 
 
-    class BallisticDemo :D3DApp {
+    class BallisticDemo : D3DApp {
 
         private const int MaxRounds = 16;
-        List<AmmoRound> _ammo = new List<AmmoRound>();
+        readonly List<AmmoRound> _ammo = new List<AmmoRound>();
         private ShotType _currentShotType;
 
         private readonly DirectionalLight[] _dirLights;
@@ -56,26 +51,29 @@ namespace _34_Ballistic {
         private readonly FpsCamera _camera;
         private BasicModel _gridModel;
         private BasicModel _sphereModel;
-        private BasicModel _cylinderModel;
         
+
 
         private BasicModelInstance _grid;
         private BasicModelInstance _sphere;
+        private BasicModel _cylinderModel;
         private BasicModelInstance _cylinder;
 
         private Point _lastMousePos;
         private bool _disposed;
         private TextureManager _texMgr;
-        private float fireDelay = 0.5f;
+        private float _fireDelay = 0.5f;
 
-        private BallisticDemo(IntPtr hInstance) : base(hInstance) {
+        private BallisticDemo(IntPtr hInstance)
+            : base(hInstance) {
             _currentShotType = ShotType.Laser;
 
             MainWindowCaption = "Ballistic Demo";
 
             _lastMousePos = new Point();
 
-            _camera = new FpsCamera { Position = new Vector3(5, 2, -5) };
+            _camera = new FpsCamera();
+            _camera.LookAt(new Vector3(10, 2, -10), new Vector3(0, 1, 0), Vector3.UnitY);
 
             _dirLights = new[] {
                 new DirectionalLight {
@@ -103,6 +101,7 @@ namespace _34_Ballistic {
                 if (disposing) {
                     Util.ReleaseCom(ref _gridModel);
                     Util.ReleaseCom(ref _sphereModel);
+                    Util.ReleaseCom(ref _cylinderModel);
                     Util.ReleaseCom(ref _texMgr);
 
                     Effects.DestroyAll();
@@ -126,23 +125,23 @@ namespace _34_Ballistic {
 
             _gridModel = new BasicModel();
             _gridModel.CreateGrid(Device, 20, 20, 40, 40);
-            _gridModel.Materials[0] = new Material() { Diffuse = Color.SaddleBrown, Specular = new Color4(16, .9f, .9f, .9f) };
+            _gridModel.Materials[0] = new Material { Diffuse = Color.SaddleBrown, Specular = new Color4(16, .9f, .9f, .9f) };
             _gridModel.DiffuseMapSRV[0] = _texMgr.CreateTexture("Textures/floor.dds");
             _gridModel.NormalMapSRV[0] = _texMgr.CreateTexture("textures/floor_nmap.dds");
 
             _sphereModel = new BasicModel();
             _sphereModel.CreateSphere(Device, 0.3f, 5, 4);
-            _sphereModel.Materials[0] = new Material() { Ambient = Color.Blue, Diffuse = Color.Blue, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
+            _sphereModel.Materials[0] = new Material { Ambient = Color.Blue, Diffuse = Color.Blue, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
             _sphereModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/stones_nmap.dds");
 
             _cylinderModel = new BasicModel();
             _cylinderModel.CreateCylinder(Device, 1, 1, 3, 20, 20);
-            _cylinderModel.Materials[0] = new Material() { Ambient = Color.Green, Diffuse = Color.Green, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
+            _cylinderModel.Materials[0] = new Material { Ambient = Color.Green, Diffuse = Color.Green, Specular = new Color4(64.0f, 1.0f, 1.0f, 1.0f) };
             _cylinderModel.NormalMapSRV[0] = _texMgr.CreateTexture("Textures/stones_nmap.dds");
 
             _grid = new BasicModelInstance(_gridModel) {
                 TexTransform = Matrix.Scaling(10, 10, 1),
-                World = Matrix.Scaling(10, 1, 10)*Matrix.Translation(0, 0, 90)
+                World = Matrix.Scaling(10, 1, 10) * Matrix.Translation(0, 0, 90)
             };
 
             _sphere = new BasicModelInstance(_sphereModel);
@@ -189,8 +188,8 @@ namespace _34_Ballistic {
                     _ammo.Remove(shot);
                 }
             }
-            fireDelay -= dt;
-            if (Util.IsKeyDown(Keys.D1)){
+            _fireDelay -= dt;
+            if (Util.IsKeyDown(Keys.D1)) {
                 _currentShotType = ShotType.Pistol;
             } else if (Util.IsKeyDown(Keys.D2)) {
                 _currentShotType = ShotType.Artillery;
@@ -198,37 +197,57 @@ namespace _34_Ballistic {
                 _currentShotType = ShotType.Fireball;
             } else if (Util.IsKeyDown(Keys.D4)) {
                 _currentShotType = ShotType.Laser;
-            } else if (Util.IsKeyDown(Keys.Space) && fireDelay < 0) {
+            } else if (Util.IsKeyDown(Keys.Space) && _fireDelay < 0) {
                 Fire();
-                fireDelay = 0.2f;
+                _fireDelay = 0.2f;
             }
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {
             _lastMousePos = mouseEventArgs.Location;
             Window.Capture = true;
-            
+
         }
 
-        public void Fire() {
+        private void Fire() {
             if (_ammo.Count >= MaxRounds)
                 return;
-            var shot = new AmmoRound() { Model = _sphere };
-
+            var shot = new AmmoRound { Model = _sphere };
+            var firingPoint = new Vector3(0, 1.5f, 0.0f);
             switch (_currentShotType) {
                 case ShotType.Pistol:
-                    shot.Particle = new Particle() { Mass = 2.0f, Velocity = new Vector3(0, 0, 35), Acceleration = new Vector3(0, -1, 0), Damping = 0.99f };
+                    shot.Particle = new Particle(firingPoint,
+                        new Vector3(0, 0, 35), // 35 m/s
+                        new Vector3(0, -1, 0), // small amount of gravity
+                        2.0f // 2 kg
+                        ) { Damping = 0.99f };
                     break;
                 case ShotType.Artillery:
-                    shot.Particle = new Particle() { Mass = 200.0f, Velocity = new Vector3(0, 30, 40), Acceleration = new Vector3(0, -20, 0), Damping = 0.99f };
+                    shot.Particle = new Particle(
+                        firingPoint,
+                        new Vector3(0, 30, 40), // 50 m/s
+                        new Vector3(0, -20, 0), // large amount of gravity
+                        200.0f // 200 kg
+                        ) { Damping = 0.99f };
                     break;
                 case ShotType.Fireball:
-                    shot.Particle = new Particle() { Mass = 1.0f, Velocity = new Vector3(0, 0, 10), Acceleration = new Vector3(0, 0.6f, 0), Damping = 0.9f };
+                    shot.Particle = new Particle(
+                        firingPoint,
+                        new Vector3(0, 0, 10), // 10 m/s
+                        new Vector3(0, 0.6f, 0), // float up slightly
+                        1.0f // 1 kg
+                        ) { Damping = 0.9f };
                     break;
                 case ShotType.Laser:
-                    shot.Particle = new Particle() { Mass = 0.1f, Velocity = new Vector3(0, 0, 100), Acceleration = new Vector3(0, 0, 0), Damping = 0.99f };
+                    shot.Particle = new Particle(
+                        firingPoint,
+                        new Vector3(0, 0, 100), // 100 m/s
+                        new Vector3(0, 0, 0),  // no gravity
+                        0.1f // 100 grams
+                        ) { Damping = 0.99f };
                     break;
             }
-            shot.Particle.Position = new Vector3(0, 1.5f, 0.0f);
+
+            shot.Particle.Position = firingPoint;
             shot.StartTime = Timer.TotalTime;
             shot.ShotType = _currentShotType;
 

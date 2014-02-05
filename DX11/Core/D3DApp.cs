@@ -14,6 +14,8 @@ namespace Core {
     using SlimDX;
     using SlimDX.DXGI;
 
+    using SpriteTextRenderer;
+
     using Buffer = SlimDX.Direct3D11.Buffer;
     using Device = Device;
     using Debug = System.Diagnostics.Debug;
@@ -57,6 +59,9 @@ namespace Core {
         protected Buffer _screenQuadVB;
         protected Buffer _screenQuadIB;
 
+        public SpriteRenderer Sprite;
+        //TODO Create a sprite manager to create and render text simply
+        //#error Create a sprite manager to create and render text simply
 
         public ProgressUpdate ProgressUpdate { get { return _progressUpdate; } }
 
@@ -214,6 +219,8 @@ namespace Core {
                 return false;
             }
             OnResize();
+
+            Sprite = new SpriteRenderer(Device);
             return true;
         }
 
@@ -254,6 +261,7 @@ namespace Core {
                     Util.ReleaseCom(ref _progressUpdate);
 
                     Util.ReleaseCom(ref _dxWRT);
+                    Util.ReleaseCom(ref Sprite);
                 }
                 _disposed = true;
             }

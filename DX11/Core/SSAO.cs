@@ -52,8 +52,8 @@ namespace Core {
         #endregion
         #region public methods
         // readonly properties to access the normal/depth and occlusion maps
-        public ShaderResourceView NormalDepthSRV {get { return _normalDepthSRV; }}
-        public ShaderResourceView AmbientSRV {get { return _ambientSRV0; }}
+        public ShaderResourceView NormalDepthSRV { get { return _normalDepthSRV; } }
+        public ShaderResourceView AmbientSRV { get { return _ambientSRV0; } }
 
         public Ssao(Device device, DeviceContext dc, int width, int height, float fovY, float farZ) {
             _device = device;
@@ -95,7 +95,7 @@ namespace Core {
             _dc.ClearRenderTargetView(_normalDepthRTV, clearColor);
         }
         public void ComputeSsao(CameraBase camera) {
-            _dc.OutputMerger.SetTargets((DepthStencilView)null,_ambientRTV0);
+            _dc.OutputMerger.SetTargets((DepthStencilView)null, _ambientRTV0);
             _dc.ClearRenderTargetView(_ambientRTV0, Color.Black);
             _dc.Rasterizer.SetViewports(_ambientMapViewport);
 
@@ -123,18 +123,18 @@ namespace Core {
             _dc.InputAssembler.SetIndexBuffer(_screenQuadIB, Format.R16_UInt, 0);
 
             var tech = Effects.SsaoFX.SsaoTech;
-            for (int p = 0; p < tech.Description.PassCount; p++) {
+            for (var p = 0; p < tech.Description.PassCount; p++) {
                 tech.GetPassByIndex(p).Apply(_dc);
                 _dc.DrawIndexed(6, 0, 0);
             }
         }
 
-public void BlurAmbientMap(int blurCount) {
-    for (int i = 0; i < blurCount; i++) {
-        BlurAmbientMap(_ambientSRV0, _ambientRTV1, true);
-        BlurAmbientMap(_ambientSRV1, _ambientRTV0, false);
-    }
-}
+        public void BlurAmbientMap(int blurCount) {
+            for (int i = 0; i < blurCount; i++) {
+                BlurAmbientMap(_ambientSRV0, _ambientRTV1, true);
+                BlurAmbientMap(_ambientSRV1, _ambientRTV0, false);
+            }
+        }
         #endregion
         #region private methods
 
@@ -273,7 +273,7 @@ public void BlurAmbientMap(int blurCount) {
 
             var box = _dc.MapSubresource(tex, 0, MapMode.WriteDiscard, MapFlags.None);
             foreach (var color4 in color) {
-                box.Data.Write((byte)(color4.Red*255));
+                box.Data.Write((byte)(color4.Red * 255));
                 box.Data.Write((byte)(color4.Green * 255));
                 box.Data.Write((byte)(color4.Blue * 255));
                 box.Data.Write((byte)(0));
