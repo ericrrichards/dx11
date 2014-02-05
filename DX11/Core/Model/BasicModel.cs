@@ -15,7 +15,7 @@ namespace Core.Model {
 
         public BasicModel() { }
 
-        public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath) {
+        public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipUV=false) {
 
             var importer = new AssimpImporter();
             if (!importer.IsImportFormatSupported(Path.GetExtension(filename))) {
@@ -26,13 +26,18 @@ namespace Core.Model {
             importer.AttachLogStream(new ConsoleLogStream());
             importer.VerboseLoggingEnabled = true;
 #endif
-            var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace);
+            var postProcessFlags = PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace;
+            if (flipUV) {
+                postProcessFlags|= PostProcessSteps.FlipUVs;
+            }
+            var model = importer.ImportFile(filename, postProcessFlags);
 
 
             var min = new Vector3(float.MaxValue);
             var max = new Vector3(float.MinValue);
-            var verts = new List<PosNormalTexTan>();
+            
             foreach (var mesh in model.Meshes) {
+                var verts = new List<PosNormalTexTan>();
                 var subset = new MeshGeometry.Subset {
 
                     VertexCount = mesh.VertexCount,

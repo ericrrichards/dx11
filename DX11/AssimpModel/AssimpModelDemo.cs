@@ -18,8 +18,10 @@ namespace AssimpModel {
 
         private BasicModel _treeModel;
         private BasicModel _stoneModel;
+        private BasicModel _dwarfModel;
         private BasicModelInstance _modelInstance;
         private BasicModelInstance _stoneInstance;
+        private BasicModelInstance _dwarfInstance;
 
         private readonly DirectionalLight[] _dirLights;
 
@@ -62,6 +64,8 @@ namespace AssimpModel {
             if (!_disposed) {
                 if (disposing) {
                     Util.ReleaseCom(ref _treeModel);
+                    Util.ReleaseCom(ref _stoneModel);
+                    Util.ReleaseCom(ref _dwarfModel);
                     Util.ReleaseCom(ref _texMgr);
 
                     Effects.DestroyAll();
@@ -93,6 +97,19 @@ namespace AssimpModel {
             _stoneModel = new BasicModel(Device, _texMgr, "Models/stone.x", "Textures");
             _stoneInstance = new BasicModelInstance(_stoneModel) {
                 World = Matrix.Scaling(0.1f, 0.1f, 0.1f) * Matrix.Translation(2, 0, 2)
+            };
+
+            _dwarfModel = new BasicModel(Device, _texMgr, "Models/Bob.md5mesh", "Textures", true);
+            for (int i = 0; i < _dwarfModel.Materials.Count; i++) {
+                _dwarfModel.Materials[i] = new Material() {
+                    Ambient = Color.DarkGray,
+                    Diffuse = Color.White,
+                    Specular = new Color4(128, 1f, 1.0f, 1.0f)
+                };
+            }
+            
+            _dwarfInstance = new BasicModelInstance(_dwarfModel) {
+                World = Matrix.RotationX(-MathF.PI / 2)* Matrix.Scaling(0.05f, 0.05f, 0.05f)*Matrix.Translation(4, 0, 4)
             };
 
 
@@ -147,6 +164,7 @@ namespace AssimpModel {
                 var pass = activeTech.GetPassByIndex(p);
                 _modelInstance.Draw(ImmediateContext, pass, view,proj);
                 _stoneInstance.Draw(ImmediateContext, pass, view,proj);
+                _dwarfInstance.Draw(ImmediateContext, pass, view, proj);
             }
 
             SwapChain.Present(0, PresentFlags.None);
