@@ -4,6 +4,7 @@ using SlimDX;
 using SlimDX.Direct2D;
 using SlimDX.DirectWrite;
 using Factory = SlimDX.DirectWrite.Factory;
+using FactoryType = SlimDX.DirectWrite.FactoryType;
 using FontStyle = SlimDX.DirectWrite.FontStyle;
 
 namespace Core {
@@ -24,7 +25,7 @@ namespace Core {
                     Util.ReleaseCom(ref _brush);
                     Util.ReleaseCom(ref _clearColor);
                     Util.ReleaseCom(ref _txtFormat);
-                    Util.ReleaseCom(ref _factory);
+                    
                     
                 }
                 _disposed = true;
@@ -40,18 +41,20 @@ namespace Core {
             _borderBounds = new Rectangle(18, rt1.PixelSize.Height/2 - 2, rt1.PixelSize.Width - 36, 24);
             _barBounds = new Rectangle(20, rt1.PixelSize.Height/2, rt1.PixelSize.Width-40, 20);
 
-            _factory = new Factory();
+            _factory = new Factory(FactoryType.Isolated);
             _txtFormat = new TextFormat(_factory, "Arial", FontWeight.Normal, FontStyle.Normal, FontStretch.Normal, 18, "en-us" ) {
                 TextAlignment = TextAlignment.Center
             };
             _textRect = new Rectangle(100, rt1.PixelSize.Height / 2-25, _rt.PixelSize.Width-200, 20);
         }
 
-        public void Draw(float prc, string msg) {
+        public void Draw(float prc, string msg, bool clear=true) {
             _rt.BeginDraw();
                 
             _rt.Transform = Matrix3x2.Identity;
-            _rt.Clear(Color.Silver);
+            if (clear) {
+                _rt.Clear(Color.Silver);
+            }
             _rt.FillRectangle(_clearColor, _borderBounds);
 
             var r = new Rectangle(_barBounds.X, _barBounds.Y, (int) (_barBounds.Width*prc), _barBounds.Height);

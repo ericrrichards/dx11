@@ -35,6 +35,9 @@
     <Reference Include="SlimDX">
       <HintPath>..\packages\SlimDX.4.0.13.43\lib\NET40\SlimDX.dll</HintPath>
     </Reference>
+    <Reference Include="SpriteTextRenderer">
+      <HintPath>..\Core\SpriteTextRenderer.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />

@@ -349,7 +349,13 @@ namespace _33_Pathfinding {
 
 
             _minimap.Draw(ImmediateContext);
-            SwapChain.Present(0, PresentFlags.None);
+
+
+
+            var metrics = FontCache.DrawString( "Currently: "+_unit.Position.ToString(), Vector2.Zero, Color.Yellow);
+            
+            FontCache.DrawString( "Destination: " + _unit.Destination.MapPosition.ToString(), new Vector2(0, metrics.BottomRight.Y+ metrics.OverhangBottom), Color.Yellow);
+            EndFrame();
 
 
         }
@@ -381,7 +387,6 @@ namespace _33_Pathfinding {
                     Console.WriteLine("Hit tile " + tile.MapPosition);
                     Console.WriteLine("Moving unit to " + tile.MapPosition);
                     _unit.Goto(tile);
-
                     break;
             }
         }

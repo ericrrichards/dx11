@@ -60,8 +60,9 @@ namespace Core {
         protected Buffer _screenQuadIB;
 
         public SpriteRenderer Sprite;
-        //TODO Create a sprite manager to create and render text simply
-        //#error Create a sprite manager to create and render text simply
+        public FontCache FontCache;
+
+
 
         public ProgressUpdate ProgressUpdate { get { return _progressUpdate; } }
 
@@ -221,6 +222,7 @@ namespace Core {
             OnResize();
 
             Sprite = new SpriteRenderer(Device);
+            FontCache = new FontCache(Sprite);
             return true;
         }
 
@@ -376,6 +378,11 @@ namespace Core {
         }
         public virtual void UpdateScene(float dt) { }
         public virtual void DrawScene() { }
+
+        public virtual void EndFrame() {
+            Sprite.Flush();
+            SwapChain.Present(0, PresentFlags.None);
+        }
 
         public void Run() {
             Timer.Reset();

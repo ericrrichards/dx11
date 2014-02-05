@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using Core;
 using Core.Model;
 using Core.Terrain;
@@ -35,6 +37,16 @@ namespace _33_Pathfinding {
         private float MovePrc { get; set; }
         private float Time { get; set; }
         private float Speed { get; set; }
+        public Point Position { get { return MapTile.MapPosition; } }
+        public MapTile Destination {
+            get {
+                if (_path.Any()) {
+                    return _path.Last();
+                } else {
+                    return MapTile;
+                }
+            }
+        }
 
         protected override void Dispose(bool disposing) {
             if (!_disposed) {
