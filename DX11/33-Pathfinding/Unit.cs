@@ -100,7 +100,12 @@ namespace _33_Pathfinding {
         }
 
         public void Render(DeviceContext dc, EffectPass effectPass, Matrix view, Matrix proj) {
+            _modelInstance.World *= Matrix.Translation(0, 0.1f, 0);
             _modelInstance.Draw(dc, effectPass, view, proj, RenderMode.Basic);
+        }
+        public void RenderShadow(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj) {
+            _modelInstance.World *= Matrix.Translation(0, 0.1f, 0);
+            _modelInstance.Draw(dc, pass, view, proj, RenderMode.ShadowMap);
         }
 
         public void Goto(MapTile mp) {
@@ -135,5 +140,7 @@ namespace _33_Pathfinding {
             _nextWP = MapTile.WorldPos;
             _nextWP.Y = _terrain.Height(_nextWP.X, _nextWP.Z) + HeightOffset;
         }
+
+        
     }
 }

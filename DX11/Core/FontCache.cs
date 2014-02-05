@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using SlimDX;
 using SlimDX.DirectWrite;
 using SpriteTextRenderer;
+using FontStyle = SlimDX.DirectWrite.FontStyle;
 
 namespace Core {
     public class FontCache : DisposableClass {
@@ -56,6 +58,26 @@ namespace Core {
         public StringMetrics DrawString(string text, Vector2 location, Color4 color) {
 
             return _default.DrawString(text, location, color);
+        }
+
+        public void DrawStrings(string[] strings, Vector2 position, Color color) {
+            var metrics = new StringMetrics();
+            foreach (var s in strings) {
+                var relPos = new Vector2(position.X, position.Y + metrics.BottomRight.Y + metrics.OverhangBottom);
+                metrics = _default.DrawString(s, relPos, color);
+            }
+        }
+        public void DrawStrings(string fontName, string[] strings, Vector2 position, Color color) {
+            var metrics = new StringMetrics();
+            var font = _default;
+            if (_fonts.ContainsKey(fontName)) {
+                font = _fonts[fontName];
+            }
+
+            foreach (var s in strings) {
+                var relPos = new Vector2(position.X, position.Y + metrics.BottomRight.Y + metrics.OverhangBottom);
+                metrics = font.DrawString(s, relPos, color);
+            }
         }
     }
 }

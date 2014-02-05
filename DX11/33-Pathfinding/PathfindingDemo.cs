@@ -10,6 +10,7 @@ using Core.Model;
 using Core.Terrain;
 using SlimDX;
 using SlimDX.Direct3D11;
+using SlimDX.DirectWrite;
 using SlimDX.DXGI;
 
 namespace _33_Pathfinding {
@@ -169,6 +170,9 @@ namespace _33_Pathfinding {
 
             _unit = new Unit(_sphere, _terrain.GetTile(511, 511), _terrain);
 
+            FontCache.RegisterFont("bold", 16, "Courier New", FontWeight.Bold);
+
+
             return true;
         }
 
@@ -282,10 +286,13 @@ namespace _33_Pathfinding {
             var view = _lightView;
             var proj = _lightProj;
             var viewProj = view * proj;
-
+            
             _terrain.Renderer.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
+            DrawSceneToShadowMap();
+
 
             ImmediateContext.Rasterizer.State = null;
+            
 
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
             ImmediateContext.Rasterizer.SetViewports(Viewport);
@@ -321,7 +328,6 @@ namespace _33_Pathfinding {
             Effects.BasicFX.SetEyePosW(_camera.Position);
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetSsaoMap(_whiteTex);
-            Effects.BasicFX.SetSsaoMap(_whiteTex);
 
             ImmediateContext.InputAssembler.InputLayout = InputLayouts.Basic32;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
@@ -351,13 +357,40 @@ namespace _33_Pathfinding {
             _minimap.Draw(ImmediateContext);
 
 
-
-            var metrics = FontCache.DrawString( "Currently: "+_unit.Position.ToString(), Vector2.Zero, Color.Yellow);
-            
-            FontCache.DrawString( "Destination: " + _unit.Destination.MapPosition.ToString(), new Vector2(0, metrics.BottomRight.Y+ metrics.OverhangBottom), Color.Yellow);
+FontCache.DrawStrings(
+    new[] {
+        "Currently: " + _unit.Position,
+        "Destination: " + _unit.Destination.MapPosition
+    },
+    Vector2.Zero,
+    Color.Yellow
+);
+FontCache.DrawString("bold", "This is bold", new Vector2(Window.ClientSize.Width - 200, 0), Color.Red);
             EndFrame();
 
+        }
+        private void DrawSceneToShadowMap() {
+            try {
+                var view = _lightView;
+                var proj = _lightProj;
+                var viewProj = view * proj;
 
+                Effects.BuildShadowMapFX.SetEyePosW(_camera.Position);
+                Effects.BuildShadowMapFX.SetViewProj(viewProj);
+
+                ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
+                var smapTech = Effects.BuildShadowMapFX.BuildShadowMapTech;
+
+                for (var p = 0; p < smapTech.Description.PassCount; p++) {
+                    var pass = smapTech.GetPassByIndex(p);
+                    _unit.RenderShadow(ImmediateContext, pass, view, proj);
+                }
+
+
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
         }
 
 

@@ -55,12 +55,12 @@ namespace Core {
             get { return _dxWRT; }
         }
         private ProgressUpdate _progressUpdate;
-        
+
         protected Buffer _screenQuadVB;
         protected Buffer _screenQuadIB;
 
-        public SpriteRenderer Sprite;
-        public FontCache FontCache;
+        protected SpriteRenderer Sprite;
+        protected FontCache FontCache;
 
 
 
@@ -115,7 +115,7 @@ namespace Core {
             }
         }
 
-        protected virtual void OnMouseWheel(object sender, MouseEventArgs e) {  }
+        protected virtual void OnMouseWheel(object sender, MouseEventArgs e) { }
 
         protected virtual void OnMouseMove(object sender, MouseEventArgs e) {
 
@@ -264,6 +264,7 @@ namespace Core {
 
                     Util.ReleaseCom(ref _dxWRT);
                     Util.ReleaseCom(ref Sprite);
+                    Util.ReleaseCom(ref FontCache);
                 }
                 _disposed = true;
             }
@@ -379,7 +380,7 @@ namespace Core {
         public virtual void UpdateScene(float dt) { }
         public virtual void DrawScene() { }
 
-        public virtual void EndFrame() {
+        protected virtual void EndFrame() {
             Sprite.Flush();
             SwapChain.Present(0, PresentFlags.None);
         }
