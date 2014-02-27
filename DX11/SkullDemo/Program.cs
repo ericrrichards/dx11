@@ -19,7 +19,8 @@ namespace SkullDemo {
     using Core.Vertex;
 
     using Effect = SlimDX.Direct3D11.Effect;
-
+    using System.Globalization;
+    
     public class SkullDemo :D3DApp {
         private Buffer _vb;
         private Buffer _ib;
@@ -198,11 +199,18 @@ namespace SkullDemo {
                         input = reader.ReadLine();
                         if (input != null) {
                             var vals = input.Split(new[] {' '});
+                            
+                            //set fixed number format format for correct parsing of the vector
+                            NumberFormatInfo provider = new NumberFormatInfo( );
+                            provider.NumberDecimalSeparator = ".";
+                            provider.NumberGroupSeparator = ",";
+                            
+
                             vertices.Add(new VertexPC(
                                 new Vector3(
-                                    Convert.ToSingle(vals[0].Trim()), 
-                                    Convert.ToSingle(vals[1].Trim()), 
-                                    Convert.ToSingle(vals[2].Trim())), 
+                                    Convert.ToSingle(vals[0].Trim().Replace(@"\t",""),provider),
+                                    Convert.ToSingle(vals[1].Trim().Replace(@"\t", ""), provider),
+                                    Convert.ToSingle(vals[2].Trim().Replace(@"\t", ""), provider)), 
                                 c));
                         }
                     }
