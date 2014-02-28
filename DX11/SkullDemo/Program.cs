@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Core;
 using SlimDX;
@@ -33,7 +30,7 @@ namespace SkullDemo {
 
         private RasterizerState _wireframeRS;
 
-        private Matrix _skullWorld;
+        private readonly Matrix _skullWorld;
 
         private int _skullIndexCount;
 
@@ -138,7 +135,7 @@ namespace SkullDemo {
 
             _fxWVP.SetMatrix(wvp);
 
-            for (int i = 0; i < _tech.Description.PassCount; i++) {
+            for (var i = 0; i < _tech.Description.PassCount; i++) {
                 _tech.GetPassByIndex(i).Apply(ImmediateContext);
                 ImmediateContext.DrawIndexed(_skullIndexCount, 0, 0);
             }
@@ -194,23 +191,23 @@ namespace SkullDemo {
                     do {
                         input = reader.ReadLine();
                     } while (input != null && !input.StartsWith("{"));
+
+                    //set fixed number format format for correct parsing of the vector
+                    var provider = new NumberFormatInfo {
+                        NumberDecimalSeparator = ".", 
+                        NumberGroupSeparator = ","
+                    };
+
                     // Get the vertices  
-                    for (int i = 0; i < vcount; i++) {
+                    for (var i = 0; i < vcount; i++) {
                         input = reader.ReadLine();
                         if (input != null) {
                             var vals = input.Split(new[] {' '});
-                            
-                            //set fixed number format format for correct parsing of the vector
-                            NumberFormatInfo provider = new NumberFormatInfo( );
-                            provider.NumberDecimalSeparator = ".";
-                            provider.NumberGroupSeparator = ",";
-                            
-
                             vertices.Add(new VertexPC(
                                 new Vector3(
-                                    Convert.ToSingle(vals[0].Trim().Replace(@"\t",""),provider),
-                                    Convert.ToSingle(vals[1].Trim().Replace(@"\t", ""), provider),
-                                    Convert.ToSingle(vals[2].Trim().Replace(@"\t", ""), provider)), 
+                                    Convert.ToSingle(vals[0].Trim(),provider),
+                                    Convert.ToSingle(vals[1].Trim(), provider),
+                                    Convert.ToSingle(vals[2].Trim(), provider)), 
                                 c));
                         }
                     }
@@ -274,8 +271,8 @@ namespace SkullDemo {
 
     }
 
-    class Program {
-        static void Main(string[] args) {
+    static class Program {
+        static void Main() {
             Configuration.EnableObjectTracking = true;
             var app = new SkullDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
