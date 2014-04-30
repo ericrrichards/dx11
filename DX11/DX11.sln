@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30110.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{41ACBEF1-B159-4C49-A0F9-A07911617B52}"
 EndProject
@@ -90,6 +90,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "34-Ballistic", "34-Ballistic\34-Ballistic.csproj", "{E02CF48B-F2A7-41D4-A6EB-1B73AB02E79D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "35-Fireworks", "35-Fireworks\35-Fireworks.csproj", "{AD0A32F8-BE00-4D4B-98F4-EECB5188B0F1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "HLSL Cookbook", "HLSL Cookbook", "{4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HemisphericalAmbient", "HemisphericalAmbient\HemisphericalAmbient.csproj", "{3DEEAFF6-EE14-4513-94CA-70F52360CC97}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -249,6 +253,10 @@ Global
 		{AD0A32F8-BE00-4D4B-98F4-EECB5188B0F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD0A32F8-BE00-4D4B-98F4-EECB5188B0F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD0A32F8-BE00-4D4B-98F4-EECB5188B0F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DEEAFF6-EE14-4513-94CA-70F52360CC97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DEEAFF6-EE14-4513-94CA-70F52360CC97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DEEAFF6-EE14-4513-94CA-70F52360CC97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DEEAFF6-EE14-4513-94CA-70F52360CC97}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -290,7 +298,9 @@ Global
 		{46ECCDA7-F994-4A66-A5CB-3A383DD37D1A} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{E02CF48B-F2A7-41D4-A6EB-1B73AB02E79D} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{AD0A32F8-BE00-4D4B-98F4-EECB5188B0F1} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
+		{4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{CA1437FE-E75B-4F82-A3A4-2076B608CCD2} = {67416F3C-2867-486D-9AED-D8060761C148}
+		{3DEEAFF6-EE14-4513-94CA-70F52360CC97} = {4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}
 	EndGlobalSection
 	GlobalSection(CodealikeProperties) = postSolution
 		SolutionGuid = 9875458a-9274-46e6-a11e-e68a4f2ef5c7
