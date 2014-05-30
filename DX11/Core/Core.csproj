@@ -100,6 +100,7 @@
     <Compile Include="Model\MeshGeometry.cs" />
     <Compile Include="Model\MutableTuple.cs" />
     <Compile Include="Model\SceneAnimator.cs" />
+    <Compile Include="Model\SDKMesh.cs" />
     <Compile Include="Model\SkinnedModel.cs" />
     <Compile Include="Model\SkinnedModelInstance.cs" />
     <Compile Include="Model\TextureManager.cs" />

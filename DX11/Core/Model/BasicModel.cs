@@ -237,5 +237,63 @@ namespace Core.Model {
             return ret;
 
         }
+
+        public static BasicModel LoadSdkMesh(Device device, TextureManager texMgr, string filename, string texturePath) {
+            var sdkMesh = new SdkMesh(filename);
+            var ret = new BasicModel();
+
+            var faceStart = 0;
+            var vertexStart = 0;
+            foreach (var sdkMeshSubset in sdkMesh._subsets) {
+                var subset = new MeshGeometry.Subset {
+                    FaceCount = (int) (sdkMeshSubset.IndexCount / 3),
+                    FaceStart = faceStart,
+                    VertexCount = (int) sdkMeshSubset.VertexCount,
+                    VertexStart = vertexStart
+                };
+                faceStart = subset.FaceStart + subset.FaceCount;
+                vertexStart = subset.VertexStart + subset.VertexCount;
+                ret.Subsets.Add(subset);
+            }
+            var max = new Vector3(float.MinValue);
+            var min = new Vector3(float.MaxValue);
+            foreach (var vb in sdkMesh._vertexBuffers) {
+                foreach (var vertex in vb.Vertices) {
+                    max = Vector3.Maximize(max, vertex.Pos);
+                    min = Vector3.Minimize(min, vertex.Pos);
+                    ret.Vertices.Add(vertex);
+                }
+            }
+            ret.BoundingBox = new BoundingBox(min, max);
+
+            foreach (var ib in sdkMesh._indexBuffers) {
+                ret.Indices.AddRange(ib.Indices.Select(i=>(short)i));
+            }
+            foreach (var sdkMeshMaterial in sdkMesh._materials) {
+                var material = new Material() {
+                    Ambient = sdkMeshMaterial.Ambient,
+                    Diffuse = sdkMeshMaterial.Diffuse,
+                    Reflect = Color.Black,
+                    Specular = sdkMeshMaterial.Specular
+                };
+                material.Specular.Alpha = sdkMeshMaterial.Power;
+                ret.Materials.Add(material);
+                if (!string.IsNullOrEmpty(sdkMeshMaterial.DiffuseTexture)) {
+                    ret.DiffuseMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, sdkMeshMaterial.DiffuseTexture)));
+                } else {
+                    ret.DiffuseMapSRV.Add(texMgr["default"]);
+                }
+                if (!string.IsNullOrEmpty(sdkMeshMaterial.NormalTexture)) {
+                    ret.NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, sdkMeshMaterial.NormalTexture)));
+                } else {
+                    ret.NormalMapSRV.Add(texMgr["default"]);
+                }
+            }
+            ret.ModelMesh.SetSubsetTable(ret.Subsets);
+            ret.ModelMesh.SetVertices(device, ret.Vertices);
+            ret.ModelMesh.SetIndices(device, ret.Indices);
+
+            return ret;
+        }
     }
 }
