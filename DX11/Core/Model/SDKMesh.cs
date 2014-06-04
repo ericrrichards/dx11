@@ -11,32 +11,32 @@ using SlimDX.Direct3D9;
 namespace Core.Model {
     internal class SdkMesh {
         private SdkMeshHeader _header;
-        internal readonly List<SdkMeshVertexBufferHeader> _vertexBuffers = new List<SdkMeshVertexBufferHeader>();
-        internal readonly List<SdkMeshIndexBufferHeader> _indexBuffers = new List<SdkMeshIndexBufferHeader>();
-        internal readonly List<SdkMeshMesh> _meshes = new List<SdkMeshMesh>();
-        internal readonly List<SdkMeshSubset> _subsets = new List<SdkMeshSubset>();
-        internal readonly List<SdkMeshFrame> _frames = new List<SdkMeshFrame>();
-        internal readonly List<SdkMeshMaterial> _materials = new List<SdkMeshMaterial>();
+        internal readonly List<SdkMeshVertexBufferHeader> VertexBuffers = new List<SdkMeshVertexBufferHeader>();
+        internal readonly List<SdkMeshIndexBufferHeader> IndexBuffers = new List<SdkMeshIndexBufferHeader>();
+        internal readonly List<SdkMeshMesh> Meshes = new List<SdkMeshMesh>();
+        internal readonly List<SdkMeshSubset> Subsets = new List<SdkMeshSubset>();
+        internal readonly List<SdkMeshFrame> Frames = new List<SdkMeshFrame>();
+        internal readonly List<SdkMeshMaterial> Materials = new List<SdkMeshMaterial>();
 
         public override string ToString() {
             var sb = new StringBuilder();
             sb.AppendLine(_header.ToString());
-            foreach (var vertexBuffer in _vertexBuffers) {
+            foreach (var vertexBuffer in VertexBuffers) {
                 sb.AppendLine(vertexBuffer.ToString());
             }
-            foreach (var indexBuffer in _indexBuffers) {
+            foreach (var indexBuffer in IndexBuffers) {
                 sb.AppendLine(indexBuffer.ToString());
             }
-            foreach (var mesh in _meshes) {
+            foreach (var mesh in Meshes) {
                 sb.AppendLine(mesh.ToString());
             }
-            foreach (var subset in _subsets) {
+            foreach (var subset in Subsets) {
                 sb.AppendLine(subset.ToString());
             }
-            foreach (var frame in _frames) {
+            foreach (var frame in Frames) {
                 sb.AppendLine(frame.ToString());
             }
-            foreach (var material in _materials) {
+            foreach (var material in Materials) {
                 sb.AppendLine(material.ToString());
             }
             return sb.ToString();
@@ -46,22 +46,22 @@ namespace Core.Model {
             using (var reader = new BinaryReader(new FileStream(filename, FileMode.Open))) {
                 _header = new SdkMeshHeader(reader);
                 for (int i = 0; i < _header.NumVertexBuffers; i++) {
-                    _vertexBuffers.Add(new SdkMeshVertexBufferHeader(reader));
+                    VertexBuffers.Add(new SdkMeshVertexBufferHeader(reader));
                 }
                 for (int i = 0; i < _header.NumIndexBuffers; i++) {
-                    _indexBuffers.Add(new SdkMeshIndexBufferHeader(reader));
+                    IndexBuffers.Add(new SdkMeshIndexBufferHeader(reader));
                 }
                 for (int i = 0; i < _header.NumMeshes; i++) {
-                    _meshes.Add(new SdkMeshMesh(reader));
+                    Meshes.Add(new SdkMeshMesh(reader));
                 }
                 for (int i = 0; i < _header.NumTotalSubsets; i++) {
-                    _subsets.Add(new SdkMeshSubset(reader));
+                    Subsets.Add(new SdkMeshSubset(reader));
                 }
                 for (int i = 0; i < _header.NumFrames; i++) {
-                    _frames.Add(new SdkMeshFrame(reader));
+                    Frames.Add(new SdkMeshFrame(reader));
                 }
                 for (int i = 0; i < _header.NumMaterials; i++) {
-                    _materials.Add(new SdkMeshMaterial(reader));
+                    Materials.Add(new SdkMeshMaterial(reader));
                 }
             }
         }

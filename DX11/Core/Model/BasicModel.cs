@@ -244,7 +244,7 @@ namespace Core.Model {
 
             var faceStart = 0;
             var vertexStart = 0;
-            foreach (var sdkMeshSubset in sdkMesh._subsets) {
+            foreach (var sdkMeshSubset in sdkMesh.Subsets) {
                 var subset = new MeshGeometry.Subset {
                     FaceCount = (int) (sdkMeshSubset.IndexCount / 3),
                     FaceStart = faceStart,
@@ -257,7 +257,7 @@ namespace Core.Model {
             }
             var max = new Vector3(float.MinValue);
             var min = new Vector3(float.MaxValue);
-            foreach (var vb in sdkMesh._vertexBuffers) {
+            foreach (var vb in sdkMesh.VertexBuffers) {
                 foreach (var vertex in vb.Vertices) {
                     max = Vector3.Maximize(max, vertex.Pos);
                     min = Vector3.Minimize(min, vertex.Pos);
@@ -266,10 +266,10 @@ namespace Core.Model {
             }
             ret.BoundingBox = new BoundingBox(min, max);
 
-            foreach (var ib in sdkMesh._indexBuffers) {
+            foreach (var ib in sdkMesh.IndexBuffers) {
                 ret.Indices.AddRange(ib.Indices.Select(i=>(short)i));
             }
-            foreach (var sdkMeshMaterial in sdkMesh._materials) {
+            foreach (var sdkMeshMaterial in sdkMesh.Materials) {
                 var material = new Material {
                     Ambient = sdkMeshMaterial.Ambient,
                     Diffuse = sdkMeshMaterial.Diffuse,
