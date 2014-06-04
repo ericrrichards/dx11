@@ -19,7 +19,7 @@
             var world = World;
             var wit = MathF.InverseTranspose(world);
             var wvp = world * viewProj;
-
+            
             Effects.NormalMapFX.SetWorld(world);
             Effects.NormalMapFX.SetWorldInvTranspose(wit);
             Effects.NormalMapFX.SetWorldViewProj(wvp);

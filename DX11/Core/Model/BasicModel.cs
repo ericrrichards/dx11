@@ -270,7 +270,7 @@ namespace Core.Model {
                 ret.Indices.AddRange(ib.Indices.Select(i=>(short)i));
             }
             foreach (var sdkMeshMaterial in sdkMesh._materials) {
-                var material = new Material() {
+                var material = new Material {
                     Ambient = sdkMeshMaterial.Ambient,
                     Diffuse = sdkMeshMaterial.Diffuse,
                     Reflect = Color.Black,
@@ -286,7 +286,7 @@ namespace Core.Model {
                 if (!string.IsNullOrEmpty(sdkMeshMaterial.NormalTexture)) {
                     ret.NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, sdkMeshMaterial.NormalTexture)));
                 } else {
-                    ret.NormalMapSRV.Add(texMgr["default"]);
+                    ret.NormalMapSRV.Add(texMgr["defaultNorm"]);
                 }
             }
             ret.ModelMesh.SetSubsetTable(ret.Subsets);

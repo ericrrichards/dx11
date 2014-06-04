@@ -22,12 +22,13 @@ namespace SdkMeshLoadingDemo {
         private readonly FpsCamera _camera;
         private Point _lastMousePos;
         private bool _disposed;
+        private bool _normalMapped = false;
 
 
-        protected SdkMeshLoadingDemo(IntPtr hInstance) : base(hInstance) {
+        private SdkMeshLoadingDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "SdkMesh Demo";
             _lastMousePos = new Point();
-            Enable4XMsaa = true;
+            //Enable4XMsaa = true;
 
             _camera = new FpsCamera {
                 Position = new Vector3(0, 2, -15)
@@ -82,8 +83,9 @@ namespace SdkMeshLoadingDemo {
 
             _bunnyModel = BasicModel.LoadSdkMesh(Device, _texMgr, "Models/bunny.sdkmesh", "Textures");
 
-            _bunnyInstance = new BasicModelInstance(_bunnyModel);
-            _bunnyInstance.World = Matrix.Scaling(0.1f, 0.1f, 0.1f);
+            _bunnyInstance = new BasicModelInstance(_bunnyModel) {
+                World = Matrix.Scaling(0.1f, 0.1f, 0.1f)
+            };
 
 
             return true;
@@ -113,6 +115,13 @@ namespace SdkMeshLoadingDemo {
             if (Util.IsKeyDown(Keys.PageDown)) {
                 _camera.Zoom(+dt);
             }
+
+            if (Util.IsKeyDown(Keys.D1)) {
+                _normalMapped = false;
+            }
+            if (Util.IsKeyDown(Keys.D2)) {
+                _normalMapped = true;
+            }
         }
         public override void DrawScene() {
             base.DrawScene();
@@ -124,16 +133,15 @@ namespace SdkMeshLoadingDemo {
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
             _camera.UpdateViewMatrix();
-            var viewProj = _camera.ViewProj;
             var view = _camera.View;
             var proj = _camera.Proj;
 
             
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetEyePosW(_camera.Position);
-
-
-            var activeTech = Effects.BasicFX.Light3TexTech;
+            EffectTechnique activeTech= Effects.BasicFX.Light3Tech;
+            
+            
             for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
                 _bunnyInstance.Draw(ImmediateContext, pass, view, proj, RenderMode.Basic);
@@ -160,7 +168,7 @@ namespace SdkMeshLoadingDemo {
             _lastMousePos = e.Location;
         }
 
-        static void Main(string[] args) {
+        static void Main() {
             
             Configuration.EnableObjectTracking = true;
             var app = new SdkMeshLoadingDemo(Process.GetCurrentProcess().Handle);
