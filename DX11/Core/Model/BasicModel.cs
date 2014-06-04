@@ -15,7 +15,7 @@ namespace Core.Model {
 
         public BasicModel() { }
 
-        public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipUV=false) {
+        public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipUv=false) {
 
             var importer = new AssimpImporter();
             if (!importer.IsImportFormatSupported(Path.GetExtension(filename))) {
@@ -27,7 +27,7 @@ namespace Core.Model {
             importer.VerboseLoggingEnabled = true;
 #endif
             var postProcessFlags = PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace;
-            if (flipUV) {
+            if (flipUv) {
                 postProcessFlags|= PostProcessSteps.FlipUVs;
             }
             var model = importer.ImportFile(filename, postProcessFlags);
