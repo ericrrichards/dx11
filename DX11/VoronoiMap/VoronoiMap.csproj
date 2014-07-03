@@ -14,7 +14,7 @@
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -53,6 +53,23 @@
     <Compile Include="Corner.cs" />
     <Compile Include="Edge.cs" />
     <Compile Include="IslandShapes.cs" />
+    <Compile Include="JS\Edge.cs" />
+    <Compile Include="JS\EdgeList.cs" />
+    <Compile Include="JS\EventQueue.cs" />
+    <Compile Include="JS\Geometry.cs" />
+    <Compile Include="JS\HalfEdge.cs" />
+    <Compile Include="JS\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="JS\MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="JS\Program.cs" />
+    <Compile Include="JS\Side.cs" />
+    <Compile Include="JS\SiteList.cs" />
+    <Compile Include="JS\Sites.cs" />
+    <Compile Include="JS\Voronoi.cs" />
+    <Compile Include="JS\VoronoiGraph.cs" />
     <Compile Include="Map.cs" />
     <Compile Include="Voronoi2\EdgeList.cs" />
     <Compile Include="Voronoi2\Geometry.cs" />
@@ -91,8 +108,13 @@
     <Content Include="FX\color.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="JS\voronoi.js" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="JS\MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd FX 
