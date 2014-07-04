@@ -30,10 +30,12 @@
             this.label1 = new System.Windows.Forms.Label();
             this.nudNumRegions = new System.Windows.Forms.NumericUpDown();
             this.btnRegen = new System.Windows.Forms.Button();
+            this.nudSeed = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.splitPanel)).BeginInit();
             this.splitPanel.Panel1.SuspendLayout();
             this.splitPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudNumRegions)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudSeed)).BeginInit();
             this.SuspendLayout();
             // 
             // splitPanel
@@ -46,6 +48,7 @@
             // splitPanel.Panel1
             // 
             this.splitPanel.Panel1.BackColor = System.Drawing.SystemColors.Control;
+            this.splitPanel.Panel1.Controls.Add(this.nudSeed);
             this.splitPanel.Panel1.Controls.Add(this.chkShowEdges);
             this.splitPanel.Panel1.Controls.Add(this.chkShowVertices);
             this.splitPanel.Panel1.Controls.Add(this.chkShowSites);
@@ -140,6 +143,18 @@
             this.btnRegen.UseVisualStyleBackColor = true;
             this.btnRegen.Click += new System.EventHandler(this.btnRegen_Click);
             // 
+            // nudSeed
+            // 
+            this.nudSeed.Location = new System.Drawing.Point(540, 12);
+            this.nudSeed.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.nudSeed.Name = "nudSeed";
+            this.nudSeed.Size = new System.Drawing.Size(120, 20);
+            this.nudSeed.TabIndex = 6;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -156,6 +171,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.splitPanel)).EndInit();
             this.splitPanel.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.nudNumRegions)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudSeed)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -169,6 +185,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.NumericUpDown nudNumRegions;
         private System.Windows.Forms.Button btnRegen;
+        private System.Windows.Forms.NumericUpDown nudSeed;
 
     }
 }

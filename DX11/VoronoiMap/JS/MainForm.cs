@@ -5,7 +5,6 @@ using System.Windows.Forms;
 
 namespace Fortune.FromJS {
     public partial class MainForm : Form {
-        private Random _rand = new Random();
         private VoronoiGraph _graph;
 
 
@@ -18,13 +17,17 @@ namespace Fortune.FromJS {
         }
 
         private void GenerateGraph() {
+
+            var _rand = new Random((int) nudSeed.Value);
             var w = splitPanel.Panel2.ClientSize.Width;
             var h = splitPanel.Panel2.ClientSize.Width;
 
             var numSites = (int) nudNumRegions.Value;
             var sites = new List<Point>();
+            var wBuffer = 10;
+            var hBuffer = 10;
             for (int i = 0; i < numSites; i++) {
-                var p = new Point(_rand.Next(w), _rand.Next(h));
+                var p = new Point(_rand.Next(w-wBuffer*2) + wBuffer, _rand.Next(h-hBuffer*2)+hBuffer);
                 sites.Add(p);
             }
 

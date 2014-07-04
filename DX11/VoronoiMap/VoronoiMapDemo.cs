@@ -189,7 +189,7 @@ namespace VoronoiMap {
             _mapVB = new Buffer(Device, new DataStream(verts.ToArray(), false, false), vbd);
         }
 
-        static void Main(string[] args) {
+        /*static void Main(string[] args) {
             Configuration.EnableObjectTracking = true;
             var app = new VoronoiMapDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
@@ -197,7 +197,7 @@ namespace VoronoiMap {
             }
             app.Run();
              
-        }
+        }*/
         
     }
 
