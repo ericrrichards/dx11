@@ -60,7 +60,7 @@ namespace Fortune.FromJS {
             return new PointF((int)p.X, (int)p.Y);
         }
 
-        public override string ToString() { return string.Format("{0},{1}", X, Y); }
+        public override string ToString() { return string.Format("[{0},{1}]", (int)X, (int)Y); }
     }
 
     

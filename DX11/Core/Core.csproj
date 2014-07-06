@@ -32,6 +32,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'voronoi|AnyCPU'">
+    <OutputPath>bin\voronoi\</OutputPath>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="AssimpNet">
       <HintPath>..\packages\AssimpNet-3.2\Bin\AssimpNet.dll</HintPath>

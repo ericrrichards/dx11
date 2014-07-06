@@ -34,7 +34,7 @@ namespace Fortune.FromJS {
 
         public void PlotEndpoint(Edge e) {
             if (Debug) {
-                Console.WriteLine("Endpoint {0}", e);
+                Console.WriteLine("EP {0}", e);
             }
             ClipLine(e);
         }

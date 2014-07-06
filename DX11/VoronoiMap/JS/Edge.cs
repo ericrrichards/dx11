@@ -18,5 +18,9 @@
             Region[Side.Left] = s1;
             Region[Side.Right] = s2;
         }
+        public override string ToString() {
+            return string.Format("A={0} B={1} C={2} Ep[L]={3} Ep[R]={4} R[L]={5}, R[R]={6}",
+                                 A, B, C, Endpoint[0], Endpoint[1], Region[0], Region[1]);
+        }
     }
 }

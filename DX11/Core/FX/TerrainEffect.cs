@@ -206,8 +206,22 @@ namespace Core.FX {
             _viewProjTex.SetMatrix(matrix);
         }
 
-        public void SetWalkMap(ShaderResourceView walkableTiles) { _walkMap.SetResource(walkableTiles); }
-        public void SetUnwalkableTex(ShaderResourceView shaderResourceView) { _unwalkableSRV.SetResource(shaderResourceView); }
+        public void SetWalkMap(ShaderResourceView walkableTiles) {
+            if (_walkMap != null) {
+                _walkMap.SetResource(walkableTiles);
+            } else {
+                Console.WriteLine("walkmap not defined in shader");
+            }
+        }
+
+        public void SetUnwalkableTex(ShaderResourceView shaderResourceView) {
+            if (_unwalkableSRV != null) {
+                _unwalkableSRV.SetResource(shaderResourceView);
+            } else {
+                Console.WriteLine("unwalkableSRV not defined in shader");
+            }
+        
+        }
         
     }
 }

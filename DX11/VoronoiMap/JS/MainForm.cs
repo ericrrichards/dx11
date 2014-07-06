@@ -20,7 +20,7 @@ namespace Fortune.FromJS {
 
             var _rand = new Random((int) nudSeed.Value);
             var w = splitPanel.Panel2.ClientSize.Width;
-            var h = splitPanel.Panel2.ClientSize.Width;
+            var h = splitPanel.Panel2.ClientSize.Height;
 
             var numSites = (int) nudNumRegions.Value;
             var sites = new List<Point>();
