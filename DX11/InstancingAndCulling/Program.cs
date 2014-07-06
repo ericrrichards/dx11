@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -333,14 +334,17 @@ namespace InstancingAndCulling {
                         input = reader.ReadLine();
                         if (input != null) {
                             var vals = input.Split(new[] { ' ' });
-                            var position = new Vector3(Convert.ToSingle(vals[0].Trim()), Convert.ToSingle(vals[1].Trim()), Convert.ToSingle(vals[2].Trim()));
+                            var position = new Vector3(
+                                Convert.ToSingle(vals[0].Trim(), CultureInfo.InvariantCulture),
+                                Convert.ToSingle(vals[1].Trim(), CultureInfo.InvariantCulture),
+                                Convert.ToSingle(vals[2].Trim(), CultureInfo.InvariantCulture));
                             vertices.Add(
                                 new Basic32(
                                     position,
                                     new Vector3(
-                                        Convert.ToSingle(vals[3].Trim()),
-                                        Convert.ToSingle(vals[4].Trim()),
-                                        Convert.ToSingle(vals[5].Trim())),
+                                        Convert.ToSingle(vals[3].Trim(), CultureInfo.InvariantCulture),
+                                        Convert.ToSingle(vals[4].Trim(), CultureInfo.InvariantCulture),
+                                        Convert.ToSingle(vals[5].Trim(), CultureInfo.InvariantCulture)),
                                     new Vector2()
                                 )
                             );
