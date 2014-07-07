@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     public class EventQueue {
         public List<HalfEdge> Events = new List<HalfEdge>();
 

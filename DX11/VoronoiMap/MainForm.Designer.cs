@@ -1,4 +1,4 @@
-﻿namespace Fortune.FromJS {
+﻿namespace VoronoiMap {
     partial class MainForm {
         /// <summary>
         /// Required designer variable.

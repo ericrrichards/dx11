@@ -1,4 +1,4 @@
-﻿namespace Fortune.FromJS {
+﻿namespace VoronoiMap {
     public class Side {
         int Value { get; set; }
 

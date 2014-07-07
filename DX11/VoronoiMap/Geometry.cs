@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     public static class Geometry {
         public const double Tolerance = 1e-10;
         

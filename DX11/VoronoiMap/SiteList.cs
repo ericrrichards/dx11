@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using log4net;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     public class SiteList {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         public List<Site> Sites { get; set; }

@@ -1,4 +1,4 @@
-﻿namespace Fortune.FromJS {
+﻿namespace VoronoiMap {
     public class HalfEdge {
         public Edge Edge { get; set; }
         public Side Side { get; set; }

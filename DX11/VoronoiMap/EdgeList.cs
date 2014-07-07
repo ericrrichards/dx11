@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     public class EdgeList {
         public List<HalfEdge> Edges { get; set; }
         public HalfEdge LeftEnd { get; set; }

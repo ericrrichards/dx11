@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     public partial class MainForm : Form {
         private VoronoiGraph _graph;
 

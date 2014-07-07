@@ -55,23 +55,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="JS\Edge.cs" />
-    <Compile Include="JS\EdgeList.cs" />
-    <Compile Include="JS\EventQueue.cs" />
-    <Compile Include="JS\Geometry.cs" />
-    <Compile Include="JS\HalfEdge.cs" />
-    <Compile Include="JS\MainForm.cs">
+    <Compile Include="Edge.cs" />
+    <Compile Include="EdgeList.cs" />
+    <Compile Include="EventQueue.cs" />
+    <Compile Include="Geometry.cs" />
+    <Compile Include="HalfEdge.cs" />
+    <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="JS\MainForm.Designer.cs">
+    <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="JS\Program.cs" />
-    <Compile Include="JS\Side.cs" />
-    <Compile Include="JS\SiteList.cs" />
-    <Compile Include="JS\Sites.cs" />
-    <Compile Include="JS\Voronoi.cs" />
-    <Compile Include="JS\VoronoiGraph.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Side.cs" />
+    <Compile Include="SiteList.cs" />
+    <Compile Include="Sites.cs" />
+    <Compile Include="Voronoi.cs" />
+    <Compile Include="VoronoiGraph.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -88,13 +88,14 @@
     <Content Include="FX\color.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="JS\voronoi.js" />
+    <Content Include="voronoi.js" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="JS\MainForm.resx">
+    <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd FX 

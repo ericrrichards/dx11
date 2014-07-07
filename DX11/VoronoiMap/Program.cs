@@ -1,9 +1,7 @@
-﻿
-using System;
+﻿using System;
 using System.Windows.Forms;
-using Fortune.FromJS;
 
-namespace Fortune {
+namespace VoronoiMap {
     class Program {
         [STAThread]
         static void Main(string[] args) {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     /// <summary>
     /// Adapted from http://philogb.github.io/blog/assets/voronoijs/voronoi.html
     /// </summary>

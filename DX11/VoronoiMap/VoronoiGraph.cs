@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Reflection;
 using log4net;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     public class VoronoiGraph {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         public bool Debug { get; set; }

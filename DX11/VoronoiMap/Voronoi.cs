@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 
-namespace Fortune.FromJS {
+namespace VoronoiMap {
     public static class Voronoi {
         public static VoronoiGraph ComputeVoronoi(IEnumerable<Point> points, int w=800, int h=600) {
             var sites = new SiteList(points);
