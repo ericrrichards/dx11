@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Drawing;
+using Core;
 
 namespace VoronoiMap {
     public static class Geometry {
@@ -124,5 +126,54 @@ namespace VoronoiMap {
             var dy = s.Y - t.Y;
             return (float) Math.Sqrt(dx*dx + dy*dy);
         }
+    }
+
+    public class Segment {
+        public PointF P1 { get; private set; }
+        public PointF P2 { get; private set; }
+        public bool New { get; set; }
+
+        public Segment(float x1, float y1, float x2, float y2) {
+            P1 = new PointF(x1, y1);
+            P2 = new PointF(x2, y2);
+        }
+    }
+
+    public class Circle {
+        private PointF Center { get; set; }
+        private float Radius { get; set; }
+
+        public Circle(PointF p1, PointF p2, PointF p3) {
+            //http://stackoverflow.com/questions/4103405/what-is-the-algorithm-for-finding-the-center-of-a-circle-from-three-points
+            var offset = p2.X * p2.X + p2.Y * p2.Y;
+            var bc = (p1.X * p1.X + p1.Y * p1.Y - offset) / 2;
+            var cd = (offset - p3.X * p3.X - p3.Y * p3.Y) / 2;
+            var det = ((p1.X - p2.X) * (p2.Y - p3.Y)) - ((p2.X - p3.X) * (p1.Y - p2.Y));
+
+            var iDet = 1.0f / det;
+
+            var centerX = (bc * (p2.Y - p3.Y) - cd * (p1.Y - p2.Y)) * iDet;
+            var centerY = (cd * (p1.X - p2.X) - bc * (p2.X - p3.X)) * iDet;
+            var radius = MathF.Sqrt(((p2.X - centerX) * (p2.X - centerX)) + ((p2.Y - centerY) * (p2.Y - centerY)));
+            Center = new PointF(centerX, centerY);
+            Radius = radius;
+        }
+
+        public RectangleF GetRect() {
+            var rectf = new RectangleF(Center.X - Radius, Center.Y - Radius, Radius * 2, Radius * 2);
+            return rectf;
+        }
+    }
+
+    public class Triangle {
+        public Triangle(Site s1, Site s2, Site s3) {
+            V1 = s1;
+            V2 = s2;
+            V3 = s3;
+        }
+        public PointF V1 { get; private set; }
+        public PointF V2 { get; private set; }
+        public PointF V3 { get; private set; }
+        public bool New { get; set; }
     }
 }

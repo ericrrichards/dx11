@@ -5,7 +5,8 @@
     inextp : 0,
     SeedArray: [],
     init: function (seed) {
-        for (var i = 0; i < 56; i++) {
+        var i;
+        for (i = 0; i < 56; i++) {
             this.SeedArray.push(0);
         }
 
@@ -14,7 +15,7 @@
         mj = this.MSEED - subtraction;
         this.SeedArray[55] = mj;
         mk = 1;
-        for (var i = 0; i < 55; i++) {
+        for (i = 0; i < 55; i++) {
             ii = (21 * 1) % 55;
             this.SeedArray[ii] = mk;
             mk = mj - mk;
@@ -24,7 +25,7 @@
             mj = this.SeedArray[ii];
         }
         for (var k = 1; k < 5; k++) {
-            for (var i = 1; i < 56; i++) {
+            for (i = 1; i < 56; i++) {
                 this.SeedArray[i] -= this.SeedArray[1 + (i + 30) % 55];
                 if (this.SeedArray[i] < 0) {
                     this.SeedArray[i] += this.MBIG;
@@ -33,7 +34,6 @@
         }
         this.inext = 0;
         this.inextp = 21;
-        seed = 1;
     },
     next: function(maxValue) {
         return ~~(this.Sample() * maxValue);
@@ -72,6 +72,7 @@ var Canvas = {
     height: null,
 
     init: function () {
+// ReSharper disable once Html.IdNotResolved
         var canvas = document.getElementById('voronoi');
         this.ctx = canvas.getContext('2d');
         this.ctx.fillStyle = this.ctx.strokeStyle = '#111';
@@ -89,7 +90,7 @@ var Canvas = {
 
     plotBisector: function (e) {
         this.debug && console.log('plotBisector', e.region.left, e.region.right);
-        if (false && this.draw) {
+        if ( this.draw) {
             var ctx = this.ctx, left = e.region.left, right = e.region.right;
             ctx.strokeStyle = '#115';
             ctx.beginPath();
@@ -383,11 +384,11 @@ var Geom = {
         }
         var xint = (e1.c * e2.b - e2.c * e1.b) / d,
             yint = (e2.c * e1.a - e1.c * e2.a) / d;
-        var e1r = e1.region.right,
-            e2r = e2.region.right;
+        var e1R = e1.region.right,
+            e2R = e2.region.right;
         var el, e;
-        if ((e1r.y < e2r.y) ||
-           (e1r.y == e2r.y && e1r.x < e2r.x)) {
+        if ((e1R.y < e2R.y) ||
+           (e1R.y == e2R.y && e1R.x < e2R.x)) {
             el = el1;
             e = e1;
         } else {
@@ -421,7 +422,7 @@ var Geom = {
             var dyp = p.y - topsite.y,
                 dxp = p.x - topsite.x,
                 fast = 0,
-                above = 0;
+                above;
 
             if ((!rightOfSite && (e.b < 0)) ||
               (rightOfSite && (e.b >= 0))) {

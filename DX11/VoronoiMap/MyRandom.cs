@@ -5,10 +5,19 @@ namespace VoronoiMap {
     ///  This is soley for the purpose of testing the javascript random generator I added to the original javascript implementation
     /// 
     /// </summary>
+    // ReSharper disable InconsistentNaming
+    // ReSharper disable UnusedMember.Local
+// ReSharper disable UnusedMember.Global
     class MyRandom {
+
+
+
         private const int MBIG = Int32.MaxValue;
+
         private const int MSEED = 161803398;
+
         private const int MZ = 0;
+
 
 
         //
@@ -16,34 +25,30 @@ namespace VoronoiMap {
         // 
         private int inext;
         private int inextp;
-        internal int[] SeedArray = new int[56];
+        private readonly int[] SeedArray = new int[56];
 
         public MyRandom(int Seed) {
-            int ii;
-            int mj, mk;
-
             //Initialize our Seed array.
             //This algorithm comes from Numerical Recipes in C (2nd Ed.) 
-            int subtraction = (Seed == Int32.MinValue) ? Int32.MaxValue : Math.Abs(Seed);
-            mj = MSEED - subtraction;
+            var subtraction = (Seed == Int32.MinValue) ? Int32.MaxValue : Math.Abs(Seed);
+            var mj = MSEED - subtraction;
             SeedArray[55] = mj;
-            mk = 1;
-            for (int i = 1; i < 55; i++) {  //Apparently the range [1..55] is special (Knuth) and so we're wasting the 0'th position.
-                ii = (21 * i) % 55;
+            var mk = 1;
+            for (var i = 1; i < 55; i++) {  //Apparently the range [1..55] is special (Knuth) and so we're wasting the 0'th position.
+                var ii = (21 * i) % 55;
                 SeedArray[ii] = mk;
                 mk = mj - mk;
                 if (mk < 0) mk += MBIG;
                 mj = SeedArray[ii];
             }
-            for (int k = 1; k < 5; k++) {
-                for (int i = 1; i < 56; i++) {
+            for (var k = 1; k < 5; k++) {
+                for (var i = 1; i < 56; i++) {
                     SeedArray[i] -= SeedArray[1 + (i + 30) % 55];
                     if (SeedArray[i] < 0) SeedArray[i] += MBIG;
                 }
             }
             inext = 0;
             inextp = 21;
-            Seed = 1;
         }
         protected virtual double Sample() {
             //Including this division at the end gives us significantly improved 
@@ -52,14 +57,13 @@ namespace VoronoiMap {
         }
 
         private int InternalSample() {
-            int retVal;
-            int locINext = inext;
-            int locINextp = inextp;
+            var locINext = inext;
+            var locINextp = inextp;
 
             if (++locINext >= 56) locINext = 1;
             if (++locINextp >= 56) locINextp = 1;
 
-            retVal = SeedArray[locINext] - SeedArray[locINextp];
+            var retVal = SeedArray[locINext] - SeedArray[locINextp];
 
             if (retVal == MBIG) retVal--;
             if (retVal < 0) retVal += MBIG;
@@ -79,4 +83,7 @@ namespace VoronoiMap {
         }
 
     }
+    // ReSharper restore InconsistentNaming
+    // ReSharper restore UnusedMember.Local
+    // ReSharper restore UnusedMember.Global
 }

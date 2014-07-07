@@ -1,16 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Reflection;
-using Core;
 using log4net;
 
 namespace VoronoiMap {
     public class VoronoiGraph {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        public bool Debug { get; set; }
-        public int Width { get; set; }
-        public int Height { get; set; }
+        public bool Debug { private get; set; }
+        private int Width { get; set; }
+        public int Height { get; private set; }
 
         public readonly List<Site> Sites = new List<Site>();
         public readonly List<Site> Vertices = new List<Site>();
@@ -191,52 +189,5 @@ namespace VoronoiMap {
         
     }
 
-    public class Segment {
-        public PointF P1 { get; set; }
-        public PointF P2 { get; set; }
-        public bool New { get; set; }
-
-        public Segment(float x1, float y1, float x2, float y2) {
-            P1 = new PointF(x1, y1);
-            P2 = new PointF(x2, y2);
-        }
-    }
-
-    public class Circle {
-        public PointF Center { get; set; }
-        public float Radius { get; set; }
-
-        public Circle(PointF p1, PointF p2, PointF p3) {
-            //http://stackoverflow.com/questions/4103405/what-is-the-algorithm-for-finding-the-center-of-a-circle-from-three-points
-            var offset = p2.X*p2.X + p2.Y*p2.Y;
-            var bc = (p1.X*p1.X + p1.Y*p1.Y - offset)/2;
-            var cd = (offset - p3.X*p3.X - p3.Y*p3.Y)/2;
-            var det = ((p1.X - p2.X)*(p2.Y - p3.Y)) - ((p2.X - p3.X)*(p1.Y - p2.Y));
-
-            var iDet = 1.0f/det;
-
-            var centerX = (bc*(p2.Y - p3.Y) - cd*(p1.Y - p2.Y))*iDet;
-            var centerY = (cd*(p1.X - p2.X) - bc*(p2.X - p3.X))*iDet;
-            var radius = MathF.Sqrt(((p2.X - centerX)*(p2.X - centerX)) + ((p2.Y - centerY)*(p2.Y - centerY)));
-            Center = new PointF(centerX, centerY);
-            Radius = radius;
-        }
-
-        public RectangleF GetRect() {
-            var rectf = new RectangleF(Center.X - Radius, Center.Y - Radius, Radius*2, Radius*2);
-            return rectf;
-        }
-    }
-
-    public class Triangle {
-        public Triangle(Site s1, Site s2, Site s3) {
-            V1 = s1;
-            V2 = s2;
-            V3 = s3;
-        }
-        public PointF V1 { get; set; }
-        public PointF V2 { get; set; }
-        public PointF V3 { get; set; }
-        public bool New { get; set; }
-    }
+    
 }

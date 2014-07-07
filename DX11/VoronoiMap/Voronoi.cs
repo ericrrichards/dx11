@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 
 namespace VoronoiMap {
+
+    /// <summary>
+    /// Adapted from http://philogb.github.io/blog/2010/02/12/voronoi-tessellation/
+    /// </summary>
     public  class Voronoi {
         private readonly VoronoiGraph _graph;
         private readonly SiteList _sites;

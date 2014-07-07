@@ -8,7 +8,7 @@ using log4net;
 namespace VoronoiMap {
     public class SiteList {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        public List<Site> Sites { get; set; }
+        private List<Site> Sites { get; set; }
         public Site BottomSite { get; set; }
 
         public SiteList(IEnumerable<Point> points) {

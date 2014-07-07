@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -24,14 +21,14 @@ namespace VoronoiMap {
 
         private void GenerateGraph() {
 
-            var _rand = new Random((int)nudSeed.Value);
+            var rand = new Random((int)nudSeed.Value);
             var w = splitPanel.Panel2.ClientSize.Width;
             var h = splitPanel.Panel2.ClientSize.Height;
 
             var numSites = (int)nudNumRegions.Value;
             var sites = new List<Point>();
             for (int i = 0; i < numSites; i++) {
-                var p = new Point(_rand.Next(w ) , _rand.Next(h) );
+                var p = new Point(rand.Next(w ) , rand.Next(h) );
                 sites.Add(p);
             }
             
@@ -69,7 +66,6 @@ namespace VoronoiMap {
                         g.DrawLine(segment.New ? newEdgePen : edgePen, start, end);
                     }
                 }
-                var f = new Font(FontFamily.GenericMonospace, 8);
                 if (chkShowVertices.Checked) {
                     var vertPen = new SolidBrush(Color.Firebrick);
                     var newVertPen = new SolidBrush(Color.Red);

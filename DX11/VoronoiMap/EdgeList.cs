@@ -2,9 +2,9 @@
 
 namespace VoronoiMap {
     public class EdgeList {
-        public List<HalfEdge> Edges { get; set; }
-        public HalfEdge LeftEnd { get; set; }
-        public HalfEdge RightEnd { get; set; }
+        private List<HalfEdge> Edges { get; set; }
+        public HalfEdge LeftEnd { get; private set; }
+        public HalfEdge RightEnd { get; private set; }
 
         private readonly SiteList _siteList;
 

@@ -1,7 +1,7 @@
 ﻿namespace VoronoiMap {
     public class HalfEdge {
         public Edge Edge { get; set; }
-        public Side Side { get; set; }
+        public Side Side { get; private set; }
         public Site Vertex { get; set; }
         public HalfEdge Left { get; set; }
         public HalfEdge Right { get; set; }

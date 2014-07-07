@@ -2,9 +2,9 @@
 using System.Windows.Forms;
 
 namespace VoronoiMap {
-    class Program {
+    static class Program {
         [STAThread]
-        static void Main(string[] args) {
+        static void Main() {
             log4net.Config.XmlConfigurator.Configure();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
