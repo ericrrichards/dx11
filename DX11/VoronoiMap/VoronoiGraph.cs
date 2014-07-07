@@ -6,7 +6,7 @@ using log4net;
 namespace VoronoiMap {
     public class VoronoiGraph {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        public bool Debug { private get; set; }
+        public bool Debug { get; set; }
         private int Width { get; set; }
         public int Height { get; private set; }
 

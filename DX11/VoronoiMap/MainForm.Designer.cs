@@ -37,6 +37,8 @@
             this.label1 = new System.Windows.Forms.Label();
             this.nudNumRegions = new System.Windows.Forms.NumericUpDown();
             this.btnRegen = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
+            this.btnAnimate = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitPanel)).BeginInit();
             this.splitPanel.Panel1.SuspendLayout();
             this.splitPanel.SuspendLayout();
@@ -55,6 +57,8 @@
             // splitPanel.Panel1
             // 
             this.splitPanel.Panel1.BackColor = System.Drawing.SystemColors.Control;
+            this.splitPanel.Panel1.Controls.Add(this.btnAnimate);
+            this.splitPanel.Panel1.Controls.Add(this.label2);
             this.splitPanel.Panel1.Controls.Add(this.chDebug);
             this.splitPanel.Panel1.Controls.Add(this.btnStepTo);
             this.splitPanel.Panel1.Controls.Add(this.nudStepTo);
@@ -72,7 +76,7 @@
             // splitPanel.Panel2
             // 
             this.splitPanel.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
-            this.splitPanel.Size = new System.Drawing.Size(800, 600);
+            this.splitPanel.Size = new System.Drawing.Size(842, 600);
             this.splitPanel.SplitterDistance = 69;
             this.splitPanel.TabIndex = 0;
             // 
@@ -81,7 +85,7 @@
             this.chDebug.AutoSize = true;
             this.chDebug.Checked = true;
             this.chDebug.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chDebug.Location = new System.Drawing.Point(336, 36);
+            this.chDebug.Location = new System.Drawing.Point(639, 12);
             this.chDebug.Name = "chDebug";
             this.chDebug.Size = new System.Drawing.Size(64, 17);
             this.chDebug.TabIndex = 12;
@@ -90,9 +94,9 @@
             // 
             // btnStepTo
             // 
-            this.btnStepTo.Location = new System.Drawing.Point(603, 38);
+            this.btnStepTo.Location = new System.Drawing.Point(498, 38);
             this.btnStepTo.Name = "btnStepTo";
-            this.btnStepTo.Size = new System.Drawing.Size(57, 23);
+            this.btnStepTo.Size = new System.Drawing.Size(76, 23);
             this.btnStepTo.TabIndex = 11;
             this.btnStepTo.Text = "Step to:";
             this.btnStepTo.UseVisualStyleBackColor = true;
@@ -100,7 +104,7 @@
             // 
             // nudStepTo
             // 
-            this.nudStepTo.Location = new System.Drawing.Point(477, 41);
+            this.nudStepTo.Location = new System.Drawing.Point(372, 39);
             this.nudStepTo.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -115,7 +119,7 @@
             this.chkShowCircles.AutoSize = true;
             this.chkShowCircles.Checked = true;
             this.chkShowCircles.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowCircles.Location = new System.Drawing.Point(245, 36);
+            this.chkShowCircles.Location = new System.Drawing.Point(540, 12);
             this.chkShowCircles.Name = "chkShowCircles";
             this.chkShowCircles.Size = new System.Drawing.Size(93, 17);
             this.chkShowCircles.TabIndex = 9;
@@ -125,7 +129,7 @@
             // 
             // btnInitialize
             // 
-            this.btnInitialize.Location = new System.Drawing.Point(15, 38);
+            this.btnInitialize.Location = new System.Drawing.Point(244, 38);
             this.btnInitialize.Name = "btnInitialize";
             this.btnInitialize.Size = new System.Drawing.Size(122, 23);
             this.btnInitialize.TabIndex = 8;
@@ -135,7 +139,7 @@
             // 
             // btnStepVoronoi
             // 
-            this.btnStepVoronoi.Location = new System.Drawing.Point(666, 38);
+            this.btnStepVoronoi.Location = new System.Drawing.Point(580, 38);
             this.btnStepVoronoi.Name = "btnStepVoronoi";
             this.btnStepVoronoi.Size = new System.Drawing.Size(122, 23);
             this.btnStepVoronoi.TabIndex = 7;
@@ -145,7 +149,7 @@
             // 
             // nudSeed
             // 
-            this.nudSeed.Location = new System.Drawing.Point(540, 12);
+            this.nudSeed.Location = new System.Drawing.Point(118, 39);
             this.nudSeed.Maximum = new decimal(new int[] {
             1000000,
             0,
@@ -160,7 +164,7 @@
             this.chkShowEdges.AutoSize = true;
             this.chkShowEdges.Checked = true;
             this.chkShowEdges.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowEdges.Location = new System.Drawing.Point(442, 13);
+            this.chkShowEdges.Location = new System.Drawing.Point(442, 12);
             this.chkShowEdges.Name = "chkShowEdges";
             this.chkShowEdges.Size = new System.Drawing.Size(92, 17);
             this.chkShowEdges.TabIndex = 5;
@@ -173,7 +177,7 @@
             this.chkShowVertices.AutoSize = true;
             this.chkShowVertices.Checked = true;
             this.chkShowVertices.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowVertices.Location = new System.Drawing.Point(336, 13);
+            this.chkShowVertices.Location = new System.Drawing.Point(336, 12);
             this.chkShowVertices.Name = "chkShowVertices";
             this.chkShowVertices.Size = new System.Drawing.Size(100, 17);
             this.chkShowVertices.TabIndex = 4;
@@ -186,7 +190,7 @@
             this.chkShowSites.AutoSize = true;
             this.chkShowSites.Checked = true;
             this.chkShowSites.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowSites.Location = new System.Drawing.Point(245, 13);
+            this.chkShowSites.Location = new System.Drawing.Point(245, 12);
             this.chkShowSites.Name = "chkShowSites";
             this.chkShowSites.Size = new System.Drawing.Size(85, 17);
             this.chkShowSites.TabIndex = 3;
@@ -205,7 +209,7 @@
             // 
             // nudNumRegions
             // 
-            this.nudNumRegions.Location = new System.Drawing.Point(119, 12);
+            this.nudNumRegions.Location = new System.Drawing.Point(119, 10);
             this.nudNumRegions.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -227,7 +231,7 @@
             // 
             // btnRegen
             // 
-            this.btnRegen.Location = new System.Drawing.Point(666, 9);
+            this.btnRegen.Location = new System.Drawing.Point(709, 9);
             this.btnRegen.Name = "btnRegen";
             this.btnRegen.Size = new System.Drawing.Size(122, 23);
             this.btnRegen.TabIndex = 0;
@@ -235,16 +239,37 @@
             this.btnRegen.UseVisualStyleBackColor = true;
             this.btnRegen.Click += new System.EventHandler(this.btnRegen_Click);
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(11, 43);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(35, 13);
+            this.label2.TabIndex = 13;
+            this.label2.Text = "Seed:";
+            // 
+            // btnAnimate
+            // 
+            this.btnAnimate.Location = new System.Drawing.Point(708, 38);
+            this.btnAnimate.Name = "btnAnimate";
+            this.btnAnimate.Size = new System.Drawing.Size(122, 23);
+            this.btnAnimate.TabIndex = 14;
+            this.btnAnimate.Text = "Animate";
+            this.btnAnimate.UseVisualStyleBackColor = true;
+            this.btnAnimate.Click += new System.EventHandler(this.btnAnimate_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
-            this.ClientSize = new System.Drawing.Size(800, 600);
+            this.ClientSize = new System.Drawing.Size(842, 600);
             this.Controls.Add(this.splitPanel);
+            this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "MainForm";
             this.Text = "Voronoi";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.splitPanel.Panel1.ResumeLayout(false);
             this.splitPanel.Panel1.PerformLayout();
@@ -273,6 +298,8 @@
         private System.Windows.Forms.Button btnStepTo;
         private System.Windows.Forms.NumericUpDown nudStepTo;
         private System.Windows.Forms.CheckBox chDebug;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button btnAnimate;
 
     }
 }

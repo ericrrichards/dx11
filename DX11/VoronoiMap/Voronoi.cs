@@ -69,7 +69,9 @@ namespace VoronoiMap {
                     var p = Geometry.Intersect(lbnd, bisector);
                     if (p != null) {
                         _eventQueue.Delete(lbnd);
-                        Console.WriteLine("Inserting {0}", p);
+                        if (_graph.Debug) {
+                            Console.WriteLine("Inserting {0}", p);
+                        }
                         _eventQueue.Insert(lbnd, p, Geometry.Distance(p, _newSite));
                     }
                     lbnd = bisector;
@@ -77,7 +79,9 @@ namespace VoronoiMap {
                     _edgeList.Insert(lbnd, bisector);
                     p = Geometry.Intersect(bisector, rbnd);
                     if (p != null) {
-                        Console.WriteLine("Inserting {0}", p);
+                        if (_graph.Debug) {
+                            Console.WriteLine("Inserting {0}", p);
+                        }
                         _eventQueue.Insert(bisector, p, Geometry.Distance(p, _newSite));
                     }
                     _newSite = _sites.ExtractMin();
@@ -119,12 +123,16 @@ namespace VoronoiMap {
                     var p = Geometry.Intersect(llbnd, bisector);
                     if (p != null) {
                         _eventQueue.Delete(llbnd);
-                        Console.WriteLine("Inserting {0}", p);
+                        if (_graph.Debug) {
+                            Console.WriteLine("Inserting {0}", p);
+                        }
                         _eventQueue.Insert(llbnd, p, Geometry.Distance(p, bot));
                     }
                     p = Geometry.Intersect(bisector, rrbnd);
                     if (p != null) {
-                        Console.WriteLine("Inserting {0}", p);
+                        if (_graph.Debug) {
+                            Console.WriteLine("Inserting {0}", p);
+                        }
                         _eventQueue.Insert(bisector, p, Geometry.Distance(p, bot));
                     }
                 } else {
@@ -139,10 +147,14 @@ namespace VoronoiMap {
                     _edgeList.Delete(lbnd);
                     StepNumber++;
                 } else {
-                    Console.WriteLine("Done computing graph!");
+                    if (_graph.Debug) {
+                        Console.WriteLine("Done computing graph!");
+                    }
                 }
             }
-            Console.WriteLine("Step: " + StepNumber);
+            if (_graph.Debug) {
+                Console.WriteLine("Step: " + StepNumber);
+            }
             return _graph;
         }
 
