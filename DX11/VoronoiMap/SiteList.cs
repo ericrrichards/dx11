@@ -14,9 +14,11 @@ namespace VoronoiMap {
         public SiteList(IEnumerable<Point> points) {
             Site.ResetSiteCount();
             Sites = new List<Site>();
+            var sites = new HashSet<Site>();
             foreach (var point in points) {
-                Sites.Add(new Site(point.X, point.Y));
+                sites.Add(new Site(point.X, point.Y));
             }
+            Sites = sites.ToList();
             Sites.Sort();
         }
 

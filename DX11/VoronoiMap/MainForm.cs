@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -29,14 +30,13 @@ namespace VoronoiMap {
 
             var numSites = (int)nudNumRegions.Value;
             var sites = new List<Point>();
-            var wBuffer = 10;
-            var hBuffer = 10;
             for (int i = 0; i < numSites; i++) {
-                var p = new Point(_rand.Next(w - wBuffer * 2) + wBuffer, _rand.Next(h - hBuffer * 2) + hBuffer);
+                var p = new Point(_rand.Next(w ) , _rand.Next(h) );
                 sites.Add(p);
             }
+            
 
-            _graph = Voronoi.ComputeVoronoi(sites, w, h);
+            _graph = Voronoi.ComputeVoronoi(sites, w, h, chDebug.Checked);
             Console.WriteLine("Voronois done!");
         }
 
@@ -78,7 +78,6 @@ namespace VoronoiMap {
 
                         g.FillEllipse(vertex.New ? newVertPen : vertPen, r);
 
-                        //g.DrawString("#"+vertex.SiteNum, f, newVertPen, r.Right, r.Top);
                     }
                 }
                 if (chkShowSites.Checked) {
@@ -87,7 +86,6 @@ namespace VoronoiMap {
                     foreach (var point in _graph.Sites) {
                         var r = point.New ? new RectangleF(point.X - 4, point.Y - 4, 8, 8) : new RectangleF(point.X - 2, point.Y - 2, 4, 4);
                         g.FillEllipse(point.New ? newSiteBrush : siteBrush, r);
-                        //g.DrawString("#" + point.SiteNum, f, newSiteBrush, r.Right, r.Top);
                     }
                 }
 
@@ -122,8 +120,7 @@ namespace VoronoiMap {
             nudStepTo.Value = 0;
             Edge.EdgeCount = 0;
 
-            var _rand = new Random((int)nudSeed.Value);
-            var myRand = new MyRandom((int) nudSeed.Value);
+            var rand = new Random((int)nudSeed.Value);
             
 
             var w = splitPanel.Panel2.ClientSize.Width;
@@ -131,14 +128,12 @@ namespace VoronoiMap {
 
             var numSites = (int)nudNumRegions.Value;
             var sites = new List<Point>();
-            var wBuffer = 10;
-            var hBuffer = 10;
             for (int i = 0; i < numSites; i++) {
-                var p = new Point(_rand.Next(w - wBuffer * 2) + wBuffer, _rand.Next(h - hBuffer * 2) + hBuffer);
+                var p = new Point(rand.Next(w ) , rand.Next(h ) );
                 sites.Add(p);
             }
 
-            _voronoi = new Voronoi(sites, w, h);
+            _voronoi = new Voronoi(sites, w, h, chDebug.Checked);
             _graph = _voronoi.Initialize();
         }
 
@@ -151,80 +146,5 @@ namespace VoronoiMap {
             }
             Cursor = Cursors.Default;
         }
-    }
-
-    class MyRandom {
-        private const int MBIG = Int32.MaxValue;
-        private const int MSEED = 161803398;
-        private const int MZ = 0;
-
-
-        //
-        // Member Variables 
-        // 
-        private int inext;
-        private int inextp;
-        internal int[] SeedArray = new int[56];
-
-        public MyRandom(int Seed) {
-            int ii;
-            int mj, mk;
-
-            //Initialize our Seed array.
-            //This algorithm comes from Numerical Recipes in C (2nd Ed.) 
-            int subtraction = (Seed == Int32.MinValue) ? Int32.MaxValue : Math.Abs(Seed);
-            mj = MSEED - subtraction;
-            SeedArray[55] = mj;
-            mk = 1;
-            for (int i = 1; i < 55; i++) {  //Apparently the range [1..55] is special (Knuth) and so we're wasting the 0'th position.
-                ii = (21 * i) % 55;
-                SeedArray[ii] = mk;
-                mk = mj - mk;
-                if (mk < 0) mk += MBIG;
-                mj = SeedArray[ii];
-            }
-            for (int k = 1; k < 5; k++) {
-                for (int i = 1; i < 56; i++) {
-                    SeedArray[i] -= SeedArray[1 + (i + 30) % 55];
-                    if (SeedArray[i] < 0) SeedArray[i] += MBIG;
-                }
-            }
-            inext = 0;
-            inextp = 21;
-            Seed = 1;
-        }
-        protected virtual double Sample() {
-            //Including this division at the end gives us significantly improved 
-            //random number distribution.
-            return (InternalSample() * (1.0 / MBIG));
-        }
-
-        private int InternalSample() {
-            int retVal;
-            int locINext = inext;
-            int locINextp = inextp;
-
-            if (++locINext >= 56) locINext = 1;
-            if (++locINextp >= 56) locINextp = 1;
-
-            retVal = SeedArray[locINext] - SeedArray[locINextp];
-
-            if (retVal == MBIG) retVal--;
-            if (retVal < 0) retVal += MBIG;
-
-            SeedArray[locINext] = retVal;
-
-            inext = locINext;
-            inextp = locINextp;
-
-            return retVal;
-        }
-        public virtual int Next(int maxValue) {
-            if (maxValue < 0) {
-                throw new ArgumentOutOfRangeException("maxValue", "ArgumentOutOfRange_MustBePositive", "maxValue");
-            }
-            return (int)(Sample() * maxValue);
-        }
-
     }
 }

@@ -15,7 +15,7 @@ namespace VoronoiMap {
         private bool _edgeFixup;
         public int StepNumber { get; private set; }
 
-        public Voronoi(IEnumerable<Point> points, int w = 800, int h = 600, bool debug=true) {
+        public Voronoi(IEnumerable<Point> points, int w = 800, int h = 600, bool debug=false) {
             _sites = new SiteList(points);
             _sites.LogSites();
             _graph = new VoronoiGraph(w, h) {Debug = debug};
@@ -144,10 +144,10 @@ namespace VoronoiMap {
 
 
 
-        public static VoronoiGraph ComputeVoronoi(IEnumerable<Point> points, int w = 800, int h = 600) {
+        public static VoronoiGraph ComputeVoronoi(IEnumerable<Point> points, int w = 800, int h = 600, bool debug=false) {
             var sites = new SiteList(points);
             sites.LogSites();
-            var graph = new VoronoiGraph(w, h) { Debug = true };
+            var graph = new VoronoiGraph(w, h) { Debug = debug };
             try {
                 var edgeList = new EdgeList(sites);
                 var eventQueue = new EventQueue();
@@ -179,7 +179,9 @@ namespace VoronoiMap {
                         var p = Geometry.Intersect(lbnd, bisector);
                         if (p != null) {
                             eventQueue.Delete(lbnd);
-                            Console.WriteLine("Inserting {0}", p);
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
                             eventQueue.Insert(lbnd, p, Geometry.Distance(p, newSite));
                         }
                         lbnd = bisector;
@@ -187,7 +189,9 @@ namespace VoronoiMap {
                         edgeList.Insert(lbnd, bisector);
                         p = Geometry.Intersect(bisector, rbnd);
                         if (p != null) {
-                            Console.WriteLine("Inserting {0}", p);
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
                             eventQueue.Insert(bisector, p, Geometry.Distance(p, newSite));
                         }
                         newSite = sites.ExtractMin();
@@ -223,12 +227,16 @@ namespace VoronoiMap {
                         var p = Geometry.Intersect(llbnd, bisector);
                         if (p != null) {
                             eventQueue.Delete(llbnd);
-                            Console.WriteLine("Inserting {0}", p);
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
                             eventQueue.Insert(llbnd, p, Geometry.Distance(p, bot));
                         }
                         p = Geometry.Intersect(bisector, rrbnd);
                         if (p != null) {
-                            Console.WriteLine("Inserting {0}", p);
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
                             eventQueue.Insert(bisector, p, Geometry.Distance(p, bot));
                         }
                     } else {

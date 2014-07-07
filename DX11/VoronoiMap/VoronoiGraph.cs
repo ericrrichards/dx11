@@ -62,7 +62,9 @@ namespace VoronoiMap {
         }
 
         public void PlotTriple(Site s1, Site s2, Site s3) {
-            Console.WriteLine("triple {0} {1} {2}", s1, s2, s3);
+            if (Debug) {
+                Console.WriteLine("triple {0} {1} {2}", s1, s2, s3);
+            }
             var triangle = new Triangle(s1, s2, s3) { New= true};
             Triangles.Add(triangle);
         }
