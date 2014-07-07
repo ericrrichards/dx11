@@ -9,11 +9,12 @@ namespace VoronoiMap {
 
     public class Site : IEquatable<Site>, IComparable<Site> {
         private static int _siteCount = 0;
+        public static void ResetSiteCount() { _siteCount = 0; }
 
         public float X { get; private set; }
         public float Y { get; private set; }
         public int SiteNum { get; private set; }
-
+        public bool New { get; set; }
         public Site(float x, float y) {
             X = x;
             Y = y;

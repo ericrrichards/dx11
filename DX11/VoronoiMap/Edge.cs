@@ -6,17 +6,16 @@
 
         public Site[] Region { get; set; }
         public Site[] Endpoint { get; set; }
+        public int EdgeNum { get; private set; }
 
-        public Edge() {
-            Region = new Site[2];
-            Endpoint = new Site[2];
-        }
+        public static int EdgeCount = 0;
 
         public Edge(Site s1, Site s2) {
             Region = new Site[2];
             Endpoint = new Site[2];
             Region[Side.Left] = s1;
             Region[Side.Right] = s2;
+            EdgeNum = EdgeCount++;
         }
         public override string ToString() {
             return string.Format("A={0} B={1} C={2} Ep[L]={3} Ep[R]={4} R[L]={5}, R[R]={6}",

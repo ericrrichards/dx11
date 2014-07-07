@@ -8,11 +8,11 @@ namespace VoronoiMap {
             var newEdge = new Edge(s1, s2);
             var dx = s2.X - s1.X;
             var dy = s2.Y - s1.Y;
-            var adx = Math.Abs(dx);
-            var ady = Math.Abs(dy);
+            var adx = dx > 0 ? dx : -dx;
+            var ady = dy > 0 ? dy : -dy;
 
             newEdge.C = s1.X * dx + s1.Y * dy + (dx * dx + dy * dy) * 0.5f;
-
+            
             if (adx > ady) {
                 newEdge.A = 1;
                 newEdge.B = dy / dx;
@@ -81,7 +81,7 @@ namespace VoronoiMap {
                 
 
                 if ((!rightOfSite && (e.B < 0)) || (rightOfSite && (e.B >= 0))) {
-                    above = fast = (dyp > - e.B*dxp);
+                    above = fast = (dyp >= e.B*dxp);
                 } else {
                     above = ((p.X + p.Y*e.B) > e.C);
                     if (e.B < 0) {

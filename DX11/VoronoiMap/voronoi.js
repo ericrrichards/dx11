@@ -1,4 +1,69 @@
-﻿var Canvas = {
+﻿var myRandom = {
+    MSEED: 161803398,
+    MBIG: 0x7fffffff,
+    inext: 0,
+    inextp : 0,
+    SeedArray: [],
+    init: function (seed) {
+        for (var i = 0; i < 56; i++) {
+            this.SeedArray.push(0);
+        }
+
+        var ii, mj, mk;
+        var subtraction = Math.abs(seed);
+        mj = this.MSEED - subtraction;
+        this.SeedArray[55] = mj;
+        mk = 1;
+        for (var i = 0; i < 55; i++) {
+            ii = (21 * 1) % 55;
+            this.SeedArray[ii] = mk;
+            mk = mj - mk;
+            if (mk < 0) {
+                mk += this.MBIG;
+            }
+            mj = this.SeedArray[ii];
+        }
+        for (var k = 1; k < 5; k++) {
+            for (var i = 1; i < 56; i++) {
+                this.SeedArray[i] -= this.SeedArray[1 + (i + 30) % 55];
+                if (this.SeedArray[i] < 0) {
+                    this.SeedArray[i] += this.MBIG;
+                }
+            }
+        }
+        this.inext = 0;
+        this.inextp = 21;
+        seed = 1;
+    },
+    next: function(maxValue) {
+        return ~~(this.Sample() * maxValue);
+    },
+    Sample: function() {
+        return (this.InternalSample() * (1.0 / this.MBIG));
+    },
+    InternalSample: function() {
+        var retval,
+            locINext = this.inext,
+            locINextp = this.inextp;
+        if (++locINext >= 56)
+            locINext = 1;
+        if (++locINextp >= 56)
+            locINextp = 1;
+        retval = this.SeedArray[locINext] - this.SeedArray[locINextp];
+        if (retval == this.MBIG)
+            retval--;
+        if (retval < 0)
+            retval += this.MBIG;
+        this.SeedArray[locINext] = retval;
+        this.inext = locINext;
+        this.inextp = locINextp;
+
+        return retval;
+    }
+}
+
+
+var Canvas = {
     ctx: null,
     debug: false,
     draw: true,
@@ -164,11 +229,12 @@ var Sites = {
     bottomSite: null,
 
     init: function () {
+        myRandom.init(0);
         var sites = this.list;
-        for (var i = 0; i < 500; i++) {
+        for (var i = 0; i < 65; i++) {
             sites.push({
-                x: Math.random() * 800,
-                y: Math.random() * 600
+                x: myRandom.next(800-20)+10,
+                y: myRandom.next( 600-20)+10
             });
         }
         sites.sort(function (a, b) {
