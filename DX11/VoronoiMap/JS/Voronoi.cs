@@ -6,6 +6,7 @@ namespace Fortune.FromJS {
     public static class Voronoi {
         public static VoronoiGraph ComputeVoronoi(IEnumerable<Point> points, int w=800, int h=600) {
             var sites = new SiteList(points);
+            sites.LogSites();
             var graph = new VoronoiGraph(w,h){Debug = true};
             try {
                 var edgeList = new EdgeList(sites);

@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Reflection;
+using log4net;
 
 namespace Fortune.FromJS {
     public class VoronoiGraph {
+        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         public bool Debug { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
@@ -23,18 +26,21 @@ namespace Fortune.FromJS {
             Sites.Add(new PointF(site.X, site.Y));
             if (Debug) {
                 Console.WriteLine("site {0},{1}", site.X, site.Y);
+                Log.InfoFormat("site {0},{1}", site.X, site.Y);
             }
         }
 
         public void PlotBisector(Edge e) {
             if (Debug) {
                 Console.WriteLine("bisector {0} {1}", e.Region[Side.Left], e.Region[Side.Right]);
+                Log.InfoFormat("bisector {0} {1}", e.Region[Side.Left], e.Region[Side.Right]);
             }
         }
 
         public void PlotEndpoint(Edge e) {
             if (Debug) {
                 Console.WriteLine("EP {0}", e);
+                Log.InfoFormat("EP {0}", e);
             }
             ClipLine(e);
         }
@@ -42,6 +48,7 @@ namespace Fortune.FromJS {
         public void PlotVertex(Site s) {
             if (Debug) {
                 Console.WriteLine("vertex {0},{1}", s.X, s.Y);
+                Log.InfoFormat("vertex {0},{1}", s.X, s.Y);
             }
             Vertices.Add(new PointF(s.X, s.Y));
         }

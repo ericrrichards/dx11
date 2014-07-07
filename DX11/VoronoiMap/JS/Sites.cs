@@ -8,12 +8,16 @@ namespace Fortune.FromJS {
 
 
     public class Site : IEquatable<Site>, IComparable<Site> {
+        private static int _siteCount = 0;
+
         public float X { get; private set; }
         public float Y { get; private set; }
+        public int SiteNum { get; private set; }
 
         public Site(float x, float y) {
             X = x;
             Y = y;
+            SiteNum = _siteCount++;
         }
 
 
@@ -60,7 +64,7 @@ namespace Fortune.FromJS {
             return new PointF((int)p.X, (int)p.Y);
         }
 
-        public override string ToString() { return string.Format("[{0},{1}]", (int)X, (int)Y); }
+        public override string ToString() { return string.Format("[#{2} {0},{1}]", (int)X, (int)Y, SiteNum); }
     }
 
     
