@@ -1,5 +1,5 @@
 ﻿namespace VoronoiMap {
-    partial class MainForm {
+    sealed partial class MainForm {
         /// <summary>
         /// Required designer variable.
         /// </summary>
@@ -24,6 +24,8 @@
         /// </summary>
         private void InitializeComponent() {
             this.splitPanel = new System.Windows.Forms.SplitContainer();
+            this.btnAnimate = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
             this.chDebug = new System.Windows.Forms.CheckBox();
             this.btnStepTo = new System.Windows.Forms.Button();
             this.nudStepTo = new System.Windows.Forms.NumericUpDown();
@@ -37,8 +39,6 @@
             this.label1 = new System.Windows.Forms.Label();
             this.nudNumRegions = new System.Windows.Forms.NumericUpDown();
             this.btnRegen = new System.Windows.Forms.Button();
-            this.label2 = new System.Windows.Forms.Label();
-            this.btnAnimate = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitPanel)).BeginInit();
             this.splitPanel.Panel1.SuspendLayout();
             this.splitPanel.SuspendLayout();
@@ -79,6 +79,25 @@
             this.splitPanel.Size = new System.Drawing.Size(842, 600);
             this.splitPanel.SplitterDistance = 69;
             this.splitPanel.TabIndex = 0;
+            // 
+            // btnAnimate
+            // 
+            this.btnAnimate.Location = new System.Drawing.Point(708, 38);
+            this.btnAnimate.Name = "btnAnimate";
+            this.btnAnimate.Size = new System.Drawing.Size(122, 23);
+            this.btnAnimate.TabIndex = 14;
+            this.btnAnimate.Text = "Animate";
+            this.btnAnimate.UseVisualStyleBackColor = true;
+            this.btnAnimate.Click += new System.EventHandler(this.btnAnimate_Click);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(11, 43);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(35, 13);
+            this.label2.TabIndex = 13;
+            this.label2.Text = "Seed:";
             // 
             // chDebug
             // 
@@ -239,25 +258,6 @@
             this.btnRegen.UseVisualStyleBackColor = true;
             this.btnRegen.Click += new System.EventHandler(this.btnRegen_Click);
             // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(11, 43);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(35, 13);
-            this.label2.TabIndex = 13;
-            this.label2.Text = "Seed:";
-            // 
-            // btnAnimate
-            // 
-            this.btnAnimate.Location = new System.Drawing.Point(708, 38);
-            this.btnAnimate.Name = "btnAnimate";
-            this.btnAnimate.Size = new System.Drawing.Size(122, 23);
-            this.btnAnimate.TabIndex = 14;
-            this.btnAnimate.Text = "Animate";
-            this.btnAnimate.UseVisualStyleBackColor = true;
-            this.btnAnimate.Click += new System.EventHandler(this.btnAnimate_Click);
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -271,6 +271,7 @@
             this.Text = "Voronoi";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.splitPanel.Panel1.ResumeLayout(false);
             this.splitPanel.Panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitPanel)).EndInit();
