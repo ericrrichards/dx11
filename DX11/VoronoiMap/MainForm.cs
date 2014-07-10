@@ -39,6 +39,7 @@ namespace VoronoiMap {
             //GenerateGraph();
             InitializeVoronoi();
             _bitmap = new Bitmap(splitPanel.Panel2.ClientSize.Width, splitPanel.Panel2.ClientSize.Width);
+            cbCircles.SelectedIndex = 0;
         }
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e) {
             _circlePen.Dispose();
@@ -93,7 +94,9 @@ namespace VoronoiMap {
 
                 g.DrawLine(_sweepPen, splitPanel.Panel2.ClientRectangle.Left, _graph.SweepLine, splitPanel.Panel2.ClientRectangle.Right, _graph.SweepLine);
 
-                if (chkShowCircles.Checked) {
+                var item = cbCircles.SelectedIndex;
+
+                if (item == 1) {
                     var gp = new GraphicsPath();
                     foreach (var triangle in _graph.Triangles) {
                         var circle = new Circle(triangle.V1, triangle.V2, triangle.V3);
@@ -101,6 +104,18 @@ namespace VoronoiMap {
                             g.DrawEllipse(_newCirclePen, circle.GetRect());
                         } else {
                             gp.AddEllipse(circle.GetRect());
+                        }
+                    }
+                    g.DrawPath(_circlePen, gp);
+                } else if (item == 2) {
+                    var gp = new GraphicsPath();
+                    foreach (var triangle in _graph.Triangles) {
+                        var circle = new Circle(triangle.V1, triangle.V2, triangle.V3);
+                        if (triangle.New) {
+
+                            g.DrawPolygon(_newCirclePen, new[]{triangle.V1, triangle.V2, triangle.V3});
+                        } else {
+                            gp.AddPolygon(new[] { triangle.V1, triangle.V2, triangle.V3 });
                         }
                     }
                     g.DrawPath(_circlePen, gp);
@@ -221,6 +236,11 @@ namespace VoronoiMap {
         private void MainForm_Resize(object sender, EventArgs e) {
             _bitmap.Dispose();
             _bitmap = new Bitmap(splitPanel.Panel2.ClientSize.Width, splitPanel.Panel2.ClientSize.Width);
+            btnRegen_Click(null, null);
+        }
+
+        private void cbCircles_SelectedIndexChanged(object sender, EventArgs e) {
+            splitPanel.Panel2.Invalidate();
         }
 
 

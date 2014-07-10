@@ -24,12 +24,12 @@
         /// </summary>
         private void InitializeComponent() {
             this.splitPanel = new System.Windows.Forms.SplitContainer();
+            this.cbCircles = new System.Windows.Forms.ComboBox();
             this.btnAnimate = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.chDebug = new System.Windows.Forms.CheckBox();
             this.btnStepTo = new System.Windows.Forms.Button();
             this.nudStepTo = new System.Windows.Forms.NumericUpDown();
-            this.chkShowCircles = new System.Windows.Forms.CheckBox();
             this.btnInitialize = new System.Windows.Forms.Button();
             this.btnStepVoronoi = new System.Windows.Forms.Button();
             this.nudSeed = new System.Windows.Forms.NumericUpDown();
@@ -39,6 +39,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.nudNumRegions = new System.Windows.Forms.NumericUpDown();
             this.btnRegen = new System.Windows.Forms.Button();
+            this.label3 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.splitPanel)).BeginInit();
             this.splitPanel.Panel1.SuspendLayout();
             this.splitPanel.SuspendLayout();
@@ -50,6 +51,7 @@
             // splitPanel
             // 
             this.splitPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitPanel.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
             this.splitPanel.Location = new System.Drawing.Point(0, 0);
             this.splitPanel.Name = "splitPanel";
             this.splitPanel.Orientation = System.Windows.Forms.Orientation.Horizontal;
@@ -57,12 +59,13 @@
             // splitPanel.Panel1
             // 
             this.splitPanel.Panel1.BackColor = System.Drawing.SystemColors.Control;
+            this.splitPanel.Panel1.Controls.Add(this.label3);
+            this.splitPanel.Panel1.Controls.Add(this.cbCircles);
             this.splitPanel.Panel1.Controls.Add(this.btnAnimate);
             this.splitPanel.Panel1.Controls.Add(this.label2);
             this.splitPanel.Panel1.Controls.Add(this.chDebug);
             this.splitPanel.Panel1.Controls.Add(this.btnStepTo);
             this.splitPanel.Panel1.Controls.Add(this.nudStepTo);
-            this.splitPanel.Panel1.Controls.Add(this.chkShowCircles);
             this.splitPanel.Panel1.Controls.Add(this.btnInitialize);
             this.splitPanel.Panel1.Controls.Add(this.btnStepVoronoi);
             this.splitPanel.Panel1.Controls.Add(this.nudSeed);
@@ -80,6 +83,20 @@
             this.splitPanel.SplitterDistance = 69;
             this.splitPanel.TabIndex = 0;
             // 
+            // cbCircles
+            // 
+            this.cbCircles.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbCircles.FormattingEnabled = true;
+            this.cbCircles.Items.AddRange(new object[] {
+            "None",
+            "Circles",
+            "Triangles"});
+            this.cbCircles.Location = new System.Drawing.Point(609, 10);
+            this.cbCircles.Name = "cbCircles";
+            this.cbCircles.Size = new System.Drawing.Size(93, 21);
+            this.cbCircles.TabIndex = 15;
+            this.cbCircles.SelectedIndexChanged += new System.EventHandler(this.cbCircles_SelectedIndexChanged);
+            // 
             // btnAnimate
             // 
             this.btnAnimate.Location = new System.Drawing.Point(708, 38);
@@ -93,7 +110,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(11, 43);
+            this.label2.Location = new System.Drawing.Point(13, 43);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(35, 13);
             this.label2.TabIndex = 13;
@@ -102,9 +119,7 @@
             // chDebug
             // 
             this.chDebug.AutoSize = true;
-            this.chDebug.Checked = true;
-            this.chDebug.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chDebug.Location = new System.Drawing.Point(639, 12);
+            this.chDebug.Location = new System.Drawing.Point(539, 12);
             this.chDebug.Name = "chDebug";
             this.chDebug.Size = new System.Drawing.Size(64, 17);
             this.chDebug.TabIndex = 12;
@@ -133,24 +148,11 @@
             this.nudStepTo.Size = new System.Drawing.Size(120, 20);
             this.nudStepTo.TabIndex = 10;
             // 
-            // chkShowCircles
-            // 
-            this.chkShowCircles.AutoSize = true;
-            this.chkShowCircles.Checked = true;
-            this.chkShowCircles.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowCircles.Location = new System.Drawing.Point(540, 12);
-            this.chkShowCircles.Name = "chkShowCircles";
-            this.chkShowCircles.Size = new System.Drawing.Size(93, 17);
-            this.chkShowCircles.TabIndex = 9;
-            this.chkShowCircles.Text = "Show Circles?";
-            this.chkShowCircles.UseVisualStyleBackColor = true;
-            this.chkShowCircles.CheckedChanged += new System.EventHandler(this.chkShowEdges_CheckedChanged);
-            // 
             // btnInitialize
             // 
-            this.btnInitialize.Location = new System.Drawing.Point(244, 38);
+            this.btnInitialize.Location = new System.Drawing.Point(180, 38);
             this.btnInitialize.Name = "btnInitialize";
-            this.btnInitialize.Size = new System.Drawing.Size(122, 23);
+            this.btnInitialize.Size = new System.Drawing.Size(61, 23);
             this.btnInitialize.TabIndex = 8;
             this.btnInitialize.Text = "Initialize";
             this.btnInitialize.UseVisualStyleBackColor = true;
@@ -168,7 +170,7 @@
             // 
             // nudSeed
             // 
-            this.nudSeed.Location = new System.Drawing.Point(118, 39);
+            this.nudSeed.Location = new System.Drawing.Point(54, 39);
             this.nudSeed.Maximum = new decimal(new int[] {
             1000000,
             0,
@@ -183,7 +185,7 @@
             this.chkShowEdges.AutoSize = true;
             this.chkShowEdges.Checked = true;
             this.chkShowEdges.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowEdges.Location = new System.Drawing.Point(442, 12);
+            this.chkShowEdges.Location = new System.Drawing.Point(441, 12);
             this.chkShowEdges.Name = "chkShowEdges";
             this.chkShowEdges.Size = new System.Drawing.Size(92, 17);
             this.chkShowEdges.TabIndex = 5;
@@ -196,7 +198,7 @@
             this.chkShowVertices.AutoSize = true;
             this.chkShowVertices.Checked = true;
             this.chkShowVertices.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowVertices.Location = new System.Drawing.Point(336, 12);
+            this.chkShowVertices.Location = new System.Drawing.Point(335, 12);
             this.chkShowVertices.Name = "chkShowVertices";
             this.chkShowVertices.Size = new System.Drawing.Size(100, 17);
             this.chkShowVertices.TabIndex = 4;
@@ -209,7 +211,7 @@
             this.chkShowSites.AutoSize = true;
             this.chkShowSites.Checked = true;
             this.chkShowSites.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkShowSites.Location = new System.Drawing.Point(245, 12);
+            this.chkShowSites.Location = new System.Drawing.Point(244, 12);
             this.chkShowSites.Name = "chkShowSites";
             this.chkShowSites.Size = new System.Drawing.Size(85, 17);
             this.chkShowSites.TabIndex = 3;
@@ -228,7 +230,7 @@
             // 
             // nudNumRegions
             // 
-            this.nudNumRegions.Location = new System.Drawing.Point(119, 10);
+            this.nudNumRegions.Location = new System.Drawing.Point(118, 10);
             this.nudNumRegions.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -250,13 +252,22 @@
             // 
             // btnRegen
             // 
-            this.btnRegen.Location = new System.Drawing.Point(709, 9);
+            this.btnRegen.Location = new System.Drawing.Point(708, 9);
             this.btnRegen.Name = "btnRegen";
             this.btnRegen.Size = new System.Drawing.Size(122, 23);
             this.btnRegen.TabIndex = 0;
             this.btnRegen.Text = "Regenerate Graph";
             this.btnRegen.UseVisualStyleBackColor = true;
             this.btnRegen.Click += new System.EventHandler(this.btnRegen_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(331, 43);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(35, 13);
+            this.label3.TabIndex = 16;
+            this.label3.Text = "Seed:";
             // 
             // MainForm
             // 
@@ -295,12 +306,13 @@
         private System.Windows.Forms.NumericUpDown nudSeed;
         private System.Windows.Forms.Button btnStepVoronoi;
         private System.Windows.Forms.Button btnInitialize;
-        private System.Windows.Forms.CheckBox chkShowCircles;
         private System.Windows.Forms.Button btnStepTo;
         private System.Windows.Forms.NumericUpDown nudStepTo;
         private System.Windows.Forms.CheckBox chDebug;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnAnimate;
+        private System.Windows.Forms.ComboBox cbCircles;
+        private System.Windows.Forms.Label label3;
 
     }
 }
