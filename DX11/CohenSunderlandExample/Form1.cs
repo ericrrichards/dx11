@@ -54,7 +54,7 @@ namespace CohenSutherlandExample {
             g.DrawLine(Pens.Gray, 0, 2 * height3, width, 2 * height3);
 
 
-            var rects = new RectangleF[] {
+            var rects = new[] {
                 new RectangleF(0,0, width3, height3),
                 new RectangleF(width3, 0, width3, height3),
                 new RectangleF(2*width3, 0, width3, height3),
@@ -65,9 +65,9 @@ namespace CohenSutherlandExample {
 
                 new RectangleF(0,2*height3, width3, height3),
                 new RectangleF(width3, 2*height3, width3, height3),
-                new RectangleF(2*width3, 2*height3, width3, height3),
+                new RectangleF(2*width3, 2*height3, width3, height3)
             };
-            var codes = new string[] {
+            var codes = new[] {
                 "Left|Top", "Top", "Right|Top",
                 "Left", "Inside", "Right",
                 "Left|Bottom", "Bottom", "Right|Bottom"
@@ -75,7 +75,7 @@ namespace CohenSutherlandExample {
 
             for (int i = 0; i < codes.Length; i++) {
                 var brush =  Brushes.Black;
-                g.DrawString(codes[i], DefaultFont, brush, rects[i], new StringFormat(){Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center});
+                g.DrawString(codes[i], DefaultFont, brush, rects[i], new StringFormat {Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center});
             }
 
 

@@ -32,70 +32,85 @@ namespace Algorithms {
         }
         private static OutCode ComputeOutCode(PointF p, RectangleF r) { return ComputeOutCode(p.X, p.Y, r); }
 
-        public static Tuple<PointF, PointF> ClipSegment(RectangleF r, PointF p1, PointF p2 ) {
+        public static Tuple<PointF, PointF> ClipSegment(RectangleF r, PointF p1, PointF p2) {
+            // classify the endpoints of the line
             var outCodeP1 = ComputeOutCode(p1, r);
             var outCodeP2 = ComputeOutCode(p2, r);
             var accept = false;
-
-            var x0 = p1.X;
-            var x1 = p2.X;
-            var y0 = p1.Y;
-            var y1 = p2.Y;
-            var xmin = r.Left;
-            var xmax = r.Right;
-            var ymin = r.Top;
-            var ymax = r.Bottom;
-
-            while (true) {
+            
+            while (true) { // should only iterate twice, at most
+                // Case 1:
+                // both endpoints are within the clipping region
                 if ((outCodeP1 | outCodeP2) == OutCode.Inside) {
                     accept = true;
                     break;
                 }
+
+                // Case 2:
+                // both endpoints share an excluded region, impossible for a line between them to be within the clipping region
                 if ((outCodeP1 & outCodeP2) != 0) {
                     break;
                 }
 
+                // Case 3:
+                // The endpoints are in different regions, and the segment is partially within the clipping rectangle
 
-
+                // Select one of the endpoints outside the clipping rectangle
                 var outCode = outCodeP1 != OutCode.Inside ? outCodeP1 : outCodeP2;
 
-                float x = 0, y = 0;
+                // calculate the intersection of the line with the clipping rectangle using parametric line equations
+                var p = CalculateIntersection(r, p1, p2, outCode);
 
-                if (outCode.HasFlag(OutCode.Top)) {
-                    x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
-                    y = ymin;
-                } else if (outCode.HasFlag(OutCode.Bottom)) {
-                    x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
-                    y = ymax;
-                } else if (outCode.HasFlag(OutCode.Right)) {
-                    y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
-                    x = xmax;
-                } else if (outCode.HasFlag(OutCode.Left)) {
-                    y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0);
-                    x = xmin;
-                }
-
+                // update the point after clipping and recaluculate outcode
                 if (outCode == outCodeP1) {
-                    x0 = x;
-                    y0 = y;
-                    outCodeP1 = ComputeOutCode(x0, y0, r);
+                    p1 = p;
+                    outCodeP1 = ComputeOutCode(p1, r);
                 } else {
-                    x1 = x;
-                    y1 = y;
-                    outCodeP2 = ComputeOutCode(x1, y1, r);
+                    p2 = p;
+                    outCodeP2 = ComputeOutCode(p2, r);
                 }
-
             }
+            // if clipping area contained a portion of the line
             if (accept) {
-                p1.X = x0;
-                p1.Y = y0;
-                p2.X = x1;
-                p2.Y = y1;
-                return new Tuple<PointF, PointF>(p1,p2);
+                return new Tuple<PointF, PointF>(p1, p2);
             }
+
+            // the line did not intersect the clipping area
             return null;
         }
 
+        private static PointF CalculateIntersection(RectangleF r, PointF p1, PointF p2, OutCode clipTo) {
+            var dx = (p2.X - p1.X);
+            var dy = (p2.Y - p1.Y);
 
+            var slopeY = dx / dy; // slope to use for possibly-vertical lines
+            var slopeX = dy / dx; // slope to use for possibly-horizontal lines
+
+            if (clipTo.HasFlag(OutCode.Top)) {
+                return new PointF(
+                    p1.X + slopeY * (r.Top - p1.Y),
+                    r.Top
+                    );
+            }
+            if (clipTo.HasFlag(OutCode.Bottom)) {
+                return new PointF(
+                    p1.X + slopeY * (r.Bottom - p1.Y),
+                    r.Bottom
+                    );
+            }
+            if (clipTo.HasFlag(OutCode.Right)) {
+                return new PointF(
+                    r.Right,
+                    p1.Y + slopeX * (r.Right - p1.X)
+                    );
+            }
+            if (clipTo.HasFlag(OutCode.Left)) {
+                return new PointF(
+                    r.Left,
+                    p1.Y + slopeX * (r.Left - p1.X)
+                    );
+            }
+            throw new ArgumentOutOfRangeException("clipTo = " + clipTo);
+        }
     }
 }
