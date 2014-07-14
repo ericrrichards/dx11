@@ -32,7 +32,7 @@ namespace Algorithms {
         }
         private static OutCode ComputeOutCode(PointF p, RectangleF r) { return ComputeOutCode(p.X, p.Y, r); }
 
-        public static bool ClipSegment(RectangleF r, ref PointF p1, ref PointF p2 ) {
+        public static Tuple<PointF, PointF> ClipSegment(RectangleF r, PointF p1, PointF p2 ) {
             var outCodeP1 = ComputeOutCode(p1, r);
             var outCodeP2 = ComputeOutCode(p2, r);
             var accept = false;
@@ -86,13 +86,14 @@ namespace Algorithms {
                 }
 
             }
-            if (!accept) return false;
-
-            p1.X = x0;
-            p1.Y = y0;
-            p2.X = x1;
-            p2.Y = y1;
-            return true;
+            if (accept) {
+                p1.X = x0;
+                p1.Y = y0;
+                p2.X = x1;
+                p2.Y = y1;
+                return new Tuple<PointF, PointF>(p1,p2);
+            }
+            return null;
         }
 
 
