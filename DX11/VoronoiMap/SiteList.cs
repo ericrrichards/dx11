@@ -11,7 +11,7 @@ namespace VoronoiMap {
         private List<Site> Sites { get; set; }
         public Site BottomSite { get; set; }
 
-        public SiteList(IEnumerable<Point> points) {
+        public SiteList(IEnumerable<PointF> points) {
             Site.ResetSiteCount();
             Sites = new List<Site>();
             var sites = new HashSet<Site>();

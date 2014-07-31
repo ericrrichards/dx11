@@ -24,6 +24,7 @@
         /// </summary>
         private void InitializeComponent() {
             this.splitPanel = new System.Windows.Forms.SplitContainer();
+            this.label3 = new System.Windows.Forms.Label();
             this.cbCircles = new System.Windows.Forms.ComboBox();
             this.btnAnimate = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
@@ -39,19 +40,22 @@
             this.label1 = new System.Windows.Forms.Label();
             this.nudNumRegions = new System.Windows.Forms.NumericUpDown();
             this.btnRegen = new System.Windows.Forms.Button();
-            this.label3 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.nudRelax = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.splitPanel)).BeginInit();
             this.splitPanel.Panel1.SuspendLayout();
             this.splitPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudStepTo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudSeed)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudNumRegions)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudRelax)).BeginInit();
             this.SuspendLayout();
             // 
             // splitPanel
             // 
             this.splitPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitPanel.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
+            this.splitPanel.IsSplitterFixed = true;
             this.splitPanel.Location = new System.Drawing.Point(0, 0);
             this.splitPanel.Name = "splitPanel";
             this.splitPanel.Orientation = System.Windows.Forms.Orientation.Horizontal;
@@ -59,6 +63,8 @@
             // splitPanel.Panel1
             // 
             this.splitPanel.Panel1.BackColor = System.Drawing.SystemColors.Control;
+            this.splitPanel.Panel1.Controls.Add(this.nudRelax);
+            this.splitPanel.Panel1.Controls.Add(this.label4);
             this.splitPanel.Panel1.Controls.Add(this.label3);
             this.splitPanel.Panel1.Controls.Add(this.cbCircles);
             this.splitPanel.Panel1.Controls.Add(this.btnAnimate);
@@ -81,7 +87,17 @@
             this.splitPanel.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
             this.splitPanel.Size = new System.Drawing.Size(842, 600);
             this.splitPanel.SplitterDistance = 69;
+            this.splitPanel.SplitterWidth = 1;
             this.splitPanel.TabIndex = 0;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(331, 43);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(32, 13);
+            this.label3.TabIndex = 16;
+            this.label3.Text = "Step:";
             // 
             // cbCircles
             // 
@@ -260,14 +276,26 @@
             this.btnRegen.UseVisualStyleBackColor = true;
             this.btnRegen.Click += new System.EventHandler(this.btnRegen_Click);
             // 
-            // label3
+            // label4
             // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(331, 43);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(35, 13);
-            this.label3.TabIndex = 16;
-            this.label3.Text = "Seed:";
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(247, 43);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(37, 13);
+            this.label4.TabIndex = 17;
+            this.label4.Text = "Relax:";
+            // 
+            // nudRelax
+            // 
+            this.nudRelax.Location = new System.Drawing.Point(290, 39);
+            this.nudRelax.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.nudRelax.Name = "nudRelax";
+            this.nudRelax.Size = new System.Drawing.Size(39, 20);
+            this.nudRelax.TabIndex = 18;
             // 
             // MainForm
             // 
@@ -290,6 +318,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.nudStepTo)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudSeed)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudNumRegions)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudRelax)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -313,6 +342,8 @@
         private System.Windows.Forms.Button btnAnimate;
         private System.Windows.Forms.ComboBox cbCircles;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.NumericUpDown nudRelax;
+        private System.Windows.Forms.Label label4;
 
     }
 }

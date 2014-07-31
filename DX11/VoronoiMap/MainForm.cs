@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using SlimDX.XACT3;
@@ -38,7 +39,7 @@ namespace VoronoiMap {
         private void MainForm_Load(object sender, EventArgs e) {
             //GenerateGraph();
             InitializeVoronoi();
-            _bitmap = new Bitmap(splitPanel.Panel2.ClientSize.Width, splitPanel.Panel2.ClientSize.Width);
+            _bitmap = new Bitmap(splitPanel.Panel2.ClientSize.Width, splitPanel.Panel2.ClientSize.Height);
             cbCircles.SelectedIndex = 0;
         }
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e) {
@@ -61,10 +62,13 @@ namespace VoronoiMap {
             var h = splitPanel.Panel2.ClientSize.Height;
 
             var numSites = (int)nudNumRegions.Value;
-            var sites = new List<Point>();
+            var sites = new List<PointF>();
             for (int i = 0; i < numSites; i++) {
                 var p = new Point(rand.Next(w), rand.Next(h));
                 sites.Add(p);
+            }
+            if (nudRelax.Value > 0) {
+                sites = RelaxPoints((int)nudRelax.Value, sites);
             }
 
 
@@ -77,13 +81,100 @@ namespace VoronoiMap {
             PaintDiagram(g);
         }
 
-        private void PaintDiagram(Graphics g) {
-            
+        private void PaintDiagram(Graphics g, int mode=3) {
+
             var g1 = Graphics.FromImage(_bitmap);
             g1.SmoothingMode = SmoothingMode.AntiAlias;
-            PaintDiagramFull(g1);
+            switch (mode) {
+                case 1:
+                    PaintDiagramFull(g1);
+                    break;
+                case 2:
+                    PaintDiagramFull2(g1);
+                    break;
+                case 3:
+                    PaintDiagramFull3(g1);
+                    break;
+            }
+            
 
             g.DrawImage(_bitmap, new PointF());
+        }
+
+        private void PaintDiagramFull2(Graphics g) {
+            if (_graph != null) {
+                g.Clear(BackColor);
+
+                var item = cbCircles.SelectedIndex;
+
+                var gp = new GraphicsPath();
+                var gp2 = new GraphicsPath();
+                var gp3 = new GraphicsPath();
+                foreach (var point in _graph.Sites) {
+                    var r =  new RectangleF(point.X - 2, point.Y - 2, 4, 4);
+                    if (chkShowSites.Checked) {
+                        gp.AddEllipse(r);
+                    }
+
+                    foreach (var edge in point.Edges) {
+                        var start = edge.RightSite;
+                        var end = edge.LeftSite;
+                         if (item == 2) {
+                             gp2.AddLine(start, end);
+                             gp2.CloseFigure();
+                        }
+
+                        if (chkShowEdges.Checked) {
+                            start = edge.RightVertex;
+                            end = edge.LeftVertex;
+                            if (end != null && start != null) {
+                                gp3.AddLine(start, end);
+                                gp3.CloseFigure();
+                            }
+                        }
+                    }
+                }
+                g.DrawPath(_circlePen, gp2);
+                g.DrawPath(_edgePen, gp3);
+                g.FillPath(_siteBrush, gp);
+            }
+        }
+        private void PaintDiagramFull3(Graphics g) {
+            if (_graph != null) {
+                g.Clear(BackColor);
+
+                var item = cbCircles.SelectedIndex;
+
+                var gp = new GraphicsPath();
+                var gp2 = new GraphicsPath();
+                var gp3 = new GraphicsPath();
+                foreach (var point in _graph.Sites) {
+                    var r = new RectangleF(point.X - 2, point.Y - 2, 4, 4);
+                    if (chkShowSites.Checked) {
+                        gp.AddEllipse(r);
+                    }
+
+                    foreach (var edge in point.Edges) {
+                        var start = edge.RightSite;
+                        var end = edge.LeftSite;
+                        if (item == 2) {
+                            gp2.AddLine(start, end);
+                            gp2.CloseFigure();
+                        }
+
+                        if (chkShowEdges.Checked) {
+                            var visibleClipBounds = g.VisibleClipBounds;
+                            
+                            var region = point.Region(visibleClipBounds).Where(p=>p!=null).Select(p=>(PointF)p).ToArray();
+                            if ( region.Count() >= 3)
+                                gp3.AddPolygon(region);
+                        }
+                    }
+                }
+                g.DrawPath(_circlePen, gp2);
+                g.DrawPath(_edgePen, gp3);
+                g.FillPath(_siteBrush, gp);
+            }
         }
 
 
@@ -113,9 +204,9 @@ namespace VoronoiMap {
                         var circle = new Circle(triangle.V1, triangle.V2, triangle.V3);
                         if (triangle.New) {
 
-                            g.DrawPolygon(_newCirclePen, new[]{triangle.V1, triangle.V2, triangle.V3});
+                            g.DrawPolygon(_newCirclePen, new[] { (PointF)triangle.V1, triangle.V2, triangle.V3 });
                         } else {
-                            gp.AddPolygon(new[] { triangle.V1, triangle.V2, triangle.V3 });
+                            gp.AddPolygon(new[] { (PointF)triangle.V1, triangle.V2, triangle.V3 });
                         }
                     }
                     g.DrawPath(_circlePen, gp);
@@ -126,7 +217,7 @@ namespace VoronoiMap {
                         var start = segment.P1;
                         var end = segment.P2;
                         if (segment.New) {
-                            g.DrawLine( _newEdgePen, start, end);
+                            g.DrawLine(_newEdgePen, start, end);
                         } else {
                             gp.AddLine(start, end);
                             gp.CloseFigure();
@@ -134,19 +225,22 @@ namespace VoronoiMap {
                     }
                     g.DrawPath(_edgePen, gp);
                 }
-                
+
 
                 if (chkShowVertices.Checked) {
                     var gp = new GraphicsPath();
                     foreach (var vertex in _graph.Vertices) {
-                        var r = vertex.New ? new RectangleF(vertex.X - 4, vertex.Y - 4, 8, 8) : new RectangleF(vertex.X - 2, vertex.Y - 2, 4, 4);
+                        var r = //vertex.New ? 
+                            new RectangleF(vertex.X - 4, vertex.Y - 4, 8, 8)
+                            //: new RectangleF(vertex.X - 2, vertex.Y - 2, 4, 4)
+                            ;
                         if (vertex.New) {
                             g.FillEllipse(_newVertBrush, r);
                         } else {
                             gp.AddEllipse(r);
                         }
                     }
-                    g.FillPath(_vertBrush, gp);
+                    g.DrawPath(new Pen(Color.Red), gp);
                 }
                 if (chkShowSites.Checked) {
                     var gp = new GraphicsPath();
@@ -166,6 +260,16 @@ namespace VoronoiMap {
         private void btnRegen_Click(object sender, EventArgs e) {
             GenerateGraph();
             splitPanel.Panel2.Invalidate();
+            /*var map = new VoronoiMap(_graph);
+
+            var g1 = Graphics.FromImage(_bitmap);
+            g1.Clear(BackColor);
+            g1.SmoothingMode = SmoothingMode.AntiAlias;
+            map.RenderPolygons(g1);
+            var g = splitPanel.Panel2.CreateGraphics();
+            g.DrawImage(_bitmap, new PointF());
+            */
+
         }
 
         private void chkShowEdges_CheckedChanged(object sender, EventArgs e) {
@@ -195,14 +299,45 @@ namespace VoronoiMap {
             var h = splitPanel.Panel2.ClientSize.Height;
 
             var numSites = (int)nudNumRegions.Value;
-            var sites = new List<Point>();
+            var sites = new List<PointF>();
+            Console.WriteLine(w);
+            Console.WriteLine(h);
             for (int i = 0; i < numSites; i++) {
                 var p = new Point(rand.Next(w), rand.Next(h));
                 sites.Add(p);
             }
+            if (nudRelax.Value > 0) {
+                sites = RelaxPoints((int) nudRelax.Value, sites);
+            }
+
 
             _voronoi = new Voronoi(sites, w, h, chDebug.Checked);
             _graph = _voronoi.Initialize();
+        }
+
+        public List<PointF> RelaxPoints(int times, List<PointF> points) {
+            var ret = new List<PointF>();
+            var w = splitPanel.Panel2.ClientSize.Width;
+            var h = splitPanel.Panel2.ClientSize.Height;
+            var tempPoints = points;
+            for (int i = 0; i < times; i++) {
+                var voronoi = Voronoi.ComputeVoronoi(tempPoints, w, h);
+                tempPoints.Clear();
+                foreach (var site in voronoi.Sites) {
+                    var region = site.Region(splitPanel.Panel2.ClientRectangle);
+                    var p = new PointF(0, 0);
+                    foreach (var q in region) {
+                        p.X += q.X;
+                        p.Y += q.Y;
+                    }
+                    p.X /= region.Count;
+                    p.Y /= region.Count;
+                    tempPoints.Add(p);
+                }
+                ret = tempPoints;
+            }
+            
+            return ret;
         }
 
         private void btnStepTo_Click(object sender, EventArgs e) {
@@ -216,7 +351,7 @@ namespace VoronoiMap {
                 while (_voronoi.StepNumber < toStep) {
                     _voronoi.StepVoronoi();
 
-                    PaintDiagram(graphics);
+                    PaintDiagram(graphics, 1);
 
                     Thread.Sleep(10);
                     if (lastStep == _voronoi.StepNumber) {
@@ -235,7 +370,7 @@ namespace VoronoiMap {
 
         private void MainForm_Resize(object sender, EventArgs e) {
             _bitmap.Dispose();
-            _bitmap = new Bitmap(splitPanel.Panel2.ClientSize.Width, splitPanel.Panel2.ClientSize.Width);
+            _bitmap = new Bitmap(splitPanel.Panel2.ClientSize.Width, splitPanel.Panel2.ClientSize.Height);
             btnRegen_Click(null, null);
         }
 

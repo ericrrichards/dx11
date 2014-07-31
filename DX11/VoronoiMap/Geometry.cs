@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using Core;
 
@@ -61,7 +62,10 @@ namespace VoronoiMap {
                 return null;
             }
 
-            return new Site(xint, yint);
+            var vertex = new Site(xint, yint);
+            //vertex.AddEdge(e1);
+            //vertex.AddEdge(e2);
+            return vertex;
         }
 
         public static bool RightOf(HalfEdge he, Site p) {
@@ -129,13 +133,18 @@ namespace VoronoiMap {
     }
 
     public class Segment {
-        public PointF P1 { get; private set; }
-        public PointF P2 { get; private set; }
+        public Site P1 { get; private set; }
+        public Site P2 { get; private set; }
         public bool New { get; set; }
 
-        public Segment(float x1, float y1, float x2, float y2) {
+        /*public Segment(float x1, float y1, float x2, float y2) {
             P1 = new PointF(x1, y1);
             P2 = new PointF(x2, y2);
+        }*/
+
+        public Segment(Site p1, Site p2) {
+            P1 = p1;
+            P2 = p2;
         }
     }
 
@@ -171,9 +180,49 @@ namespace VoronoiMap {
             V2 = s2;
             V3 = s3;
         }
-        public PointF V1 { get; private set; }
-        public PointF V2 { get; private set; }
-        public PointF V3 { get; private set; }
+        public Site V1 { get; private set; }
+        public Site V2 { get; private set; }
+        public Site V3 { get; private set; }
         public bool New { get; set; }
+    }
+    public enum WindingDirection {
+        None = 0,
+        Clockwise,
+        CounterClockwise
+    }
+
+    public class Polygon {
+        private List<Site> Vertices { get; set; }
+
+        public Polygon(List<Site> vertices) {
+            Vertices = vertices;
+        }
+        public float Area { get { return Math.Abs(SignedDoubleArea * 0.5f); } }
+
+        public WindingDirection Winding {
+            get {
+                var sDoubleArea = SignedDoubleArea;
+                if (sDoubleArea < 0) {
+                    return WindingDirection.Clockwise;
+                }
+                if (sDoubleArea > 0) {
+                    return WindingDirection.CounterClockwise;
+                }
+                return WindingDirection.None;
+            }
+        }
+
+        public float SignedDoubleArea {
+            get {
+                var signedDoubleArea = 0.0f;
+                for (int i = 0; i < Vertices.Count; i++) {
+                    var nextIndex = (i + 1) % Vertices.Count;
+                    var point = Vertices[i] ?? new Site(0,0);
+                    var next = Vertices[nextIndex] ?? new Site(0,0);
+                    signedDoubleArea += point.X * next.Y - next.X * point.Y;
+                }
+                return signedDoubleArea;
+            }
+        }
     }
 }

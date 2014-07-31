@@ -6,5 +6,10 @@
         public static readonly Side Right = new Side { Value = 1 };
 
         public static implicit operator int(Side s) { return s.Value; }
+
+        public static Side Other(Side lr) {
+            if (lr == Left) return Right;
+            return Left;
+        }
     }
 }

@@ -1,28 +1,34 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using System.Reflection;
+using Algorithms;
+using Core;
 using log4net;
+using SlimDX.X3DAudio;
 
 namespace VoronoiMap {
     public class VoronoiGraph {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         public bool Debug { get; set; }
-        private int Width { get; set; }
+        public int Width { get; set; }
         public int Height { get; private set; }
 
         public readonly List<Site> Sites = new List<Site>();
         public readonly List<Site> Vertices = new List<Site>();
-        public readonly List<Segment> Segments = new List<Segment>(); 
+        public readonly List<Segment> Segments = new List<Segment>();
         public readonly List<Triangle> Triangles = new List<Triangle>();
-
+        public readonly List<Edge> Edges = new List<Edge>();
         public float SweepLine { get; set; }
 
-        public VoronoiGraph(int width=800, int height=600) {
+        public VoronoiGraph(int width = 800, int height = 600) {
             Width = width;
             Height = height;
             Debug = false;
         }
 
+        
         public void PlotSite(Site site) {
             site.New = true;
             Sites.Add(site);
@@ -33,13 +39,17 @@ namespace VoronoiMap {
             if (site.Y > SweepLine) {
                 SweepLine = site.Y;
             }
+
         }
+
+
 
         public void PlotBisector(Edge e) {
             if (Debug) {
                 Console.WriteLine("bisector {0} {1}", e.Region[Side.Left], e.Region[Side.Right]);
                 Log.InfoFormat("bisector {0} {1}", e.Region[Side.Left], e.Region[Side.Right]);
             }
+            Edges.Add(e);
         }
 
         public void PlotEndpoint(Edge e) {
@@ -63,7 +73,7 @@ namespace VoronoiMap {
             if (Debug) {
                 Console.WriteLine("triple {0} {1} {2}", s1, s2, s3);
             }
-            var triangle = new Triangle(s1, s2, s3) { New= true};
+            var triangle = new Triangle(s1, s2, s3) { New = true };
             Triangles.Add(triangle);
         }
 
@@ -83,20 +93,23 @@ namespace VoronoiMap {
         }
 
         private void ClipLine(Edge e) {
-            var dx = Height;
-            var dy = Width;
+            var dy = Height;
+            var dx = Width;
             var d = (dx > dy) ? dx : dy;
-            var pxMin = -(d - dx)/2;
-            var pxMax = Width + (d - dx)/2;
-            var pyMin = -(d - dy)/2;
-            var pyMax = Height + (d - dy)/2;
-            
+            var pxMin = -(d - dx) / 2;
+            var pxMax = Width + (d - dx) / 2;
+            var pyMin = -(d - dy) / 2;
+            var pyMax = Height + (d - dy) / 2;
+
             Site s1, s2;
             float x1, x2, y1, y2;
+            Side side;
             if (Math.Abs(e.A - 1) < Geometry.Tolerance && e.B >= 0) {
+                side = Side.Right;
                 s1 = e.Endpoint[Side.Right];
                 s2 = e.Endpoint[Side.Left];
             } else {
+                side = Side.Left;
                 s1 = e.Endpoint[Side.Left];
                 s2 = e.Endpoint[Side.Right];
             }
@@ -107,9 +120,6 @@ namespace VoronoiMap {
                 }
             }
 
-
-
-
             if (Math.Abs(e.A - 1) < Geometry.Tolerance) {
                 y1 = pyMin;
                 if (s1 != null && s1.Y > pyMin) {
@@ -118,7 +128,7 @@ namespace VoronoiMap {
                 if (y1 > pyMax) {
                     return;
                 }
-                x1 = e.C - e.B*y1;
+                x1 = e.C - e.B * y1;
                 y2 = pyMax;
                 if (s2 != null && s2.Y < pyMax) {
                     y2 = s2.Y;
@@ -126,25 +136,25 @@ namespace VoronoiMap {
                 if (y2 < pyMin) {
                     return;
                 }
-                x2 = e.C - e.B*y2;
+                x2 = e.C - e.B * y2;
                 if (((x1 > pxMax) && (x2 > pxMax)) || ((x1 < pxMin) && (x2 < pxMin))) {
                     return;
                 }
                 if (x1 > pxMax) {
                     x1 = pxMax;
-                    y1 = (e.C - x1)/e.B;
+                    y1 = (e.C - x1) / e.B;
                 }
                 if (x1 < pxMin) {
                     x1 = pxMin;
-                    y1 = (e.C - x1)/e.B;
+                    y1 = (e.C - x1) / e.B;
                 }
                 if (x2 > pxMax) {
                     x2 = pxMax;
-                    y2 = (e.C - x2)/e.B;
+                    y2 = (e.C - x2) / e.B;
                 }
                 if (x2 < pxMin) {
                     x2 = pxMin;
-                    y2 = (e.C - x2)/e.B;
+                    y2 = (e.C - x2) / e.B;
                 }
             } else {
                 x1 = pxMin;
@@ -154,7 +164,7 @@ namespace VoronoiMap {
                 if (x1 > pxMax) {
                     return;
                 }
-                y1 = e.C - e.A*x1;
+                y1 = e.C - e.A * x1;
                 x2 = pxMax;
                 if (s2 != null && s2.X < pxMax) {
                     x2 = s2.X;
@@ -162,13 +172,13 @@ namespace VoronoiMap {
                 if (x2 < pxMin) {
                     return;
                 }
-                y2 = e.C - e.A*x2;
+                y2 = e.C - e.A * x2;
                 if (((y1 > pyMax) && (y2 > pyMax)) || ((y1 < pyMin) && (y2 < pyMin))) {
                     return;
                 }
                 if (y1 > pyMax) {
                     y1 = pyMax;
-                    x1 = (e.C - y1)/e.A;
+                    x1 = (e.C - y1) / e.A;
                 }
                 if (y1 < pyMin) {
                     y1 = pyMin;
@@ -183,11 +193,26 @@ namespace VoronoiMap {
                     x2 = (e.C - y2) / e.A;
                 }
             }
-            Segments.Add(new Segment(x1, y1, x2, y2) { New = true});
+
+            var p1 = new PointF(x1, y1);
+            var p2 = new PointF(x2, y2);
+            var clipped = CohenSutherland.ClipSegment(new RectangleF(0,0, Width, Height), p1, p2 );
+            if (clipped != null) {
+                var site1 = new Site(clipped.Item1);
+                var site2 = new Site(clipped.Item2);
+                var s = new Segment(site1, site2) {
+                    New = true
+                };
+                Segments.Add(s);
+                /*if (s1 == null) {
+                    e.Endpoint[side] = site1;
+                }
+                if (s2 == null) {
+                    e.Endpoint[Side.Other(side)] = site2;
+                }*/
+            }
         }
 
         
     }
-
-    
 }

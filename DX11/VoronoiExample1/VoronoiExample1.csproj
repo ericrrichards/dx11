@@ -4,15 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{04C39BF4-5711-40EF-8472-1483A1DF7825}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{CCC19157-3471-4733-BC5E-586B73B3C264}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Algorithms</RootNamespace>
-    <AssemblyName>Algorithms</AssemblyName>
+    <RootNamespace>VoronoiExample1</RootNamespace>
+    <AssemblyName>VoronoiExample1</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +23,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -33,6 +35,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -40,27 +43,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CohenSutherland.cs" />
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Voronoi\Edge.cs" />
-    <Compile Include="Voronoi\EdgeList.cs" />
-    <Compile Include="Voronoi\EdgeReorderer.cs" />
-    <Compile Include="Voronoi\Geometry.cs" />
-    <Compile Include="Voronoi\HalfEdge.cs" />
-    <Compile Include="Voronoi\HalfEdgePriorityQueue.cs" />
-    <Compile Include="Voronoi\ICoord.cs" />
-    <Compile Include="Voronoi\Kruskal.cs" />
-    <Compile Include="Voronoi\LR.cs" />
-    <Compile Include="Voronoi\Site.cs" />
-    <Compile Include="Voronoi\SiteList.cs" />
-    <Compile Include="Voronoi\Vertex.cs" />
-    <Compile Include="Voronoi\Voronoi.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Core\Core.csproj">
-      <Project>{41ACBEF1-B159-4C49-A0F9-A07911617B52}</Project>
-      <Name>Core</Name>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Algorithms\Algorithms.csproj">
+      <Project>{04c39bf4-5711-40ef-8472-1483a1df7825}</Project>
+      <Name>Algorithms</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

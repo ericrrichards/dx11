@@ -29,6 +29,9 @@ namespace Core {
         public static float Clamp(float value, float min, float max) {
             return Math.Max(min, Math.Min(value, max));
         }
+        public static float Clamp<T>(float value, float min, float max) {
+            return Math.Max(min, Math.Min(value, max));
+        }
 
         public static int Rand() {
             return _rand.Next();
@@ -99,5 +102,7 @@ namespace Core {
         public static Vector3 RandVector(Vector3 min, Vector3 max) {
             return new Vector3(Rand(min.X, max.X), Rand(min.Y, max.Y), Rand(min.Z, max.Z));
         }
+
+        public static int Rand(int max) { return _rand.Next(max); }
     }
 }

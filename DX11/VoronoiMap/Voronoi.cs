@@ -19,7 +19,7 @@ namespace VoronoiMap {
         private bool _edgeFixup;
         public int StepNumber { get; private set; }
 
-        public Voronoi(IEnumerable<Point> points, int w = 800, int h = 600, bool debug=false) {
+        public Voronoi(IEnumerable<PointF> points, int w = 800, int h = 600, bool debug=false) {
             _sites = new SiteList(points);
             _sites.LogSites();
             _graph = new VoronoiGraph(w, h) {Debug = debug};
@@ -147,6 +147,9 @@ namespace VoronoiMap {
                     _edgeList.Delete(lbnd);
                     StepNumber++;
                 } else {
+                    /*foreach (var edge in _graph.Edges) {
+                        edge.ClipEndpoints(_graph.Width, _graph.Height);
+                    }*/
                     if (_graph.Debug) {
                         Console.WriteLine("Done computing graph!");
                     }
@@ -160,7 +163,7 @@ namespace VoronoiMap {
 
 
 
-        public static VoronoiGraph ComputeVoronoi(IEnumerable<Point> points, int w = 800, int h = 600, bool debug=false) {
+        public static VoronoiGraph ComputeVoronoi(IEnumerable<PointF> points, int w = 800, int h = 600, bool debug=false) {
             var sites = new SiteList(points);
             sites.LogSites();
             var graph = new VoronoiGraph(w, h) { Debug = debug };
@@ -223,6 +226,8 @@ namespace VoronoiMap {
 
                         graph.PlotVertex(v);
 
+
+
                         Geometry.EndPoint(lbnd.Edge, lbnd.Side, v, graph);
                         Geometry.EndPoint(rbnd.Edge, rbnd.Side, v, graph);
                         edgeList.Delete(lbnd);
@@ -239,7 +244,7 @@ namespace VoronoiMap {
                         graph.PlotBisector(e);
                         var bisector = new HalfEdge(e, pm);
                         edgeList.Insert(llbnd, bisector);
-                        Geometry.EndPoint(e, pm == Side.Left ? Side.Right : Side.Left, v, graph);
+                        Geometry.EndPoint(e, Side.Other(pm), v, graph);
                         var p = Geometry.Intersect(llbnd, bisector);
                         if (p != null) {
                             eventQueue.Delete(llbnd);
@@ -270,6 +275,10 @@ namespace VoronoiMap {
             }
             graph.SweepLine = graph.Height;
             graph.ResetNewItems();
+            foreach (var edge in graph.Edges) {
+                edge.ClipVertices(new Rectangle(0,0, w, h));
+            }
+            
             return graph;
         }
 

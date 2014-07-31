@@ -37,7 +37,7 @@ namespace Algorithms {
             var outCodeP1 = ComputeOutCode(p1, r);
             var outCodeP2 = ComputeOutCode(p2, r);
             var accept = false;
-            
+
             while (true) { // should only iterate twice, at most
                 // Case 1:
                 // both endpoints are within the clipping region

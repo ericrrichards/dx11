@@ -1,53 +1,68 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
-using Core;
 
-namespace VoronoiMap {
-    /// <summary>
-    /// Adapted from http://philogb.github.io/blog/assets/voronoijs/voronoi.html
-    /// </summary>
-
-
-    public class Site : IEquatable<Site>, IComparable<Site> {
-        private static int _siteCount;
-        public static void ResetSiteCount() { _siteCount = 0; }
-
-        public float X { get; internal set; }
-        public float Y { get; internal set; }
-        private int SiteNum { get; set; }
-        public bool New { get; set; }
-        public List<Edge> Edges { get; private set; }
-        private List<Side> EdgeOrientations { get; set; }
-        private bool EdgeReordered { get; set; }
-        private List<Site> _region;
-
-        public Site(float x, float y) {
-            X = x;
-            Y = y;
-            SiteNum = _siteCount++;
-            Edges = new List<Edge>();
+namespace Algorithms.Voronoi {
+    public static class BoundsCheck {
+        [Flags]
+        public enum Sides {
+            None = 0,
+            Top = 1,
+            Bottom = 2,
+            Left = 4,
+            Right = 8
         }
 
-        public Site(PointF p) : this(p.X, p.Y) { }
+        public static Sides Check(Point p, Rectangle bounds) {
+            var value = Sides.None;
+            if (Math.Abs(p.X - bounds.Left) < float.Epsilon) {
+                value |= Sides.Left;
+            }
+            if (Math.Abs(p.X - bounds.Right) < float.Epsilon) {
+                value|=Sides.Right;
+            }
+            if (Math.Abs(p.Y - bounds.Top) < float.Epsilon) {
+                value |= Sides.Top;
+            }
+            if (Math.Abs(p.Y - bounds.Bottom) < float.Epsilon) {
+                value |= Sides.Bottom;
+            }
+            return value;
+        }
+    }
+
+    public class Site : ICoord {
+        public const float Epsilon = 0.005f;
+
+        public int Color { get; private set; }
+        private float Weight { get; set; }
+        public int SiteIndex { get; private set; }
+        public List<Edge> Edges { get; private set; }
 
         public void AddEdge(Edge e) {
             Edges.Add(e);
         }
+        private List<LR.Side> EdgeOrientations { get; set; }
+        private bool EdgeReordered { get; set; }
+        private List<Point> _region;
+        
+        public Site(Point p, int index, float weight, int color) {
+            Init(p, index, weight, color);
+        }
+
+        public static Site Create(Point p, int index, float weight, int color) {
+            return new Site(p, index, weight, color);
+        }
+
+        public static void SortSites(List<Site> sites) {
+            sites.Sort(Compare);
+        }
+
         public Edge NearestEdge() {
             Edges.Sort(Edge.CompareSiteDistances);
             return Edges.FirstOrDefault();
         }
-        private Site NeighborSite(Edge edge) {
-            if (this == edge.Region[Side.Left]) {
-                return edge.Region[Side.Right];
-            }
-            if (this == edge.Region[Side.Right]) {
-                return edge.Region[Side.Left];
-            }
-            return null;
-        }
+
         public List<Site> NeighborSites() {
             if (Edges.Count == 0) {
                 return new List<Site>();
@@ -57,27 +72,8 @@ namespace VoronoiMap {
             }
             return Edges.Select(NeighborSite).ToList();
         }
-        private void ReorderEdges() {
-            var reorderer = new EdgeReorderer(Edges, Criterion.Vertex);
-            Edges = reorderer.Edges;
-            EdgeOrientations = reorderer.EdgeOrientations;
-            EdgeReordered = true;
-        }
 
-        public static float Distance(Site s1, Site s2) {
-            var dx = s1.X - s2.X;
-            var dy = s1.Y - s2.Y;
-            return MathF.Sqrt(dx * dx + dy * dy);
-        }
-        
-        public List<Site> Region(RectangleF clippingBounds) {
-            if (Edges.Count == 0) {
-                return new List<Site>();
-            }
-            RegionPrepare(clippingBounds);
-            return _region;
-        }
-        public void RegionPrepare(RectangleF clippingBounds) {
+        public void RegionPrepare(Rectangle clippingBounds) {
             if (EdgeReordered) {
                 return;
             }
@@ -87,11 +83,83 @@ namespace VoronoiMap {
                 _region.Reverse();
             }
         }
-        private static bool CloseEnough(Site p0, Site p1) {
-            return Site.Distance(p0, p1) < .005f;
+
+        public List<Point> Region(Rectangle clippingBounds) {
+            if (Edges.Count == 0) {
+                return new List<Point>();
+            }
+            RegionPrepare(clippingBounds);
+            return _region;
         }
-        private List<Site> ClipToBounds(RectangleF bounds) {
-            var points = new List<Site>();
+        public override string ToString() {
+            return string.Format("site ({0}) at {1} {2}", SiteIndex, X, Y);
+        }
+        private void Init(Point p, int index, float weight, int color) {
+            Coord = p;
+            SiteIndex = index;
+            Weight = weight;
+            Color = color;
+            Clear();
+        }
+
+        private static int CompareInt(Site s1, Site s2) {
+            int returnValue = Voronoi.CompareByYThenX(s1, s2);
+
+            if (returnValue == -1) {
+                if (s1.SiteIndex > s2.SiteIndex) {
+                    var temp = s2.SiteIndex;
+                    s2.SiteIndex = s1.SiteIndex;
+                    s1.SiteIndex = temp;
+                }
+            } else if (returnValue == 1) {
+                if (s2.SiteIndex > s1.SiteIndex) {
+                    var temp = s2.SiteIndex;
+                    s2.SiteIndex = s1.SiteIndex;
+                    s1.SiteIndex = temp;
+                }
+            }
+            return returnValue;
+        }
+
+        private static int Compare(Site s1, Site s2) {
+            return CompareInt(s1, s2);
+        }
+
+        private static bool CloseEnough(Point p0, Point p1) {
+            return Point.Distance(p0, p1) < Epsilon;
+        }
+
+        private void Move(Point p) {
+            Clear();
+            Coord = p;
+        }
+        
+        private void Clear() {
+            Edges = new List<Edge>();
+            EdgeOrientations = new List<LR.Side>();
+            _region = new List<Point>();
+            EdgeReordered = false;
+        }
+
+        private Site NeighborSite(Edge edge) {
+            if (this == edge.LeftSite) {
+                return edge.RightSite;
+            }
+            if (this == edge.RightSite) {
+                return edge.LeftSite;
+            }
+            return null;
+        }
+
+        private void ReorderEdges() {
+            var reorderer = new EdgeReorderer(Edges, Criterion.cVertex);
+            Edges = reorderer.Edges;
+            EdgeOrientations = reorderer.EdgeOrientations;
+            EdgeReordered = true;
+        }
+
+        private List<Point> ClipToBounds(Rectangle bounds) {
+            var points = new List<Point>();
             int i = -1;
             for (int j = 0; j < Edges.Count; j++) {
                 var edge = Edges[j];
@@ -103,8 +171,8 @@ namespace VoronoiMap {
                 } else {
                     i = j;
                     var orientation = EdgeOrientations[j];
-                    points.Add(edge.ClippedEndpoints[orientation]);
-                    points.Add(edge.ClippedEndpoints[Side.Other(orientation)]);
+                    points.Add(edge.ClippedEnds[orientation]);
+                    points.Add(edge.ClippedEnds[LR.Other(orientation)]);
                 }
             }
             if (i >= 0) {
@@ -112,12 +180,13 @@ namespace VoronoiMap {
             }
             return points;
         }
-        private void Connect(List<Site> points, int j, RectangleF bounds, bool closingUp = false) {
+
+        private void Connect(List<Point> points, int j, Rectangle bounds, bool closingUp = false) {
             var rightPoint = points.Last();
             var newEdge = Edges[j];
             var newOrientation = EdgeOrientations[j];
             // the point that  must be connected to rightPoint:
-            var newPoint = newEdge.ClippedEndpoints[newOrientation];
+            var newPoint = newEdge.ClippedEnds[newOrientation];
             if (!CloseEnough(rightPoint, newPoint)) {
                 // The points do not coincide, so they must have been clipped at the bounds;
                 // see if they are on the same border of the bounds:
@@ -136,69 +205,69 @@ namespace VoronoiMap {
                         px = bounds.Right;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
                             py = bounds.Bottom;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px,py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Top)) {
                             py = bounds.Top;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px,py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Left)) {
                             if (rightPoint.Y - bounds.Y + newPoint.Y - bounds.Y < bounds.Height) {
                                 py = bounds.Top;
                             } else {
                                 py = bounds.Bottom;
                             }
-                            points.Add(new Site(px, py));
-                            points.Add(new Site(bounds.Left, py));
+                            points.Add(new Point(px,py));
+                            points.Add(new Point(bounds.Left, py));
                         }
                     } else if (rightCheck.HasFlag(BoundsCheck.Sides.Left)) {
                         px = bounds.Left;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
                             py = bounds.Bottom;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px, py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Top)) {
                             py = bounds.Top;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px, py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Right)) {
                             if (rightPoint.Y - bounds.Y + newPoint.Y - bounds.Y < bounds.Height) {
                                 py = bounds.Top;
                             } else {
                                 py = bounds.Bottom;
                             }
-                            points.Add(new Site(px, py));
-                            points.Add(new Site(bounds.Right, py));
+                            points.Add(new Point(px, py));
+                            points.Add(new Point(bounds.Right, py));
                         }
                     } else if (rightCheck.HasFlag(BoundsCheck.Sides.Top)) {
                         py = bounds.Top;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Right)) {
                             px = bounds.Right;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px, py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Left)) {
                             px = bounds.Left;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px, py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
                             if (rightPoint.X - bounds.X + newPoint.X - bounds.Y < bounds.Width) {
                                 px = bounds.Left;
                             } else {
                                 px = bounds.Right;
                             }
-                            points.Add(new Site(px, py));
-                            points.Add(new Site(bounds.Left, bounds.Bottom));
+                            points.Add(new Point(px, py));
+                            points.Add(new Point(bounds.Left, bounds.Bottom));
                         }
                     } else if (rightCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
                         py = bounds.Bottom;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Right)) {
                             px = bounds.Right;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px, py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Left)) {
                             px = bounds.Left;
-                            points.Add(new Site(px, py));
+                            points.Add(new Point(px, py));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
                             if (rightPoint.X - bounds.X + newPoint.X - bounds.Y < bounds.Width) {
                                 px = bounds.Left;
                             } else {
                                 px = bounds.Right;
                             }
-                            points.Add(new Site(px, py));
-                            points.Add(new Site(bounds.Left, bounds.Top));
+                            points.Add(new Point(px, py));
+                            points.Add(new Point(bounds.Left, bounds.Top));
                         }
                     }
                 }
@@ -208,86 +277,11 @@ namespace VoronoiMap {
                 }
                 points.Add(newPoint);
             }
-            var newRightPoint = newEdge.ClippedEndpoints[Side.Other(newOrientation)];
+            var newRightPoint = newEdge.ClippedEnds[LR.Other(newOrientation)];
             if (!CloseEnough(points.First(), newRightPoint)) {
                 points.Add(newRightPoint);
             }
         }
 
-        #region Equality and comparison stuff
-        public bool Equals(Site other) {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return X.Equals(other.X) && Y.Equals(other.Y);
-        }
-
-        
-
-        public override bool Equals(object obj) {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-            return Equals((Site) obj);
-        }
-
-        public override int GetHashCode() {
-            unchecked {
-                return (X.GetHashCode()*397) ^ Y.GetHashCode();
-            }
-        }
-
-        public static bool operator ==(Site left, Site right) { return Equals(left, right); }
-        public static bool operator !=(Site left, Site right) { return !Equals(left, right); }
-
-
-
-        public int CompareTo(Site other) {
-            if (other == null) return 1;
-            if (Y < other.Y) return -1;
-            if (Y > other.Y) return 1;
-            if (X < other.X) return -1;
-            if (X > other.X) return 1;
-            return 0;
-        }
-
-        public static implicit operator Point(Site p) {
-            return new Point((int)p.X, (int)p.Y);
-        }
-        public static implicit operator PointF(Site p) {
-            return new PointF((int)p.X, (int)p.Y);
-        }
-
-        public override string ToString() { return string.Format("[#{2} {0},{1}]", (int)X, (int)Y, SiteNum); }
-        #endregion
-
-        
     }
-    public static class BoundsCheck {
-        [Flags]
-        public enum Sides {
-            None = 0,
-            Top = 1,
-            Bottom = 2,
-            Left = 4,
-            Right = 8
-        }
-
-        public static Sides Check(Site p, RectangleF bounds) {
-            var value = Sides.None;
-            if (Math.Abs(p.X - bounds.Left) < float.Epsilon) {
-                value |= Sides.Left;
-            }
-            if (Math.Abs(p.X - bounds.Right) < float.Epsilon) {
-                value |= Sides.Right;
-            }
-            if (Math.Abs(p.Y - bounds.Top) < float.Epsilon) {
-                value |= Sides.Top;
-            }
-            if (Math.Abs(p.Y - bounds.Bottom) < float.Epsilon) {
-                value |= Sides.Bottom;
-            }
-            return value;
-        }
-    }
-    
 }

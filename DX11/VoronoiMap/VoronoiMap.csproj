@@ -57,6 +57,7 @@
   <ItemGroup>
     <Compile Include="Edge.cs" />
     <Compile Include="EdgeList.cs" />
+    <Compile Include="EdgeReorderer.cs" />
     <Compile Include="EventQueue.cs" />
     <Compile Include="Geometry.cs" />
     <Compile Include="HalfEdge.cs" />
@@ -66,6 +67,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="MapStructs.cs" />
     <Compile Include="MyRandom.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Side.cs" />
@@ -74,12 +76,17 @@
     <Compile Include="Voronoi.cs" />
     <Compile Include="VoronoiGraph.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="voronoiMap.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Algorithms\Algorithms.csproj">
+      <Project>{04C39BF4-5711-40EF-8472-1483A1DF7825}</Project>
+      <Name>Algorithms</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Core\Core.csproj">
       <Project>{41acbef1-b159-4c49-a0f9-a07911617b52}</Project>
       <Name>Core</Name>
