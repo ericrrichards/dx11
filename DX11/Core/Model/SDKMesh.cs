@@ -9,10 +9,14 @@ using SlimDX;
 using SlimDX.Direct3D9;
 
 namespace Core.Model {
+    /// <summary>
+    /// Refer to https://dxut.codeplex.com/SourceControl/latest#Optional/SDKmesh.h
+    /// and https://dxut.codeplex.com/SourceControl/latest#Optional/SDKmesh.cpp
+    /// </summary>
     internal class SdkMesh {
         private SdkMeshHeader _header;
-        internal readonly List<SdkMeshVertexBufferHeader> VertexBuffers = new List<SdkMeshVertexBufferHeader>();
-        internal readonly List<SdkMeshIndexBufferHeader> IndexBuffers = new List<SdkMeshIndexBufferHeader>();
+        internal readonly List<SdkMeshVertexBuffer> VertexBuffers = new List<SdkMeshVertexBuffer>();
+        internal readonly List<SdkMeshIndexBuffer> IndexBuffers = new List<SdkMeshIndexBuffer>();
         internal readonly List<SdkMeshMesh> Meshes = new List<SdkMeshMesh>();
         internal readonly List<SdkMeshSubset> Subsets = new List<SdkMeshSubset>();
         internal readonly List<SdkMeshFrame> Frames = new List<SdkMeshFrame>();
@@ -46,10 +50,10 @@ namespace Core.Model {
             using (var reader = new BinaryReader(new FileStream(filename, FileMode.Open))) {
                 _header = new SdkMeshHeader(reader);
                 for (int i = 0; i < _header.NumVertexBuffers; i++) {
-                    VertexBuffers.Add(new SdkMeshVertexBufferHeader(reader));
+                    VertexBuffers.Add(new SdkMeshVertexBuffer(reader));
                 }
                 for (int i = 0; i < _header.NumIndexBuffers; i++) {
-                    IndexBuffers.Add(new SdkMeshIndexBufferHeader(reader));
+                    IndexBuffers.Add(new SdkMeshIndexBuffer(reader));
                 }
                 for (int i = 0; i < _header.NumMeshes; i++) {
                     Meshes.Add(new SdkMeshMesh(reader));
@@ -96,7 +100,7 @@ namespace Core.Model {
             public SdkMeshHeader(BinaryReader reader) {
                 Version = reader.ReadUInt32();
                 IsBigEndian = reader.ReadByte();
-                reader.ReadBytes(3);
+                reader.ReadBytes(3); // allow for padding
                 HeaderSize = reader.ReadUInt64();
                 NonBufferDataSize = reader.ReadUInt64();
                 BufferDataSize = reader.ReadUInt64();
@@ -115,13 +119,16 @@ namespace Core.Model {
             }
         }
         [StructLayout(LayoutKind.Sequential)]
-        internal struct SdkMeshVertexBufferHeader {
+        internal struct SdkMeshVertexBuffer {
             private const int MaxVertexElements = 32;
+
             public readonly UInt64 NumVertices;
             public readonly UInt64 SizeBytes;
             public readonly UInt64 StrideBytes;
             public readonly List<VertexElement> Decl;
             public readonly UInt64 DataOffset;
+
+
             public readonly List<PosNormalTexTan> Vertices;
 
             public override string ToString() {
@@ -138,7 +145,7 @@ namespace Core.Model {
                 return sb.ToString();
             }
 
-            public SdkMeshVertexBufferHeader(BinaryReader reader) {
+            public SdkMeshVertexBuffer(BinaryReader reader) {
 
                 NumVertices = reader.ReadUInt64();
                 SizeBytes = reader.ReadUInt64();
@@ -152,7 +159,7 @@ namespace Core.Model {
                     var method = reader.ReadByte();
                     var usage = reader.ReadByte();
                     var usageIndex = reader.ReadByte();
-                    if (stream < 8 && processElem) {
+                    if (stream < 16 && processElem) {
                         var element = new VertexElement((short)stream, (short)offset, (DeclarationType)type, (DeclarationMethod)method, (DeclarationUsage)usage, usageIndex);
                         Decl.Add(element);
                     } else {
@@ -162,47 +169,51 @@ namespace Core.Model {
                 DataOffset = reader.ReadUInt64();
                 Vertices = new List<PosNormalTexTan>();
                 if (SizeBytes > 0) {
-                    var curPos = reader.BaseStream.Position;
-                    reader.BaseStream.Seek((long)DataOffset, SeekOrigin.Begin);
-                    //var data = reader.ReadBytes((int) vbHeader.SizeBytes);
-                    for (ulong i = 0; i < NumVertices; i++) {
-                        var vertex = new PosNormalTexTan();
-                        foreach (var element in Decl) {
-                            switch (element.Type) {
-                                case DeclarationType.Float3:
-                                    var v3 = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                                    switch (element.Usage) {
-                                        case DeclarationUsage.Position:
-                                            vertex.Pos = v3;
-                                            break;
-                                        case DeclarationUsage.Normal:
-                                            vertex.Normal = v3;
-                                            break;
-                                        case DeclarationUsage.Tangent:
-                                            vertex.Tan = v3;
-                                            break;
-                                    }
-                                    //Console.WriteLine("{0} - {1}", element.Usage, v3);
-                                    break;
-                                case DeclarationType.Float2:
-                                    var v2 = new Vector2(reader.ReadSingle(), reader.ReadSingle());
-                                    switch (element.Usage) {
-                                        case DeclarationUsage.TextureCoordinate:
-                                            vertex.Tex = v2;
-                                            break;
-                                    }
-                                    //Console.WriteLine("{0} - {1}", element.Usage, v2);
-                                    break;
-                            }
-                        }
-                        Vertices.Add(vertex);
-                    }
-                    reader.BaseStream.Position = curPos;
+                    ReadVertices(reader);
                 }
+            }
+
+            private void ReadVertices(BinaryReader reader) {
+                var curPos = reader.BaseStream.Position;
+                reader.BaseStream.Seek((long)DataOffset, SeekOrigin.Begin);
+                //var data = reader.ReadBytes((int) vbHeader.SizeBytes);
+                for (ulong i = 0; i < NumVertices; i++) {
+                    var vertex = new PosNormalTexTan();
+                    foreach (var element in Decl) {
+                        switch (element.Type) {
+                            case DeclarationType.Float3:
+                                var v3 = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                                switch (element.Usage) {
+                                    case DeclarationUsage.Position:
+                                        vertex.Pos = v3;
+                                        break;
+                                    case DeclarationUsage.Normal:
+                                        vertex.Normal = v3;
+                                        break;
+                                    case DeclarationUsage.Tangent:
+                                        vertex.Tan = v3;
+                                        break;
+                                }
+                                //Console.WriteLine("{0} - {1}", element.Usage, v3);
+                                break;
+                            case DeclarationType.Float2:
+                                var v2 = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+                                switch (element.Usage) {
+                                    case DeclarationUsage.TextureCoordinate:
+                                        vertex.Tex = v2;
+                                        break;
+                                }
+                                //Console.WriteLine("{0} - {1}", element.Usage, v2);
+                                break;
+                        }
+                    }
+                    Vertices.Add(vertex);
+                }
+                reader.BaseStream.Position = curPos;
             }
         }
         [StructLayout(LayoutKind.Sequential)]
-        internal struct SdkMeshIndexBufferHeader {
+        internal struct SdkMeshIndexBuffer {
             public readonly UInt64 NumIndices;
             public readonly UInt64 SizeBytes;
             public readonly uint IndexType;
@@ -217,30 +228,34 @@ namespace Core.Model {
                 sb.AppendLine("Number of indices in buffer: " + Indices.Count);
                 return sb.ToString();
             }
-            public SdkMeshIndexBufferHeader(BinaryReader reader) {
+            public SdkMeshIndexBuffer(BinaryReader reader) {
 
                 NumIndices = reader.ReadUInt64();
                 SizeBytes = reader.ReadUInt64();
                 IndexType = reader.ReadUInt32();
-                reader.ReadUInt32();
+                reader.ReadUInt32(); // padding
                 DataOffset = reader.ReadUInt64();
 
                 Indices = new List<int>();
                 if (SizeBytes > 0) {
-                    var curPos = reader.BaseStream.Position;
-                    reader.BaseStream.Seek((long)DataOffset, SeekOrigin.Begin);
-                    for (ulong i = 0; i < NumIndices; i++) {
-                        int idx;
-                        if (IndexType == 0) {
-                            idx = reader.ReadUInt16();
-                            Indices.Add(idx);
-                        } else {
-                            idx = reader.ReadInt32();
-                            Indices.Add(idx);
-                        }
-                    }
-                    reader.BaseStream.Position = curPos;
+                    ReadIndices(reader);
                 }
+            }
+
+            private void ReadIndices(BinaryReader reader) {
+                var curPos = reader.BaseStream.Position;
+                reader.BaseStream.Seek((long)DataOffset, SeekOrigin.Begin);
+                for (ulong i = 0; i < NumIndices; i++) {
+                    int idx;
+                    if (IndexType == 0) {
+                        idx = reader.ReadUInt16();
+                        Indices.Add(idx);
+                    } else {
+                        idx = reader.ReadInt32();
+                        Indices.Add(idx);
+                    }
+                }
+                reader.BaseStream.Position = curPos;
             }
         }
         [StructLayout(LayoutKind.Sequential)]
@@ -250,13 +265,13 @@ namespace Core.Model {
             public readonly List<uint> VertexBuffers;
             public readonly uint IndexBuffer;
             public readonly uint NumSubsets;
-            public readonly uint NumFrameInfluences;
+            public readonly uint NumFrameInfluences; // bones
 
             public readonly Vector3 BoundingBoxCenter;
             public readonly Vector3 BoundingBoxExtents;
 
             public readonly UInt64 SubsetOffset;
-            public readonly UInt64 FrameInfluenceOffset;
+            public readonly UInt64 FrameInfluenceOffset; // offset to bone data
             public readonly List<int> SubsetData;
             private const int MaxMeshName = 100;
             private const int MaxVertexStreams = 16;
@@ -305,15 +320,20 @@ namespace Core.Model {
 
                 SubsetData = new List<int>();
                 if (NumSubsets > 0) {
-                    var curPos = reader.BaseStream.Position;
-                    reader.BaseStream.Seek((long)SubsetOffset, SeekOrigin.Begin);
-                    for (int i = 0; i < NumSubsets; i++) {
-                        var subsetId = reader.ReadInt32();
-                        SubsetData.Add(subsetId);
-                    }
-
-                    reader.BaseStream.Position = curPos;
+                    ReadSubsets(reader);
                 }
+                // NOTE: not bothering with bone data now
+            }
+
+            private void ReadSubsets(BinaryReader reader) {
+                var curPos = reader.BaseStream.Position;
+                reader.BaseStream.Seek((long)SubsetOffset, SeekOrigin.Begin);
+                for (int i = 0; i < NumSubsets; i++) {
+                    var subsetId = reader.ReadInt32();
+                    SubsetData.Add(subsetId);
+                }
+
+                reader.BaseStream.Position = curPos;
             }
         }
         [StructLayout(LayoutKind.Sequential)]
@@ -420,7 +440,7 @@ namespace Core.Model {
                 if (Name[0] == '\0') {
                     Name = "";
                 }
-                MaterialInstancePath = Encoding.Default.GetString(reader.ReadBytes(MaxMaterialPath)).Trim(new []{' ', '\0'});
+                MaterialInstancePath = Encoding.Default.GetString(reader.ReadBytes(MaxMaterialPath)).Trim(new[] { ' ', '\0' });
                 DiffuseTexture = Encoding.Default.GetString(reader.ReadBytes(MaxTextureName)).Trim(new[] { ' ', '\0' });
                 NormalTexture = Encoding.Default.GetString(reader.ReadBytes(MaxTextureName)).Trim(new[] { ' ', '\0' });
                 SpecularTexture = Encoding.Default.GetString(reader.ReadBytes(MaxTextureName)).Trim(new[] { ' ', '\0' });

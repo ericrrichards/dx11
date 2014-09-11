@@ -28,7 +28,7 @@ namespace SdkMeshLoadingDemo {
         private SdkMeshLoadingDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "SdkMesh Demo";
             _lastMousePos = new Point();
-            //Enable4XMsaa = true;
+            Enable4XMsaa = true;
 
             _camera = new FpsCamera {
                 Position = new Vector3(0, 2, -15)

@@ -16,7 +16,7 @@ namespace Core.Model {
 
         public BasicModel() { }
 
-        public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipUv=false) {
+        public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipUv = false) {
 
             var importer = new AssimpImporter();
             if (!importer.IsImportFormatSupported(Path.GetExtension(filename))) {
@@ -29,14 +29,14 @@ namespace Core.Model {
 #endif
             var postProcessFlags = PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace;
             if (flipUv) {
-                postProcessFlags|= PostProcessSteps.FlipUVs;
+                postProcessFlags |= PostProcessSteps.FlipUVs;
             }
             var model = importer.ImportFile(filename, postProcessFlags);
 
 
             var min = new Vector3(float.MaxValue);
             var max = new Vector3(float.MinValue);
-            
+
             foreach (var mesh in model.Meshes) {
                 var verts = new List<PosNormalTexTan>();
                 var subset = new MeshGeometry.Subset {
@@ -240,6 +240,7 @@ namespace Core.Model {
         }
 
         public static BasicModel LoadSdkMesh(Device device, TextureManager texMgr, string filename, string texturePath) {
+            // NOTE: this assumes that the model file only contains a single mesh
             var sdkMesh = new SdkMesh(filename);
             var ret = new BasicModel();
 
@@ -247,11 +248,12 @@ namespace Core.Model {
             var vertexStart = 0;
             foreach (var sdkMeshSubset in sdkMesh.Subsets) {
                 var subset = new MeshGeometry.Subset {
-                    FaceCount = (int) (sdkMeshSubset.IndexCount / 3),
+                    FaceCount = (int)(sdkMeshSubset.IndexCount / 3),
                     FaceStart = faceStart,
-                    VertexCount = (int) sdkMeshSubset.VertexCount,
+                    VertexCount = (int)sdkMeshSubset.VertexCount,
                     VertexStart = vertexStart
                 };
+                // fixup any subset indices that assume that all vertices and indices are not in the same buffers
                 faceStart = subset.FaceStart + subset.FaceCount;
                 vertexStart = subset.VertexStart + subset.VertexCount;
                 ret.Subsets.Add(subset);
@@ -268,7 +270,7 @@ namespace Core.Model {
             ret.BoundingBox = new BoundingBox(min, max);
 
             foreach (var ib in sdkMesh.IndexBuffers) {
-                ret.Indices.AddRange(ib.Indices.Select(i=>(short)i));
+                ret.Indices.AddRange(ib.Indices.Select(i => (short)i));
             }
             foreach (var sdkMeshMaterial in sdkMesh.Materials) {
                 var material = new Material {
