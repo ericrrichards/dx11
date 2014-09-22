@@ -6,6 +6,7 @@ namespace VoronoiMap {
 
     /// <summary>
     /// Adapted from http://philogb.github.io/blog/2010/02/12/voronoi-tessellation/
+    /// Also uses portions from https://github.com/SirAnthony/cppdelaunay
     /// </summary>
     public  class Voronoi {
         private readonly VoronoiGraph _graph;
@@ -147,9 +148,9 @@ namespace VoronoiMap {
                     _edgeList.Delete(lbnd);
                     StepNumber++;
                 } else {
-                    /*foreach (var edge in _graph.Edges) {
-                        edge.ClipEndpoints(_graph.Width, _graph.Height);
-                    }*/
+                    foreach (var edge in _graph.Edges) {
+                        edge.ClipVertices(new Rectangle(0, 0, _graph.Width, _graph.Height));
+                    }
                     if (_graph.Debug) {
                         Console.WriteLine("Done computing graph!");
                     }
@@ -281,7 +282,5 @@ namespace VoronoiMap {
             
             return graph;
         }
-
-        
     }
 }

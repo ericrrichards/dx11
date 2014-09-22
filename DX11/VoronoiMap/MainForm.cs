@@ -81,65 +81,21 @@ namespace VoronoiMap {
             PaintDiagram(g);
         }
 
-        private void PaintDiagram(Graphics g, int mode=3) {
+        private void PaintDiagram(Graphics g, bool full=true) {
 
             var g1 = Graphics.FromImage(_bitmap);
             g1.SmoothingMode = SmoothingMode.AntiAlias;
-            switch (mode) {
-                case 1:
-                    PaintDiagramFull(g1);
-                    break;
-                case 2:
-                    PaintDiagramFull2(g1);
-                    break;
-                case 3:
-                    PaintDiagramFull3(g1);
-                    break;
+
+            if (full) {
+                PaintDiagramFull(g1);
+            } else {
+                PaintDiagramIncremental(g1);
             }
             
-
             g.DrawImage(_bitmap, new PointF());
         }
 
-        private void PaintDiagramFull2(Graphics g) {
-            if (_graph != null) {
-                g.Clear(BackColor);
-
-                var item = cbCircles.SelectedIndex;
-
-                var gp = new GraphicsPath();
-                var gp2 = new GraphicsPath();
-                var gp3 = new GraphicsPath();
-                foreach (var point in _graph.Sites) {
-                    var r =  new RectangleF(point.X - 2, point.Y - 2, 4, 4);
-                    if (chkShowSites.Checked) {
-                        gp.AddEllipse(r);
-                    }
-
-                    foreach (var edge in point.Edges) {
-                        var start = edge.RightSite;
-                        var end = edge.LeftSite;
-                         if (item == 2) {
-                             gp2.AddLine(start, end);
-                             gp2.CloseFigure();
-                        }
-
-                        if (chkShowEdges.Checked) {
-                            start = edge.RightVertex;
-                            end = edge.LeftVertex;
-                            if (end != null && start != null) {
-                                gp3.AddLine(start, end);
-                                gp3.CloseFigure();
-                            }
-                        }
-                    }
-                }
-                g.DrawPath(_circlePen, gp2);
-                g.DrawPath(_edgePen, gp3);
-                g.FillPath(_siteBrush, gp);
-            }
-        }
-        private void PaintDiagramFull3(Graphics g) {
+        private void PaintDiagramFull(Graphics g) {
             if (_graph != null) {
                 g.Clear(BackColor);
 
@@ -178,7 +134,7 @@ namespace VoronoiMap {
         }
 
 
-        private void PaintDiagramFull(Graphics g) {
+        private void PaintDiagramIncremental(Graphics g) {
             if (_graph != null) {
 
                 g.Clear(BackColor);
@@ -203,7 +159,6 @@ namespace VoronoiMap {
                     foreach (var triangle in _graph.Triangles) {
                         var circle = new Circle(triangle.V1, triangle.V2, triangle.V3);
                         if (triangle.New) {
-
                             g.DrawPolygon(_newCirclePen, new[] { (PointF)triangle.V1, triangle.V2, triangle.V3 });
                         } else {
                             gp.AddPolygon(new[] { (PointF)triangle.V1, triangle.V2, triangle.V3 });
@@ -230,9 +185,9 @@ namespace VoronoiMap {
                 if (chkShowVertices.Checked) {
                     var gp = new GraphicsPath();
                     foreach (var vertex in _graph.Vertices) {
-                        var r = //vertex.New ? 
+                        var r = vertex.New ? 
                             new RectangleF(vertex.X - 4, vertex.Y - 4, 8, 8)
-                            //: new RectangleF(vertex.X - 2, vertex.Y - 2, 4, 4)
+                            : new RectangleF(vertex.X - 2, vertex.Y - 2, 4, 4)
                             ;
                         if (vertex.New) {
                             g.FillEllipse(_newVertBrush, r);
@@ -351,7 +306,7 @@ namespace VoronoiMap {
                 while (_voronoi.StepNumber < toStep) {
                     _voronoi.StepVoronoi();
 
-                    PaintDiagram(graphics, 1);
+                    PaintDiagram(graphics, false);
 
                     Thread.Sleep(10);
                     if (lastStep == _voronoi.StepNumber) {

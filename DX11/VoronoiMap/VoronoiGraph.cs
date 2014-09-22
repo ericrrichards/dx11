@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Reflection;
 using Algorithms;
-using Core;
 using log4net;
-using SlimDX.X3DAudio;
 
 namespace VoronoiMap {
     public class VoronoiGraph {
@@ -103,13 +100,10 @@ namespace VoronoiMap {
 
             Site s1, s2;
             float x1, x2, y1, y2;
-            Side side;
             if (Math.Abs(e.A - 1) < Geometry.Tolerance && e.B >= 0) {
-                side = Side.Right;
                 s1 = e.Endpoint[Side.Right];
                 s2 = e.Endpoint[Side.Left];
             } else {
-                side = Side.Left;
                 s1 = e.Endpoint[Side.Left];
                 s2 = e.Endpoint[Side.Right];
             }

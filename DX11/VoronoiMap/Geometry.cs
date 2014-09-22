@@ -137,11 +137,6 @@ namespace VoronoiMap {
         public Site P2 { get; private set; }
         public bool New { get; set; }
 
-        /*public Segment(float x1, float y1, float x2, float y2) {
-            P1 = new PointF(x1, y1);
-            P2 = new PointF(x2, y2);
-        }*/
-
         public Segment(Site p1, Site p2) {
             P1 = p1;
             P2 = p2;
