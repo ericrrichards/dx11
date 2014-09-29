@@ -5,7 +5,6 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
-using SlimDX.XACT3;
 
 namespace VoronoiMap {
     public sealed partial class MainForm : Form {
@@ -72,7 +71,7 @@ namespace VoronoiMap {
             }
 
 
-            _graph = Voronoi.ComputeVoronoi(sites, w, h, chDebug.Checked);
+            _graph = VoronoiGraph.ComputeVoronoi(sites, w, h, chDebug.Checked);
             Console.WriteLine("Voronois done!");
         }
 
@@ -157,7 +156,6 @@ namespace VoronoiMap {
                 } else if (item == 2) {
                     var gp = new GraphicsPath();
                     foreach (var triangle in _graph.Triangles) {
-                        var circle = new Circle(triangle.V1, triangle.V2, triangle.V3);
                         if (triangle.New) {
                             g.DrawPolygon(_newCirclePen, new[] { (PointF)triangle.V1, triangle.V2, triangle.V3 });
                         } else {
@@ -168,6 +166,7 @@ namespace VoronoiMap {
                 }
                 if (chkShowEdges.Checked) {
                     var gp = new GraphicsPath();
+                    
                     foreach (var segment in _graph.Segments) {
                         var start = segment.P1;
                         var end = segment.P2;
@@ -270,13 +269,13 @@ namespace VoronoiMap {
             _graph = _voronoi.Initialize();
         }
 
-        public List<PointF> RelaxPoints(int times, List<PointF> points) {
+        private List<PointF> RelaxPoints(int times, List<PointF> points) {
             var ret = new List<PointF>();
             var w = splitPanel.Panel2.ClientSize.Width;
             var h = splitPanel.Panel2.ClientSize.Height;
             var tempPoints = points;
             for (int i = 0; i < times; i++) {
-                var voronoi = Voronoi.ComputeVoronoi(tempPoints, w, h);
+                var voronoi = VoronoiGraph.ComputeVoronoi(tempPoints, w, h);
                 tempPoints.Clear();
                 foreach (var site in voronoi.Sites) {
                     var region = site.Region(splitPanel.Panel2.ClientRectangle);

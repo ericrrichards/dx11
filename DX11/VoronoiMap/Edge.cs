@@ -21,6 +21,7 @@ namespace VoronoiMap {
 
         public static int EdgeCount;
         public bool Visible { get { return ClippedEndpoints[Side.Left] != null && ClippedEndpoints[Side.Right] != null; } }
+
         public Edge(Site s1, Site s2) {
             Region = new Site[2];
             Endpoint = new Site[2];
@@ -51,7 +52,8 @@ namespace VoronoiMap {
         public float SiteDistance() {
             return Site.Distance(Region[Side.Left], Region[Side.Right]);
         }
-        public static int CompareSiteDistancesMax(Edge e0, Edge e1) {
+
+        private static int CompareSiteDistancesMax(Edge e0, Edge e1) {
             var l0 = e0.SiteDistance();
             var l1 = e1.SiteDistance();
             if (l0 < l1) {
@@ -67,12 +69,25 @@ namespace VoronoiMap {
             return -CompareSiteDistancesMax(e0, e1);
         }
         public void ClipVertices(Rectangle bounds) {
+            
+            var clipped = GetClippedEnds(bounds);
+
+            if (clipped == null) {
+                return;
+            }
+
+            ClippedEndpoints[Side.Left] = new Site(clipped.Item1);
+            ClippedEndpoints[Side.Right] = new Site(clipped.Item2);
+        }
+
+        public Tuple<PointF, PointF> GetClippedEnds(Rectangle bounds) {
+            Site vertex0, vertex1;
             var xmin = bounds.X;
             var ymin = bounds.Y;
             var xmax = bounds.Right;
             var ymax = bounds.Bottom;
 
-            Site vertex0, vertex1;
+
             float x0, x1, y0, y1;
 
             if (Math.Abs(A - 1.0) < Double.Epsilon && B >= 0.0) {
@@ -88,88 +103,84 @@ namespace VoronoiMap {
                 if (vertex0 != null && vertex0.Y > ymin)
                     y0 = vertex0.Y;
                 if (y0 > ymax) {
-                    return;
+                    return null;
                 }
 
-                x0 = C - B * y0;
+                x0 = C - B*y0;
 
                 y1 = ymax;
                 if (vertex1 != null && vertex1.Y < ymax)
                     y1 = vertex1.Y;
                 if (y1 < ymin) {
-                    //return;
+                    return null;
                 }
-                x1 = C - B * y1;
+                x1 = C - B*y1;
 
                 if ((x0 > xmax && x1 > xmax) || (x0 < xmin && x1 < xmin)) {
-                    return;
+                    return null;
                 }
 
                 if (x0 > xmax) {
                     x0 = xmax;
-                    y0 = (C - x0) / B;
+                    y0 = (C - x0)/B;
                 } else if (x0 < xmin) {
                     x0 = xmin;
-                    y0 = (C - x0) / B;
+                    y0 = (C - x0)/B;
                 }
 
                 if (x1 > xmax) {
                     x1 = xmax;
-                    y1 = (C - x1) / B;
+                    y1 = (C - x1)/B;
                 } else if (x1 < xmin) {
                     x1 = xmin;
-                    y1 = (C - x1) / B;
+                    y1 = (C - x1)/B;
                 }
             } else {
                 x0 = xmin;
                 if (vertex0 != null && vertex0.X > xmin)
                     x0 = vertex0.X;
                 if (x0 > xmax) {
-                    return;
+                    return null;
                 }
 
-                y0 = C - A * x0;
+                y0 = C - A*x0;
 
                 x1 = xmax;
                 if (vertex1 != null && vertex1.X < xmax)
                     x1 = vertex1.X;
                 if (x1 < xmin) {
-                    return;
+                    return null;
                 }
 
-                y1 = C - A * x1;
+                y1 = C - A*x1;
 
                 if ((y0 > ymax && y1 > ymax) || (y0 < ymin && y1 < ymin)) {
-                    return;
+                    return null;
                 }
                 if (y0 > ymax) {
                     y0 = ymax;
-                    x0 = (C - y0) / A;
+                    x0 = (C - y0)/A;
                 } else if (y0 < ymin) {
                     y0 = ymin;
-                    x0 = (C - y0) / A;
+                    x0 = (C - y0)/A;
                 }
 
                 if (y1 > ymax) {
                     y1 = ymax;
-                    x1 = (C - y1) / A;
+                    x1 = (C - y1)/A;
                 } else if (y1 < ymin) {
                     y1 = ymin;
-                    x1 = (C - y1) / A;
+                    x1 = (C - y1)/A;
                 }
             }
             var clipped = CohenSutherland.ClipSegment(bounds, new PointF(x0, y0), new PointF(x1, y1));
-
+            Console.WriteLine("cl {0} {1} {2} {3}", x0, y0, x1, y1);
 
             if (vertex0 == LeftVertex) {
-                ClippedEndpoints[Side.Left] = new Site(clipped.Item1);//new Site(x0, y0);
-                ClippedEndpoints[Side.Right] = new Site(clipped.Item2);//new Site(x1, y1);
+                return new Tuple<PointF, PointF>(clipped.Item1, clipped.Item2);
             } else {
-                ClippedEndpoints[Side.Right] = new Site(clipped.Item1);//new Site(x0, y0);
-                ClippedEndpoints[Side.Left] = new Site(clipped.Item2);//new Site(x1, y1);
+                return new Tuple<PointF, PointF>(clipped.Item2, clipped.Item1);
             }
-            Console.WriteLine("cl {0} {1} {2} {3}", x0, y0, x1, y1);
         }
-
     }
 }

@@ -55,6 +55,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BoundsCheck.cs" />
     <Compile Include="Edge.cs" />
     <Compile Include="EdgeList.cs" />
     <Compile Include="EdgeReorderer.cs" />
@@ -70,7 +71,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Side.cs" />
     <Compile Include="SiteList.cs" />
-    <Compile Include="Sites.cs" />
+    <Compile Include="Site.cs" />
     <Compile Include="Voronoi.cs" />
     <Compile Include="VoronoiGraph.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -2,29 +2,30 @@
 
 namespace VoronoiMap {
     public class EdgeList {
-        private List<HalfEdge> Edges { get; set; }
         public HalfEdge LeftEnd { get; private set; }
         public HalfEdge RightEnd { get; private set; }
 
         private readonly SiteList _siteList;
 
         public EdgeList( SiteList siteList) {
-            Edges = new List<HalfEdge>();
             _siteList = siteList;
             LeftEnd = new HalfEdge(null, Side.Left);
             RightEnd = new HalfEdge(null, Side.Left);
             LeftEnd.Right = RightEnd;
             RightEnd.Left = LeftEnd;
-
-            Edges.Add(LeftEnd);
-            Edges.Add(RightEnd);
         }
 
-        public void Insert(HalfEdge lb, HalfEdge he) {
+        public static void Insert(HalfEdge lb, HalfEdge he) {
             he.Left = lb;
             he.Right = lb.Right;
             lb.Right.Left = he;
             lb.Right = he;
+        }
+
+        public static void Delete(HalfEdge he) {
+            he.Left.Right = he.Right;
+            he.Right.Left = he.Left;
+            he.Edge = null;
         }
 
         public HalfEdge LeftBound(Site p) {
@@ -34,12 +35,6 @@ namespace VoronoiMap {
             } while (he != RightEnd && Geometry.RightOf(he, p));
             he = he.Left;
             return he;
-        }
-
-        public void Delete(HalfEdge he) {
-            he.Left.Right = he.Right;
-            he.Right.Left = he.Left;
-            he.Edge = null;
         }
 
         public Site LeftRegion(HalfEdge he) {

@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection;
-using Algorithms;
 using log4net;
 
 namespace VoronoiMap {
     public class VoronoiGraph {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         public bool Debug { get; set; }
-        public int Width { get; set; }
+        public int Width { get; private set; }
         public int Height { get; private set; }
 
         public readonly List<Site> Sites = new List<Site>();
@@ -25,7 +24,133 @@ namespace VoronoiMap {
             Debug = false;
         }
 
-        
+
+        public static VoronoiGraph ComputeVoronoi(IEnumerable<PointF> points, int w = 800, int h = 600, bool debug=false) {
+            var sites = new SiteList(points);
+            sites.LogSites();
+            var graph = new VoronoiGraph(w, h) { Debug = debug };
+            try {
+                var edgeList = new EdgeList(sites);
+                var eventQueue = new EventQueue();
+
+                sites.BottomSite = sites.ExtractMin();
+
+                graph.PlotSite(sites.BottomSite);
+
+                var newSite = sites.ExtractMin();
+                var newIntStar = new Site(Single.MaxValue, Single.MaxValue);
+
+                while (true) {
+                    if (!eventQueue.IsEmpty) {
+                        newIntStar = eventQueue.Min();
+                    }
+
+                    if (newSite != null && (eventQueue.IsEmpty || newSite.CompareTo(newIntStar) < 0)) {
+                        // new site is smallest
+                        graph.PlotSite(newSite);
+
+                        var lbnd = edgeList.LeftBound(newSite);
+                        var rbnd = lbnd.Right;
+
+                        var bot = edgeList.RightRegion(lbnd);
+
+                        var e = Geometry.Bisect(bot, newSite);
+                        graph.PlotBisector(e);
+
+                        var bisector = new HalfEdge(e, Side.Left);
+                        EdgeList.Insert(lbnd, bisector);
+
+                        var p = Geometry.Intersect(lbnd, bisector);
+                        if (p != null) {
+                            eventQueue.Delete(lbnd);
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
+                            eventQueue.Insert(lbnd, p, Geometry.Distance(p, newSite));
+                        }
+
+                        lbnd = bisector;
+                        bisector = new HalfEdge(e, Side.Right);
+                        EdgeList.Insert(lbnd, bisector);
+
+                        p = Geometry.Intersect(bisector, rbnd);
+                        if (p != null) {
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
+                            eventQueue.Insert(bisector, p, Geometry.Distance(p, newSite));
+                        }
+                        newSite = sites.ExtractMin();
+
+                    } else if (!eventQueue.IsEmpty) {
+                        // intersection is smallest
+                        var lbnd = eventQueue.ExtractMin();
+                        var llbnd = lbnd.Left;
+                        var rbnd = lbnd.Right;
+                        var rrbnd = rbnd.Right;
+                        var bot = edgeList.LeftRegion(lbnd);
+                        var top = edgeList.RightRegion(rbnd);
+                        graph.PlotTriple(bot, top, edgeList.RightRegion(lbnd));
+
+                        var v = lbnd.Vertex;
+                        graph.PlotVertex(v);
+                        
+                        Geometry.EndPoint(lbnd.Edge, lbnd.Side, v, graph);
+                        Geometry.EndPoint(rbnd.Edge, rbnd.Side, v, graph);
+                        EdgeList.Delete(lbnd);
+                        eventQueue.Delete(rbnd);
+                        EdgeList.Delete(rbnd);
+
+                        var pm = Side.Left;
+                        if (bot.Y > top.Y) {
+                            var temp = bot;
+                            bot = top;
+                            top = temp;
+                            pm = Side.Right;
+                        }
+                        var e = Geometry.Bisect(bot, top);
+                        graph.PlotBisector(e);
+
+                        var bisector = new HalfEdge(e, pm);
+                        EdgeList.Insert(llbnd, bisector);
+                        Geometry.EndPoint(e, Side.Other(pm), v, graph);
+                        var p = Geometry.Intersect(llbnd, bisector);
+                        if (p != null) {
+                            eventQueue.Delete(llbnd);
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
+                            eventQueue.Insert(llbnd, p, Geometry.Distance(p, bot));
+                        }
+                        p = Geometry.Intersect(bisector, rrbnd);
+                        if (p != null) {
+                            if (debug) {
+                                Console.WriteLine("Inserting {0}", p);
+                            }
+                            eventQueue.Insert(bisector, p, Geometry.Distance(p, bot));
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                for (var lbnd = edgeList.LeftEnd.Right; lbnd != edgeList.RightEnd; lbnd = lbnd.Right) {
+                    var e = lbnd.Edge;
+                    graph.PlotEndpoint(e);
+                }
+            } catch (Exception ex) {
+                Console.WriteLine("########################################");
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
+            }
+            graph.SweepLine = graph.Height;
+            graph.ResetNewItems();
+            foreach (var edge in graph.Edges) {
+                edge.ClipVertices(new Rectangle(0,0, w, h));
+            }
+            
+            return graph;
+        }
+
         public void PlotSite(Site site) {
             site.New = true;
             Sites.Add(site);
@@ -38,7 +163,6 @@ namespace VoronoiMap {
             }
 
         }
-
 
 
         public void PlotBisector(Edge e) {
@@ -89,108 +213,13 @@ namespace VoronoiMap {
             }
         }
 
+
+        /// <summary>
+        /// Somewhat redundant line clipping routine
+        /// </summary>
+        /// <param name="e"></param>
         private void ClipLine(Edge e) {
-            var dy = Height;
-            var dx = Width;
-            var d = (dx > dy) ? dx : dy;
-            var pxMin = -(d - dx) / 2;
-            var pxMax = Width + (d - dx) / 2;
-            var pyMin = -(d - dy) / 2;
-            var pyMax = Height + (d - dy) / 2;
-
-            Site s1, s2;
-            float x1, x2, y1, y2;
-            if (Math.Abs(e.A - 1) < Geometry.Tolerance && e.B >= 0) {
-                s1 = e.Endpoint[Side.Right];
-                s2 = e.Endpoint[Side.Left];
-            } else {
-                s1 = e.Endpoint[Side.Left];
-                s2 = e.Endpoint[Side.Right];
-            }
-
-            if (s1 != null && s2 != null) {
-                if ((s1.Y < pyMin && s2.Y > pyMax) || (s1.Y > pyMax && s2.Y < pyMin)) {
-                    return;
-                }
-            }
-
-            if (Math.Abs(e.A - 1) < Geometry.Tolerance) {
-                y1 = pyMin;
-                if (s1 != null && s1.Y > pyMin) {
-                    y1 = s1.Y;
-                }
-                if (y1 > pyMax) {
-                    return;
-                }
-                x1 = e.C - e.B * y1;
-                y2 = pyMax;
-                if (s2 != null && s2.Y < pyMax) {
-                    y2 = s2.Y;
-                }
-                if (y2 < pyMin) {
-                    return;
-                }
-                x2 = e.C - e.B * y2;
-                if (((x1 > pxMax) && (x2 > pxMax)) || ((x1 < pxMin) && (x2 < pxMin))) {
-                    return;
-                }
-                if (x1 > pxMax) {
-                    x1 = pxMax;
-                    y1 = (e.C - x1) / e.B;
-                }
-                if (x1 < pxMin) {
-                    x1 = pxMin;
-                    y1 = (e.C - x1) / e.B;
-                }
-                if (x2 > pxMax) {
-                    x2 = pxMax;
-                    y2 = (e.C - x2) / e.B;
-                }
-                if (x2 < pxMin) {
-                    x2 = pxMin;
-                    y2 = (e.C - x2) / e.B;
-                }
-            } else {
-                x1 = pxMin;
-                if (s1 != null && s1.X > pxMin) {
-                    x1 = s1.X;
-                }
-                if (x1 > pxMax) {
-                    return;
-                }
-                y1 = e.C - e.A * x1;
-                x2 = pxMax;
-                if (s2 != null && s2.X < pxMax) {
-                    x2 = s2.X;
-                }
-                if (x2 < pxMin) {
-                    return;
-                }
-                y2 = e.C - e.A * x2;
-                if (((y1 > pyMax) && (y2 > pyMax)) || ((y1 < pyMin) && (y2 < pyMin))) {
-                    return;
-                }
-                if (y1 > pyMax) {
-                    y1 = pyMax;
-                    x1 = (e.C - y1) / e.A;
-                }
-                if (y1 < pyMin) {
-                    y1 = pyMin;
-                    x1 = (e.C - y1) / e.A;
-                }
-                if (y2 > pyMax) {
-                    y2 = pyMax;
-                    x2 = (e.C - y2) / e.A;
-                }
-                if (y2 < pyMin) {
-                    y2 = pyMin;
-                    x2 = (e.C - y2) / e.A;
-                }
-            }
-
-            var p1 = new PointF(x1, y1);
-            var p2 = new PointF(x2, y2);
-            var clipped = CohenSutherland.ClipSegment(new RectangleF(0,0, Width, Height), p1, p2 );
+            var clipped = e.GetClippedEnds(new Rectangle(0, 0, Width, Height));
             if (clipped != null) {
                 var site1 = new Site(clipped.Item1);
                 var site2 = new Site(clipped.Item2);
@@ -198,15 +227,7 @@ namespace VoronoiMap {
                     New = true
                 };
                 Segments.Add(s);
-                /*if (s1 == null) {
-                    e.Endpoint[side] = site1;
-                }
-                if (s2 == null) {
-                    e.Endpoint[Side.Other(side)] = site2;
-                }*/
             }
         }
-
-        
     }
 }
