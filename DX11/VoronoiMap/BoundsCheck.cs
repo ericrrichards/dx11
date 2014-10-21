@@ -14,16 +14,16 @@ namespace VoronoiMap {
 
         public static Sides Check(Site p, RectangleF bounds) {
             var value = Sides.None;
-            if (Math.Abs(p.X - bounds.Left) < float.Epsilon) {
+            if (Math.Abs(p.X - bounds.Left) < Geometry.Tolerance) {
                 value |= Sides.Left;
             }
-            if (Math.Abs(p.X - bounds.Right) < float.Epsilon) {
+            if (Math.Abs(p.X - bounds.Right) < Geometry.Tolerance) {
                 value |= Sides.Right;
             }
-            if (Math.Abs(p.Y - bounds.Top) < float.Epsilon) {
+            if (Math.Abs(p.Y - bounds.Top) < Geometry.Tolerance) {
                 value |= Sides.Top;
             }
-            if (Math.Abs(p.Y - bounds.Bottom) < float.Epsilon) {
+            if (Math.Abs(p.Y - bounds.Bottom) < Geometry.Tolerance) {
                 value |= Sides.Bottom;
             }
             return value;

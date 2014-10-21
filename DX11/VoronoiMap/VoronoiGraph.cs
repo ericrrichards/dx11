@@ -27,7 +27,9 @@ namespace VoronoiMap {
 
         public static VoronoiGraph ComputeVoronoi(IEnumerable<PointF> points, int w = 800, int h = 600, bool debug=false) {
             var sites = new SiteList(points);
-            sites.LogSites();
+            if (debug) {
+                sites.LogSites();
+            }
             var graph = new VoronoiGraph(w, h) { Debug = debug };
             try {
                 var edgeList = new EdgeList(sites);
@@ -54,31 +56,31 @@ namespace VoronoiMap {
 
                         var bot = edgeList.RightRegion(lbnd);
 
-                        var e = Geometry.Bisect(bot, newSite);
+                        var e = Edge.CreateBisectingEdge(bot, newSite);
                         graph.PlotBisector(e);
 
                         var bisector = new HalfEdge(e, Side.Left);
                         EdgeList.Insert(lbnd, bisector);
 
-                        var p = Geometry.Intersect(lbnd, bisector);
+                        var p = Site.CreateIntersectingSite(lbnd, bisector);
                         if (p != null) {
                             eventQueue.Delete(lbnd);
                             if (debug) {
                                 Console.WriteLine("Inserting {0}", p);
                             }
-                            eventQueue.Insert(lbnd, p, Geometry.Distance(p, newSite));
+                            eventQueue.Insert(lbnd, p, Site.Distance(p, newSite));
                         }
 
                         lbnd = bisector;
                         bisector = new HalfEdge(e, Side.Right);
                         EdgeList.Insert(lbnd, bisector);
 
-                        p = Geometry.Intersect(bisector, rbnd);
+                        p = Site.CreateIntersectingSite(bisector, rbnd);
                         if (p != null) {
                             if (debug) {
                                 Console.WriteLine("Inserting {0}", p);
                             }
-                            eventQueue.Insert(bisector, p, Geometry.Distance(p, newSite));
+                            eventQueue.Insert(bisector, p, Site.Distance(p, newSite));
                         }
                         newSite = sites.ExtractMin();
 
@@ -94,9 +96,9 @@ namespace VoronoiMap {
 
                         var v = lbnd.Vertex;
                         graph.PlotVertex(v);
-                        
-                        Geometry.EndPoint(lbnd.Edge, lbnd.Side, v, graph);
-                        Geometry.EndPoint(rbnd.Edge, rbnd.Side, v, graph);
+
+                        graph.EndPoint(lbnd.Edge, lbnd.Side, v);
+                        graph.EndPoint(rbnd.Edge, rbnd.Side, v);
                         EdgeList.Delete(lbnd);
                         eventQueue.Delete(rbnd);
                         EdgeList.Delete(rbnd);
@@ -108,26 +110,26 @@ namespace VoronoiMap {
                             top = temp;
                             pm = Side.Right;
                         }
-                        var e = Geometry.Bisect(bot, top);
+                        var e = Edge.CreateBisectingEdge(bot, top);
                         graph.PlotBisector(e);
 
                         var bisector = new HalfEdge(e, pm);
                         EdgeList.Insert(llbnd, bisector);
-                        Geometry.EndPoint(e, Side.Other(pm), v, graph);
-                        var p = Geometry.Intersect(llbnd, bisector);
+                        graph.EndPoint(e, Side.Other(pm), v);
+                        var p = Site.CreateIntersectingSite(llbnd, bisector);
                         if (p != null) {
                             eventQueue.Delete(llbnd);
                             if (debug) {
                                 Console.WriteLine("Inserting {0}", p);
                             }
-                            eventQueue.Insert(llbnd, p, Geometry.Distance(p, bot));
+                            eventQueue.Insert(llbnd, p, Site.Distance(p, bot));
                         }
-                        p = Geometry.Intersect(bisector, rrbnd);
+                        p = Site.CreateIntersectingSite(bisector, rrbnd);
                         if (p != null) {
                             if (debug) {
                                 Console.WriteLine("Inserting {0}", p);
                             }
-                            eventQueue.Insert(bisector, p, Geometry.Distance(p, bot));
+                            eventQueue.Insert(bisector, p, Site.Distance(p, bot));
                         }
                     } else {
                         break;
@@ -228,6 +230,15 @@ namespace VoronoiMap {
                 };
                 Segments.Add(s);
             }
+        }
+
+        public void EndPoint(Edge edge, Side side, Site site) {
+            edge.Endpoint[side] = site;
+            var opSide = side == Side.Left ? Side.Right : Side.Left;
+            if (edge.Endpoint[opSide] == null) {
+                return;
+            }
+            PlotEndpoint(edge);
         }
     }
 }

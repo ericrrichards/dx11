@@ -82,16 +82,17 @@ namespace VoronoiMap {
 
         private void PaintDiagram(Graphics g, bool full=true) {
 
-            var g1 = Graphics.FromImage(_bitmap);
-            g1.SmoothingMode = SmoothingMode.AntiAlias;
+            using (var g1 = Graphics.FromImage(_bitmap)) {
+                g1.SmoothingMode = SmoothingMode.AntiAlias;
 
-            if (full) {
-                PaintDiagramFull(g1);
-            } else {
-                PaintDiagramIncremental(g1);
+                if (full) {
+                    PaintDiagramFull(g1);
+                } else {
+                    PaintDiagramIncremental(g1);
+                }
+
+                g.DrawImage(_bitmap, new PointF());
             }
-            
-            g.DrawImage(_bitmap, new PointF());
         }
 
         private void PaintDiagramFull(Graphics g) {
@@ -164,6 +165,7 @@ namespace VoronoiMap {
                     }
                     g.DrawPath(_circlePen, gp);
                 }
+                
                 if (chkShowEdges.Checked) {
                     var gp = new GraphicsPath();
                     
@@ -214,16 +216,6 @@ namespace VoronoiMap {
         private void btnRegen_Click(object sender, EventArgs e) {
             GenerateGraph();
             splitPanel.Panel2.Invalidate();
-            /*var map = new VoronoiMap(_graph);
-
-            var g1 = Graphics.FromImage(_bitmap);
-            g1.Clear(BackColor);
-            g1.SmoothingMode = SmoothingMode.AntiAlias;
-            map.RenderPolygons(g1);
-            var g = splitPanel.Panel2.CreateGraphics();
-            g.DrawImage(_bitmap, new PointF());
-            */
-
         }
 
         private void chkShowEdges_CheckedChanged(object sender, EventArgs e) {
@@ -231,9 +223,11 @@ namespace VoronoiMap {
         }
 
         private void btnStepVoronoi_Click(object sender, EventArgs e) {
-            _graph = _voronoi.StepVoronoi();
-            nudStepTo.Value++;
-            splitPanel.Panel2.Invalidate();
+            using (var graphics = splitPanel.Panel2.CreateGraphics()) {
+                _graph = _voronoi.StepVoronoi();
+                nudStepTo.Value++;
+                PaintDiagram(graphics, false);
+            }
         }
 
         private void btnInitialize_Click(object sender, EventArgs e) {

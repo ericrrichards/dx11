@@ -4,9 +4,9 @@ using Algorithms;
 
 namespace VoronoiMap {
     public class Edge {
-        public float A { get; set; }
-        public float B { get; set; }
-        public float C { get; set; }
+        public float A { get; private set; }
+        public float B { get; private set; }
+        public float C { get; private set; }
 
         public Site[] Region { get; private set; }
         public Site LeftSite { get { return Region[0]; } }
@@ -21,8 +21,20 @@ namespace VoronoiMap {
 
         public static int EdgeCount;
         public bool Visible { get { return ClippedEndpoints[Side.Left] != null && ClippedEndpoints[Side.Right] != null; } }
+        public Segment DelauneyLine {
+            get {
+                return new Segment(Region[Side.Left], Region[Side.Right]);
+            }
+        }
 
-        public Edge(Site s1, Site s2) {
+        public Segment VoronoiEdge {
+            get {
+                return new Segment(ClippedEndpoints[Side.Left], ClippedEndpoints[Side.Right]);
+            }
+        }
+
+
+        private Edge(Site s1, Site s2) {
             Region = new Site[2];
             Endpoint = new Site[2];
             ClippedEndpoints = new Site[2];
@@ -35,21 +47,11 @@ namespace VoronoiMap {
             s2.AddEdge(this);
         }
         public override string ToString() {
-            return string.Format("#{7} A={0} B={1} C={2} Ep[L]={3} Ep[R]={4} R[L]={5}, R[R]={6}",
+            return String.Format("#{7} A={0} B={1} C={2} Ep[L]={3} Ep[R]={4} R[L]={5}, R[R]={6}",
                                  A, B, C, Endpoint[0], Endpoint[1], Region[0], Region[1], EdgeNum);
         }
-        public Segment DelauneyLine {
-            get {
-                return new Segment(Region[Side.Left], Region[Side.Right]);
-            }
-        }
 
-        public Segment VoronoiEdge {
-            get {
-                return new Segment(ClippedEndpoints[Side.Left], ClippedEndpoints[Side.Right]);
-            }
-        }
-        public float SiteDistance() {
+        private float SiteDistance() {
             return Site.Distance(Region[Side.Left], Region[Side.Right]);
         }
 
@@ -176,11 +178,31 @@ namespace VoronoiMap {
             var clipped = CohenSutherland.ClipSegment(bounds, new PointF(x0, y0), new PointF(x1, y1));
             Console.WriteLine("cl {0} {1} {2} {3}", x0, y0, x1, y1);
 
-            if (vertex0 == LeftVertex) {
-                return new Tuple<PointF, PointF>(clipped.Item1, clipped.Item2);
+            return (vertex0 == LeftVertex) ? 
+                new Tuple<PointF, PointF>(clipped.Item1, clipped.Item2) : 
+                new Tuple<PointF, PointF>(clipped.Item2, clipped.Item1);
+        }
+
+        public static Edge CreateBisectingEdge(Site s1, Site s2) {
+            var newEdge = new Edge(s1, s2);
+            var dx = s2.X - s1.X;
+            var dy = s2.Y - s1.Y;
+            var adx = dx > 0 ? dx : -dx;
+            var ady = dy > 0 ? dy : -dy;
+
+            newEdge.C = s1.X * dx + s1.Y * dy + (dx * dx + dy * dy) * 0.5f;
+            
+            if (adx > ady) {
+                newEdge.A = 1;
+                newEdge.B = dy / dx;
+                newEdge.C /= dx;
             } else {
-                return new Tuple<PointF, PointF>(clipped.Item2, clipped.Item1);
+                newEdge.B = 1;
+                newEdge.A = dx / dy;
+                newEdge.C /= dy;
             }
+            
+            return newEdge;
         }
     }
 }

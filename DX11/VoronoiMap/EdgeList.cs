@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace VoronoiMap {
+﻿namespace VoronoiMap {
     public class EdgeList {
         public HalfEdge LeftEnd { get; private set; }
         public HalfEdge RightEnd { get; private set; }
@@ -32,7 +30,7 @@ namespace VoronoiMap {
             var he = LeftEnd;
             do {
                 he = he.Right;
-            } while (he != RightEnd && Geometry.RightOf(he, p));
+            } while (he != RightEnd && he.RightOf(p));
             he = he.Left;
             return he;
         }

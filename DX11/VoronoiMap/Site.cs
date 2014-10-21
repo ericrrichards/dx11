@@ -77,7 +77,8 @@ namespace VoronoiMap {
             RegionPrepare(clippingBounds);
             return _region;
         }
-        public void RegionPrepare(RectangleF clippingBounds) {
+
+        private void RegionPrepare(RectangleF clippingBounds) {
             if (EdgeReordered) {
                 return;
             }
@@ -88,7 +89,7 @@ namespace VoronoiMap {
             }
         }
         private static bool CloseEnough(Site p0, Site p1) {
-            return Site.Distance(p0, p1) < .005f;
+            return Distance(p0, p1) < .005f;
         }
         private List<Site> ClipToBounds(RectangleF bounds) {
             var points = new List<Site>();
@@ -121,7 +122,7 @@ namespace VoronoiMap {
             if (!CloseEnough(rightPoint, newPoint)) {
                 // The points do not coincide, so they must have been clipped at the bounds;
                 // see if they are on the same border of the bounds:
-                if (rightPoint.X != newPoint.X && rightPoint.Y != newPoint.Y) {
+                if (Math.Abs(rightPoint.X - newPoint.X) > Geometry.Tolerance && Math.Abs(rightPoint.Y - newPoint.Y) > Geometry.Tolerance) {
                     // They are on different borders of the bounds;
                     // insert one or two corners of bounds as needed to hook them up:
                     // (NOTE this will not be correct if the region should take up more than
@@ -129,75 +130,45 @@ namespace VoronoiMap {
                     // around the bounds and included the smaller part rather than the larger)
                     var rightCheck = BoundsCheck.Check(rightPoint, bounds);
                     var newCheck = BoundsCheck.Check(newPoint, bounds);
-                    float px, py;
-
-                    // TODO: refactor origin lib copypasta
+                    
                     if (rightCheck.HasFlag(BoundsCheck.Sides.Right)) {
-                        px = bounds.Right;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
-                            py = bounds.Bottom;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Right, bounds.Bottom));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Top)) {
-                            py = bounds.Top;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Right, bounds.Top));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Left)) {
-                            if (rightPoint.Y - bounds.Y + newPoint.Y - bounds.Y < bounds.Height) {
-                                py = bounds.Top;
-                            } else {
-                                py = bounds.Bottom;
-                            }
-                            points.Add(new Site(px, py));
+                            var py = ((rightPoint.Y - bounds.Y + newPoint.Y - bounds.Y) < bounds.Height) ? bounds.Top : bounds.Bottom;
+                            points.Add(new Site(bounds.Right, py));
                             points.Add(new Site(bounds.Left, py));
                         }
                     } else if (rightCheck.HasFlag(BoundsCheck.Sides.Left)) {
-                        px = bounds.Left;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
-                            py = bounds.Bottom;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Left, bounds.Bottom));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Top)) {
-                            py = bounds.Top;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Left, bounds.Top));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Right)) {
-                            if (rightPoint.Y - bounds.Y + newPoint.Y - bounds.Y < bounds.Height) {
-                                py = bounds.Top;
-                            } else {
-                                py = bounds.Bottom;
-                            }
-                            points.Add(new Site(px, py));
+                            var py = ((rightPoint.Y - bounds.Y + newPoint.Y - bounds.Y) < bounds.Height) ? bounds.Top : bounds.Bottom;
+                            points.Add(new Site(bounds.Left, py));
                             points.Add(new Site(bounds.Right, py));
                         }
                     } else if (rightCheck.HasFlag(BoundsCheck.Sides.Top)) {
-                        py = bounds.Top;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Right)) {
-                            px = bounds.Right;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Right, bounds.Top));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Left)) {
-                            px = bounds.Left;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Left, bounds.Top));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
-                            if (rightPoint.X - bounds.X + newPoint.X - bounds.Y < bounds.Width) {
-                                px = bounds.Left;
-                            } else {
-                                px = bounds.Right;
-                            }
-                            points.Add(new Site(px, py));
+                            var px = ((rightPoint.X - bounds.X + newPoint.X - bounds.X) < bounds.Width) ? bounds.Left : bounds.Right;
+                            points.Add(new Site(px, bounds.Top));
                             points.Add(new Site(bounds.Left, bounds.Bottom));
                         }
                     } else if (rightCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
-                        py = bounds.Bottom;
                         if (newCheck.HasFlag(BoundsCheck.Sides.Right)) {
-                            px = bounds.Right;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Right, bounds.Bottom));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Left)) {
-                            px = bounds.Left;
-                            points.Add(new Site(px, py));
+                            points.Add(new Site(bounds.Left, bounds.Bottom));
                         } else if (newCheck.HasFlag(BoundsCheck.Sides.Bottom)) {
-                            if (rightPoint.X - bounds.X + newPoint.X - bounds.Y < bounds.Width) {
-                                px = bounds.Left;
-                            } else {
-                                px = bounds.Right;
-                            }
-                            points.Add(new Site(px, py));
+                            var px = ((rightPoint.X - bounds.X + newPoint.X - bounds.X) < bounds.Width) ? bounds.Left : bounds.Right;
+                            points.Add(new Site(px, bounds.Bottom));
                             points.Add(new Site(bounds.Left, bounds.Top));
                         }
                     }
@@ -257,9 +228,46 @@ namespace VoronoiMap {
             return new PointF((int)p.X, (int)p.Y);
         }
 
-        public override string ToString() { return string.Format("[#{2} {0},{1}]", (int)X, (int)Y, SiteNum); }
+        public override string ToString() { return String.Format("[#{2} {0},{1}]", (int)X, (int)Y, SiteNum); }
         #endregion
 
-        
+        public static Site CreateIntersectingSite(HalfEdge el1, HalfEdge el2) {
+            var e1 = el1.Edge;
+            var e2 = el2.Edge;
+            if (e1 == null || e2 == null) {
+                return null;
+            }
+            if (e1.Region[Side.Right] == e2.Region[Side.Right]) {
+                return null;
+            }
+            var d = (e1.A*e2.B) - (e1.B*e2.A);
+            if (Math.Abs(d) < Geometry.Tolerance) {
+                return null;
+            }
+            var xint = (e1.C*e2.B - e2.C*e1.B)/d;
+            var yint = (e2.C*e1.A - e1.C*e2.A)/d;
+
+            var e1Region = e1.Region[Side.Right];
+            var e2Region = e2.Region[Side.Right];
+
+            HalfEdge el;
+            Edge e;
+            if ((e1Region.Y < e2Region.Y) || Math.Abs(e1Region.Y - e2Region.Y) < Geometry.Tolerance && e1Region.X < e2Region.X) {
+                el = el1;
+                e = e1;
+            } else {
+                el = el2;
+                e = e2;
+            }
+            var rightOfSite = (xint >= e.Region[Side.Right].X);
+            if ((rightOfSite && (el.Side == Side.Left)) || (!rightOfSite && (el.Side == Side.Right))) {
+                return null;
+            }
+
+            var vertex = new Site(xint, yint);
+            //vertex.AddEdge(e1);
+            //vertex.AddEdge(e2);
+            return vertex;
+        }
     }
 }
