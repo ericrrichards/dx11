@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
@@ -55,7 +56,7 @@ namespace VoronoiMap {
         }
 
         private void GenerateGraph() {
-
+            var start = Stopwatch.GetTimestamp();
             var rand = new Random((int)nudSeed.Value);
             var w = splitPanel.Panel2.ClientSize.Width;
             var h = splitPanel.Panel2.ClientSize.Height;
@@ -71,8 +72,15 @@ namespace VoronoiMap {
             }
 
 
-            _graph = VoronoiGraph.ComputeVoronoi(sites, w, h, chDebug.Checked);
+            _graph = VoronoiGraph.ComputeVoronoiGraph(sites, w, h, chDebug.Checked);
+
+            var elapsed = new TimeSpan(Stopwatch.GetTimestamp() - start);
+            
+            
             Console.WriteLine("Voronois done!");
+            Console.WriteLine("{0} sites, {1} relaxations, time elapsed: {2}", numSites, nudRelax.Value, elapsed);
+
+
         }
 
         private void splitContainer1_Panel2_Paint(object sender, PaintEventArgs e) {
@@ -118,13 +126,14 @@ namespace VoronoiMap {
                             gp2.CloseFigure();
                         }
 
-                        if (chkShowEdges.Checked) {
-                            var visibleClipBounds = g.VisibleClipBounds;
-                            
-                            var region = point.Region(visibleClipBounds).Where(p=>p!=null).Select(p=>(PointF)p).ToArray();
-                            if ( region.Count() >= 3)
-                                gp3.AddPolygon(region);
-                        }
+                        
+                    }
+                    if (chkShowEdges.Checked) {
+                        var visibleClipBounds = g.VisibleClipBounds;
+
+                        var region = point.Region(visibleClipBounds).Where(p => p != null).Select(p => (PointF)p).ToArray();
+                        if (region.Count() >= 3)
+                            gp3.AddPolygon(region);
                     }
                 }
                 g.DrawPath(_circlePen, gp2);
@@ -269,7 +278,7 @@ namespace VoronoiMap {
             var h = splitPanel.Panel2.ClientSize.Height;
             var tempPoints = points;
             for (int i = 0; i < times; i++) {
-                var voronoi = VoronoiGraph.ComputeVoronoi(tempPoints, w, h);
+                var voronoi = VoronoiGraph.ComputeVoronoiGraph(tempPoints, w, h);
                 tempPoints.Clear();
                 foreach (var site in voronoi.Sites) {
                     var region = site.Region(splitPanel.Panel2.ClientRectangle);

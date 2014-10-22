@@ -207,7 +207,12 @@ namespace VoronoiMap {
             }
         }
 
-        public static bool operator ==(Site left, Site right) { return Equals(left, right); }
+        public static bool operator ==(Site left, Site right) {
+            /*if (right != null && (left != null && left.GetHashCode() != right.GetHashCode())) {
+                return false;
+            }*/
+            return Equals(left, right);
+        }
         public static bool operator !=(Site left, Site right) { return !Equals(left, right); }
 
 

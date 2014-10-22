@@ -45,6 +45,12 @@ namespace VoronoiMap {
                     edge = edges[i];
                     Site leftPoint, rightPoint;
                     if (!GetPoints(edge, c, out leftPoint, out rightPoint)) return;
+                    if (leftPoint == rightPoint) {
+                        n--;
+                        edges.RemoveAt(i);
+                        done.RemoveAt(i);
+                        break;
+                    }
 
                     if (leftPoint == lastPoint) {
                         lastPoint = rightPoint;
