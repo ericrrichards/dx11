@@ -186,10 +186,12 @@ namespace VoronoiMap {
         }
 
         #region Equality and comparison stuff
+
+        private const float Tolerance = .001f;
         public bool Equals(Site other) {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return X.Equals(other.X) && Y.Equals(other.Y);
+            return Math.Abs(X - other.X) < Tolerance && Math.Abs(Y - other.Y) < Tolerance;
         }
 
         

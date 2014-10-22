@@ -1,4 +1,6 @@
 ﻿namespace VoronoiMap {
+
+
     public class EdgeList {
         public HalfEdge LeftEnd { get; private set; }
         public HalfEdge RightEnd { get; private set; }

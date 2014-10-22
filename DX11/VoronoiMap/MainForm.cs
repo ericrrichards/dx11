@@ -17,10 +17,12 @@ namespace VoronoiMap {
         private readonly Pen _newCirclePen;
         private readonly Pen _edgePen;
         private readonly Pen _newEdgePen;
+        private readonly Pen _beachPen;
         private readonly SolidBrush _vertBrush;
         private readonly SolidBrush _newVertBrush;
         private readonly SolidBrush _siteBrush;
         private readonly SolidBrush _newSiteBrush;
+        
         private Bitmap _bitmap;
 
         public MainForm() {
@@ -30,6 +32,7 @@ namespace VoronoiMap {
             _newCirclePen = new Pen(Color.Gold) { Width = 2 };
             _edgePen = new Pen(Color.LightSteelBlue);
             _newEdgePen = new Pen(Color.White) { Width = 2 };
+            _beachPen = new Pen(Color.Orange);
             _vertBrush = new SolidBrush(Color.Firebrick);
             _newVertBrush = new SolidBrush(Color.Red);
             _siteBrush = new SolidBrush(Color.Blue);
@@ -47,6 +50,7 @@ namespace VoronoiMap {
             _edgePen.Dispose();
             _newCirclePen.Dispose();
             _newEdgePen.Dispose();
+            _beachPen.Dispose();
             _newSiteBrush.Dispose();
             _newVertBrush.Dispose();
             _vertBrush.Dispose();
@@ -63,10 +67,12 @@ namespace VoronoiMap {
 
             var numSites = (int)nudNumRegions.Value;
             var sites = new List<PointF>();
+
             for (int i = 0; i < numSites; i++) {
                 var p = new Point(rand.Next(w), rand.Next(h));
                 sites.Add(p);
             }
+
             if (nudRelax.Value > 0) {
                 sites = RelaxPoints((int)nudRelax.Value, sites);
             }
@@ -191,6 +197,34 @@ namespace VoronoiMap {
                     g.DrawPath(_edgePen, gp);
                 }
 
+                if (chkBeachline.Checked){
+                    
+                    var gp = new GraphicsPath();
+                    var beachLine = new Dictionary<int, float>();
+                    
+                    foreach (var point in _graph.Sites) {
+                        
+                        for (int x = 0; x < g.VisibleClipBounds.Width; x++) {
+                            var y = PY(point, _graph.SweepLine, x);
+                            if (y > g.ClipBounds.Height) {
+                                continue;
+                            }
+                            if (!beachLine.ContainsKey(x)) {
+                                beachLine[x] = y;
+                            } else if (beachLine[x] < y) {
+                                beachLine[x] = y;
+                            }
+                        }
+                        
+                    }
+                    
+                    for (int x = 0; x < beachLine.Count-1; x++) {
+                        gp.AddLine(x, beachLine[x], x+1, beachLine[x+1] );
+                    }
+
+                    g.DrawPath(_beachPen, gp);
+                }
+
 
                 if (chkShowVertices.Checked) {
                     var gp = new GraphicsPath();
@@ -222,6 +256,23 @@ namespace VoronoiMap {
             }
         }
 
+        private float PY(Site site, float sweepLineY, int x) {
+            try {
+                var a = site.X;
+                var b = site.Y;
+                var c = sweepLineY;
+
+                var y = ((x - a)*(x - a) + b*b - c*c)/(2*(b - c + 1e-10f));
+                return y;
+            } catch (Exception ex) {
+                return -1;
+            }
+        }
+
+        private static float FY(Edge edge, int x) {
+            return edge.A*(x*x) + edge.B*x + edge.C;
+        }
+
         private void btnRegen_Click(object sender, EventArgs e) {
             GenerateGraph();
             splitPanel.Panel2.Invalidate();
@@ -241,7 +292,9 @@ namespace VoronoiMap {
 
         private void btnInitialize_Click(object sender, EventArgs e) {
             InitializeVoronoi();
-            splitPanel.Panel2.Invalidate();
+            using (var graphics = splitPanel.Panel2.CreateGraphics()) {
+                PaintDiagramIncremental(graphics);
+            }
         }
 
         private void InitializeVoronoi() {
@@ -311,18 +364,29 @@ namespace VoronoiMap {
                     PaintDiagram(graphics, false);
 
                     Thread.Sleep(10);
+                    Application.DoEvents();
                     if (lastStep == _voronoi.StepNumber) {
                         break;
                     }
                     lastStep = _voronoi.StepNumber;
+                    nudStepTo.Value = _voronoi.StepNumber;
                 }
             }
             Cursor = Cursors.Default;
         }
 
         private void btnAnimate_Click(object sender, EventArgs e) {
-            InitializeVoronoi();
+            
+            if (_voronoi == null) {
+                InitializeVoronoi();
+            }
+            var startStep = nudStepTo.Value;
             Animate();
+            if (nudStepTo.Value == startStep) {
+                _voronoi = null;
+
+                btnAnimate_Click(sender, e);
+            }
         }
 
         private void MainForm_Resize(object sender, EventArgs e) {

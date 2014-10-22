@@ -176,7 +176,7 @@ namespace VoronoiMap {
                 }
             }
             var clipped = CohenSutherland.ClipSegment(bounds, new PointF(x0, y0), new PointF(x1, y1));
-            Console.WriteLine("cl {0} {1} {2} {3}", x0, y0, x1, y1);
+            //Console.WriteLine("cl {0} {1} {2} {3}", x0, y0, x1, y1);
 
             return (vertex0 == LeftVertex) ? 
                 new Tuple<PointF, PointF>(clipped.Item1, clipped.Item2) : 
