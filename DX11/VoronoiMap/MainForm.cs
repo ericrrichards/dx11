@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Security.Policy;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -22,7 +23,7 @@ namespace VoronoiMap {
         private readonly SolidBrush _newVertBrush;
         private readonly SolidBrush _siteBrush;
         private readonly SolidBrush _newSiteBrush;
-        
+
         private Bitmap _bitmap;
 
         public MainForm() {
@@ -81,8 +82,8 @@ namespace VoronoiMap {
             _graph = VoronoiGraph.ComputeVoronoiGraph(sites, w, h, chDebug.Checked);
 
             var elapsed = new TimeSpan(Stopwatch.GetTimestamp() - start);
-            
-            
+
+
             Console.WriteLine("Voronois done!");
             Console.WriteLine("{0} sites, {1} relaxations, time elapsed: {2}", numSites, nudRelax.Value, elapsed);
 
@@ -94,7 +95,7 @@ namespace VoronoiMap {
             PaintDiagram(g);
         }
 
-        private void PaintDiagram(Graphics g, bool full=true) {
+        private void PaintDiagram(Graphics g, bool full = true) {
 
             using (var g1 = Graphics.FromImage(_bitmap)) {
                 g1.SmoothingMode = SmoothingMode.AntiAlias;
@@ -132,7 +133,7 @@ namespace VoronoiMap {
                             gp2.CloseFigure();
                         }
 
-                        
+
                     }
                     if (chkShowEdges.Checked) {
                         var visibleClipBounds = g.VisibleClipBounds;
@@ -148,7 +149,7 @@ namespace VoronoiMap {
             }
         }
 
-
+        private HashSet<Site> _sitesToIgnore = new HashSet<Site>();
         private void PaintDiagramIncremental(Graphics g) {
             if (_graph != null) {
 
@@ -180,10 +181,10 @@ namespace VoronoiMap {
                     }
                     g.DrawPath(_circlePen, gp);
                 }
-                
+
                 if (chkShowEdges.Checked) {
                     var gp = new GraphicsPath();
-                    
+
                     foreach (var segment in _graph.Segments) {
                         var start = segment.P1;
                         var end = segment.P2;
@@ -197,29 +198,35 @@ namespace VoronoiMap {
                     g.DrawPath(_edgePen, gp);
                 }
 
-                if (chkBeachline.Checked){
+                if (chkBeachline.Checked) {
                     
                     var gp = new GraphicsPath();
                     var beachLine = new Dictionary<int, float>();
-                    
-                    foreach (var point in _graph.Sites) {
-                        
+
+                    foreach (var point in _graph.Sites.Except(_sitesToIgnore.ToList())) {
+                        var drop = true;
                         for (int x = 0; x < g.VisibleClipBounds.Width; x++) {
-                            var y = PY(point, _graph.SweepLine, x);
+                            var y = ParabolaY(point, _graph.SweepLine, x);
                             if (y > g.ClipBounds.Height) {
+                                drop = false;
                                 continue;
+
                             }
                             if (!beachLine.ContainsKey(x)) {
                                 beachLine[x] = y;
+                                drop = false;
                             } else if (beachLine[x] < y) {
                                 beachLine[x] = y;
+                                drop = false;
                             }
                         }
-                        
+                        if (drop) {
+                            _sitesToIgnore.Add(point);
+                        }
                     }
-                    
-                    for (int x = 0; x < beachLine.Count-1; x++) {
-                        gp.AddLine(x, beachLine[x], x+1, beachLine[x+1] );
+
+                    for (int x = 0; x < beachLine.Count - 1; x++) {
+                        gp.AddLine(x, beachLine[x], x + 1, beachLine[x + 1]);
                     }
 
                     g.DrawPath(_beachPen, gp);
@@ -229,7 +236,7 @@ namespace VoronoiMap {
                 if (chkShowVertices.Checked) {
                     var gp = new GraphicsPath();
                     foreach (var vertex in _graph.Vertices) {
-                        var r = vertex.New ? 
+                        var r = vertex.New ?
                             new RectangleF(vertex.X - 4, vertex.Y - 4, 8, 8)
                             : new RectangleF(vertex.X - 2, vertex.Y - 2, 4, 4)
                             ;
@@ -256,21 +263,17 @@ namespace VoronoiMap {
             }
         }
 
-        private float PY(Site site, float sweepLineY, int x) {
+        private float ParabolaY(Site site, float sweepLineY, int x) {
             try {
                 var a = site.X;
                 var b = site.Y;
                 var c = sweepLineY;
 
-                var y = ((x - a)*(x - a) + b*b - c*c)/(2*(b - c + 1e-10f));
+                var y = ((x - a) * (x - a) + b * b - c * c) / (2 * (b - c + 1e-10f));
                 return y;
             } catch (Exception ex) {
                 return -1;
             }
-        }
-
-        private static float FY(Edge edge, int x) {
-            return edge.A*(x*x) + edge.B*x + edge.C;
         }
 
         private void btnRegen_Click(object sender, EventArgs e) {
@@ -317,7 +320,7 @@ namespace VoronoiMap {
                 sites.Add(p);
             }
             if (nudRelax.Value > 0) {
-                sites = RelaxPoints((int) nudRelax.Value, sites);
+                sites = RelaxPoints((int)nudRelax.Value, sites);
             }
 
 
@@ -346,7 +349,7 @@ namespace VoronoiMap {
                 }
                 ret = tempPoints;
             }
-            
+
             return ret;
         }
 
@@ -376,7 +379,7 @@ namespace VoronoiMap {
         }
 
         private void btnAnimate_Click(object sender, EventArgs e) {
-            
+
             if (_voronoi == null) {
                 InitializeVoronoi();
             }

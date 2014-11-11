@@ -367,9 +367,6 @@ Global
 		{16C6CAB6-7D86-4043-98AE-7621BC136AA1} = {79E45F9D-B161-4C12-AB0D-306B0051717E}
 		{D5D6A5B3-6D73-4A19-B642-439FA2274586} = {84020119-20DF-430B-B321-2918608921FC}
 	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(CodealikeProperties) = postSolution
 		SolutionGuid = 9875458a-9274-46e6-a11e-e68a4f2ef5c7
 	EndGlobalSection

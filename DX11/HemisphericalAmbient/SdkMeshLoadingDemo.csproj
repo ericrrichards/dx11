@@ -81,7 +81,9 @@
   <PropertyGroup>
     <PostBuildEvent>cd FX
 
+
 fxc /Od /Fc /Zi /T  fx_5_0 /Fo NormalMap.fxo NormalMap.fx
+
 fxc /Od /Fc /Zi /T  fx_5_0 /Fo Basic.fxo Basic.fx</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
