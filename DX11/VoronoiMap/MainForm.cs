@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Security.Policy;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -301,6 +300,7 @@ namespace VoronoiMap {
         }
 
         private void InitializeVoronoi() {
+            _sitesToIgnore = new HashSet<Site>();
             Console.Clear();
             nudStepTo.Value = 0;
             Edge.EdgeCount = 0;

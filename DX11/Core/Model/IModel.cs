@@ -76,6 +76,10 @@ namespace Core.Model {
             Model = model;
         }
 
+        public void Draw(DeviceContext dc, EffectPass effectPass, Matrix view, Matrix proj, ModelDrawDelegate method) {
+            method(dc, effectPass, view, proj);
+        }
+
         public void Draw(DeviceContext dc, EffectPass effectPass, Matrix view, Matrix proj, RenderMode renderMode = RenderMode.NormalMapped) {
             switch (renderMode) {
                 case RenderMode.NormalMapped:
@@ -104,4 +108,6 @@ namespace Core.Model {
         protected abstract void DrawBasic(DeviceContext dc, EffectPass effectPass, Matrix viewProj);
         protected abstract void DrawNormalMapped(DeviceContext dc, EffectPass effectPass, Matrix viewProj);
     }
+
+    public delegate void ModelDrawDelegate(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj);
 }

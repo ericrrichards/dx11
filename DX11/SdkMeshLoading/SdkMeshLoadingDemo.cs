@@ -11,9 +11,9 @@ using SlimDX.Direct3D11;
 using PresentFlags = SlimDX.DXGI.PresentFlags;
 
 namespace SdkMeshLoadingDemo {
-    
 
-    class SdkMeshLoadingDemo :D3DApp {
+
+    class SdkMeshLoadingDemo : D3DApp {
         private TextureManager _texMgr;
         private BasicModel _bunnyModel;
         private BasicModelInstance _bunnyInstance;
@@ -25,7 +25,8 @@ namespace SdkMeshLoadingDemo {
         private bool _normalMapped = false;
 
 
-        private SdkMeshLoadingDemo(IntPtr hInstance) : base(hInstance) {
+        private SdkMeshLoadingDemo(IntPtr hInstance)
+            : base(hInstance) {
             MainWindowCaption = "SdkMesh Demo";
             _lastMousePos = new Point();
             Enable4XMsaa = true;
@@ -68,7 +69,7 @@ namespace SdkMeshLoadingDemo {
                 _disposed = true;
             }
             base.Dispose(disposing);
-            
+
         }
 
         public override bool Init() {
@@ -136,12 +137,12 @@ namespace SdkMeshLoadingDemo {
             var view = _camera.View;
             var proj = _camera.Proj;
 
-            
+
             Effects.BasicFX.SetDirLights(_dirLights);
             Effects.BasicFX.SetEyePosW(_camera.Position);
-            EffectTechnique activeTech= Effects.BasicFX.Light3Tech;
-            
-            
+            EffectTechnique activeTech = Effects.BasicFX.Light3Tech;
+
+
             for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
                 _bunnyInstance.Draw(ImmediateContext, pass, view, proj, RenderMode.Basic);
@@ -169,7 +170,7 @@ namespace SdkMeshLoadingDemo {
         }
 
         static void Main() {
-            
+
             Configuration.EnableObjectTracking = true;
             var app = new SdkMeshLoadingDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
