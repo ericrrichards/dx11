@@ -21,8 +21,10 @@ namespace HemisphericalAmbient {
         private bool _disposed;
 
         private ForwardLightingEffect _effect;
+        private InputLayout _layout;
         private Vector3 _ambientLower = new Vector3(0.1f, 0.5f, 0.1f);
         private Vector3 _ambientUpper = new Vector3(0.1f, 0.2f, 0.5f);
+        
 
 
         private static Vector3 GammaToLinear(Vector3 c) {
@@ -52,6 +54,7 @@ namespace HemisphericalAmbient {
                     RenderStates.DestroyAll();
 
                     Util.ReleaseCom(ref _effect);
+                    Util.ReleaseCom(ref _layout);
                 }
                 _disposed = true;
             }
@@ -76,6 +79,9 @@ namespace HemisphericalAmbient {
             };
 
             _effect = new ForwardLightingEffect(Device, "FX/forwardLight.fxo");
+
+            var passDesc = _effect.Ambient.GetPassByIndex(0).Description;
+            _layout = new InputLayout(Device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTan);
 
             AddUIElements();
 
@@ -116,7 +122,7 @@ namespace HemisphericalAmbient {
             ImmediateContext.ClearRenderTargetView(RenderTargetView, Color.Black);
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth, 1.0f, 0);
 
-            ImmediateContext.InputAssembler.InputLayout = InputLayouts.PosNormalTexTan;
+            ImmediateContext.InputAssembler.InputLayout = _layout;
             ImmediateContext.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
 
             _camera.UpdateViewMatrix();
