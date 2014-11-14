@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="ForwardLightingEffect.cs" />
     <Compile Include="HemisphericalAmbientDemo.cs" />
+    <Compile Include="HemisphericalAmbientDemo.forms.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

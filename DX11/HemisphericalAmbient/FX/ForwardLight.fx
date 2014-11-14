@@ -1,6 +1,7 @@
 cbuffer cbPerObject {
 	float4x4 WorldViewProjection;
 	float4x4 World;
+	float4x4 gWorldInvTranspose;
 }; 
 
 cbuffer cbDirLightPS {
@@ -36,7 +37,7 @@ VS_OUTPUT RenderSceneVS(VS_INPUT input) {
 
 	output.UV = input.UV;
 
-	output.Normal = mul(input.Normal, (float3x3)World);
+	output.Normal = mul(input.Normal, (float3x3)gWorldInvTranspose);
 
 	return output;
 }
@@ -57,13 +58,12 @@ float4 AmbientLightPS(VS_OUTPUT input) : SV_TARGET0{
 	diffuse *= diffuse;
 
 	float3 ambient = CalcAmbient(input.Normal, diffuse);
-		return float4(ambient, 1.0);
+	return float4(ambient, 1.0);
 }
 
 technique11 Ambient {
 	pass P0 {
 		SetVertexShader(CompileShader(vs_5_0, RenderSceneVS()));
-		SetGeometryShader(NULL);
 		SetPixelShader(CompileShader(ps_5_0, AmbientLightPS()));
 	}
 }

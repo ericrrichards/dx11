@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace Core.FX {
     using System.Collections.Generic;
@@ -9,10 +7,6 @@ namespace Core.FX {
     using SlimDX.Direct3D11;
 
     public class BasicEffect : Effect {
-        
-        
-
-
         public readonly EffectTechnique Light1Tech;
         public readonly EffectTechnique Light2Tech;
         public readonly EffectTechnique Light3Tech;

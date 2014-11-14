@@ -72,7 +72,8 @@ namespace Core.Model {
             ToTexSpace = Matrix.Identity;
         }
 
-        protected IModelInstance(IModel<T> model) : this() {
+        protected IModelInstance(IModel<T> model)
+            : this() {
             Model = model;
         }
 
@@ -83,7 +84,7 @@ namespace Core.Model {
         public void Draw(DeviceContext dc, EffectPass effectPass, Matrix view, Matrix proj, RenderMode renderMode = RenderMode.NormalMapped) {
             switch (renderMode) {
                 case RenderMode.NormalMapped:
-                    DrawNormalMapped(dc, effectPass, view*proj);
+                    DrawNormalMapped(dc, effectPass, view * proj);
                     break;
                 case RenderMode.Basic:
                     DrawBasic(dc, effectPass, view * proj);
