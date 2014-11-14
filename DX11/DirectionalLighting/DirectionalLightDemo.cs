@@ -8,10 +8,10 @@ using Core.FX;
 using Core.Model;
 using SlimDX;
 using SlimDX.Direct3D11;
-using PresentFlags = SlimDX.DXGI.PresentFlags;
+using SlimDX.DXGI;
 
-namespace HemisphericalAmbient {
-    partial class HemisphericalAmbientDemo : D3DApp {
+namespace DirectionalLighting {
+    partial class DirectionalLightDemo :D3DApp{
         private TextureManager _texMgr;
         private BasicModel _bunnyModel;
         private BasicModelInstance _bunnyInstance;
@@ -20,28 +20,26 @@ namespace HemisphericalAmbient {
         private Point _lastMousePos;
         private bool _disposed;
 
-        private ForwardLightingEffect _effect;
+        private DirectionalLightingEffect _effect;
         private InputLayout _layout;
-        private Vector3 _ambientLower = new Vector3(0.1f, 0.5f, 0.1f);
-        private Vector3 _ambientUpper = new Vector3(0.1f, 0.2f, 0.5f);
+        
+        private Vector3 _ambientLowerColor = new Vector3(0.1f, 0.2f, 0.1f);
+        private Vector3 _ambientUpperColor = new Vector3(0.1f, 0.2f, 0.2f);
+        private Vector3 _dirLightColor = new Vector3(.85f, .8f, .5f);
+        private Vector3 _dirLightDirection = new Vector3(1.0f, -1.0f, 1.0f);
         
 
 
-        private static Vector3 GammaToLinear(Vector3 c) {
-            return new Vector3(c.X * c.X, c.Y * c.Y, c.Z * c.Z);
-        }
-
-        private HemisphericalAmbientDemo(IntPtr hInstance)
+        private DirectionalLightDemo(IntPtr hInstance)
             : base(hInstance) {
-            MainWindowCaption = "Hemispherical Ambient Light Demo";
+            MainWindowCaption = "Directional Light Demo";
             _lastMousePos = new Point();
             //Enable4XMsaa = true;
 
             _camera = new LookAtCamera() {
-                Target = new Vector3(0, 3, 0),
-                Position = new Vector3(0, 2, -15)
+                Target = new Vector3(0, 0, 0),
+                Position = new Vector3(71, 41, 71)
             };
-
             GammaCorrectedBackBuffer = true;
         }
 
@@ -65,7 +63,6 @@ namespace HemisphericalAmbient {
         }
 
         public override bool Init() {
-            
             if (!base.Init()) return false;
 
             Effects.InitAll(Device);
@@ -81,7 +78,7 @@ namespace HemisphericalAmbient {
                 World = Matrix.Scaling(0.1f, 0.1f, 0.1f)
             };
 
-            _effect = new ForwardLightingEffect(Device, "FX/forwardLight.fxo");
+            _effect = new DirectionalLightingEffect(Device, "FX/forwardLight.fxo");
 
             var passDesc = _effect.Ambient.GetPassByIndex(0).Description;
             _layout = new InputLayout(Device, passDesc.Signature, InputLayoutDescriptions.PosNormalTexTan);
@@ -133,23 +130,31 @@ namespace HemisphericalAmbient {
             var view = _camera.View;
             var proj = _camera.Proj;
 
-            SetupAmbient();
+            DepthPrePass();
+            ForwardSetup();
 
-            var activeTech = _effect.Ambient;
+            ImmediateContext.OutputMerger.DepthStencilState = RenderStates.LessEqualDSS;
+
+            var activeTech = _effect.Directional;
             for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
-                _bunnyInstance.Draw(ImmediateContext, pass, view, proj, DrawAmbient);
+                _bunnyInstance.Draw(ImmediateContext, pass, view, proj, DrawDirectional);
             }
 
             SwapChain.Present(0, PresentFlags.None);
         }
+        private void DepthPrePass() {
+            var view = _camera.View;
+            var proj = _camera.Proj;
 
-        private void SetupAmbient() {
-            _effect.SetAmbientDown(GammaToLinear(_ambientLower));//lowerGamma);
-            _effect.SetAmbientRange(GammaToLinear(_ambientUpper) - GammaToLinear(_ambientLower)); //range);
+            var activeTech = _effect.DepthPrePass;
+            for (var p = 0; p < activeTech.Description.PassCount; p++) {
+                var pass = activeTech.GetPassByIndex(p);
+                _bunnyInstance.Draw(ImmediateContext, pass, view, proj, DrawDepthPrePass);
+            }
         }
 
-        private void DrawAmbient(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj) {
+        private void DrawDepthPrePass(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj) {
             var model = _bunnyInstance.Model;
             var world = _bunnyInstance.World;
             var wit = MathF.InverseTranspose(world);
@@ -157,6 +162,34 @@ namespace HemisphericalAmbient {
             _effect.SetWorld(world);
             _effect.SetWorldViewProj(world * view * proj);
             _effect.SetWorldInvTranspose(wit);
+
+            for (var i = 0; i < model.SubsetCount; i++) {
+                _effect.SetDiffuseMap(model.DiffuseMapSRV[i]);
+                pass.Apply(ImmediateContext);
+                model.ModelMesh.Draw(ImmediateContext, i);
+            }
+        }
+        private static Vector3 GammaToLinear(Vector3 c) {
+            return new Vector3(c.X * c.X, c.Y * c.Y, c.Z * c.Z);
+        }
+        private void ForwardSetup() {
+            _effect.SetAmbientDown(GammaToLinear(_ambientLowerColor));//lowerGamma);
+            _effect.SetAmbientRange(GammaToLinear(_ambientUpperColor) - GammaToLinear(_ambientLowerColor)); //range);
+            _effect.SetDirectLightColor(GammaToLinear(_dirLightColor));
+            _effect.SetDirectLightDirection(-_dirLightDirection);
+        }
+
+        private void DrawDirectional(DeviceContext dc, EffectPass pass, Matrix view, Matrix proj) {
+            var model = _bunnyInstance.Model;
+            var world = _bunnyInstance.World;
+            var wit = MathF.InverseTranspose(world);
+
+            _effect.SetWorld(world);
+            _effect.SetWorldViewProj(world * view * proj);
+            _effect.SetWorldInvTranspose(wit);
+            _effect.SetEyePosition(_camera.Position);
+            _effect.SetSpecularExponent(250.0f);
+            _effect.SetSpecularIntensity(0.25f);
 
             for (var i = 0; i < model.SubsetCount; i++) {
                 _effect.SetDiffuseMap(model.DiffuseMapSRV[i]);
@@ -186,7 +219,7 @@ namespace HemisphericalAmbient {
 
         static void Main() {
             Configuration.EnableObjectTracking = true;
-            var app = new HemisphericalAmbientDemo(Process.GetCurrentProcess().Handle);
+            var app = new DirectionalLightDemo(Process.GetCurrentProcess().Handle);
             if (!app.Init()) {
                 return;
             }

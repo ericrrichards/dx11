@@ -105,6 +105,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SdkMeshLoadingDemo", "SdkMe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HemisphericalAmbient", "HemisphericalAmbient\HemisphericalAmbient.csproj", "{7374E40C-5E19-4526-A905-391B79F184F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectionalLighting", "DirectionalLighting\DirectionalLighting.csproj", "{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -328,6 +330,12 @@ Global
 		{7374E40C-5E19-4526-A905-391B79F184F5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7374E40C-5E19-4526-A905-391B79F184F5}.voronoi|Any CPU.ActiveCfg = Release|Any CPU
 		{7374E40C-5E19-4526-A905-391B79F184F5}.voronoi|Any CPU.Build.0 = Release|Any CPU
+		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.voronoi|Any CPU.ActiveCfg = Release|Any CPU
+		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.voronoi|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -376,6 +384,7 @@ Global
 		{D5D6A5B3-6D73-4A19-B642-439FA2274586} = {84020119-20DF-430B-B321-2918608921FC}
 		{3DEEAFF6-EE14-4513-94CA-70F52360CC97} = {4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}
 		{7374E40C-5E19-4526-A905-391B79F184F5} = {4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}
+		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2} = {4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}
 	EndGlobalSection
 	GlobalSection(CodealikeProperties) = postSolution
 		SolutionGuid = 9875458a-9274-46e6-a11e-e68a4f2ef5c7

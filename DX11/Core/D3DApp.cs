@@ -27,6 +27,8 @@ namespace Core {
         public Form Window { get; protected set; }
         public IntPtr AppInst { get; protected set; }
         public float AspectRatio { get { return (float)ClientWidth / ClientHeight; } }
+        public bool GammaCorrectedBackBuffer { get; set; }
+
 
         protected bool AppPaused;
         protected bool Minimized;
@@ -200,8 +202,9 @@ namespace Core {
             }
             //Debug.Assert((Msaa4XQuality = Device.CheckMultisampleQualityLevels(Format.R8G8B8A8_UNorm, 4)) > 0);
             try {
+                var format = GammaCorrectedBackBuffer ? Format.R8G8B8A8_UNorm_SRGB : Format.R8G8B8A8_UNorm;
                 var sd = new SwapChainDescription {
-                    ModeDescription = new ModeDescription(ClientWidth, ClientHeight, new Rational(60, 1), Format.R8G8B8A8_UNorm) {
+                    ModeDescription = new ModeDescription(ClientWidth, ClientHeight, new Rational(60, 1), format) {
                         ScanlineOrdering = DisplayModeScanlineOrdering.Unspecified,
                         Scaling = DisplayModeScaling.Unspecified
                     },
@@ -350,7 +353,8 @@ namespace Core {
             Util.ReleaseCom(ref DepthStencilView);
             Util.ReleaseCom(ref DepthStencilBuffer);
 
-            SwapChain.ResizeBuffers(1, ClientWidth, ClientHeight, Format.R8G8B8A8_UNorm, SwapChainFlags.None);
+            var format = GammaCorrectedBackBuffer ? Format.R8G8B8A8_UNorm_SRGB : Format.R8G8B8A8_UNorm;
+            SwapChain.ResizeBuffers(1, ClientWidth, ClientHeight, format, SwapChainFlags.None);
             using (var resource = SlimDX.Direct3D11.Resource.FromSwapChain<Texture2D>(SwapChain, 0)) {
                 RenderTargetView = new RenderTargetView(Device, resource);
                 RenderTargetView.Resource.DebugName = "main render target";

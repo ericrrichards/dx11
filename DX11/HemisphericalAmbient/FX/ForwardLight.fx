@@ -58,7 +58,7 @@ float4 AmbientLightPS(VS_OUTPUT input) : SV_TARGET0{
 	diffuse *= diffuse;
 
 	float3 ambient = CalcAmbient(input.Normal, diffuse);
-	return float4(ambient, 1.0);
+		return float4(ambient, 1.0);
 }
 
 technique11 Ambient {
