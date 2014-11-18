@@ -16,7 +16,7 @@ namespace DirectionalLighting {
         private BasicModel _bunnyModel;
         private BasicModelInstance _bunnyInstance;
 
-        private readonly LookAtCamera _camera;
+        private readonly FpsCamera _camera;
         private Point _lastMousePos;
         private bool _disposed;
 
@@ -25,7 +25,7 @@ namespace DirectionalLighting {
         
         private Vector3 _ambientLowerColor = new Vector3(0.1f, 0.2f, 0.1f);
         private Vector3 _ambientUpperColor = new Vector3(0.1f, 0.2f, 0.2f);
-        private Vector3 _dirLightColor = new Vector3(.85f, .8f, .5f);
+        private Vector3 _dirLightColor = new Vector3(0.85f, 0.8f, 0.5f);
         private Vector3 _dirLightDirection = new Vector3(1.0f, -1.0f, 1.0f);
         
 
@@ -34,13 +34,13 @@ namespace DirectionalLighting {
             : base(hInstance) {
             MainWindowCaption = "Directional Light Demo";
             _lastMousePos = new Point();
-            //Enable4XMsaa = true;
+            Enable4XMsaa = true;
 
-            _camera = new LookAtCamera() {
-                Target = new Vector3(0, 0, 0),
-                Position = new Vector3(71, 41, 71)
-            };
+            _camera = new FpsCamera();
+            _camera.LookAt(new Vector3(71, 41, 71), Vector3.Zero, Vector3.UnitY);
             GammaCorrectedBackBuffer = true;
+
+            _dirLightDirection.Normalize();
         }
 
         protected override void Dispose(bool disposing) {
@@ -75,7 +75,7 @@ namespace DirectionalLighting {
             _bunnyModel = BasicModel.LoadSdkMesh(Device, _texMgr, "Models/bunny.sdkmesh", "Textures");
 
             _bunnyInstance = new BasicModelInstance(_bunnyModel) {
-                World = Matrix.Scaling(0.1f, 0.1f, 0.1f)
+                //World = Matrix.Scaling(0.1f, 0.1f, 0.1f)
             };
 
             _effect = new DirectionalLightingEffect(Device, "FX/forwardLight.fxo");
