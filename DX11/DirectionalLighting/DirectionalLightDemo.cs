@@ -74,9 +74,7 @@ namespace DirectionalLighting {
 
             _bunnyModel = BasicModel.LoadSdkMesh(Device, _texMgr, "Models/bunny.sdkmesh", "Textures");
 
-            _bunnyInstance = new BasicModelInstance(_bunnyModel) {
-                //World = Matrix.Scaling(0.1f, 0.1f, 0.1f)
-            };
+            _bunnyInstance = new BasicModelInstance(_bunnyModel);
 
             _effect = new DirectionalLightingEffect(Device, "FX/forwardLight.fxo");
 

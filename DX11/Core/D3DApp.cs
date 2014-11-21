@@ -1,4 +1,5 @@
 ﻿using System;
+using Core.Controls;
 using SlimDX.Direct2D;
 using SlimDX.Direct3D11;
 using FeatureLevel = SlimDX.Direct3D11.FeatureLevel;

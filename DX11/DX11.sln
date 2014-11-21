@@ -107,6 +107,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HemisphericalAmbient", "Hem
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectionalLighting", "DirectionalLighting\DirectionalLighting.csproj", "{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject", "TestProject\TestProject.csproj", "{0CB21D42-C17D-413F-987D-767D05F221E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -336,6 +338,12 @@ Global
 		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.voronoi|Any CPU.ActiveCfg = Release|Any CPU
 		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2}.voronoi|Any CPU.Build.0 = Release|Any CPU
+		{0CB21D42-C17D-413F-987D-767D05F221E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CB21D42-C17D-413F-987D-767D05F221E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CB21D42-C17D-413F-987D-767D05F221E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CB21D42-C17D-413F-987D-767D05F221E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CB21D42-C17D-413F-987D-767D05F221E6}.voronoi|Any CPU.ActiveCfg = Release|Any CPU
+		{0CB21D42-C17D-413F-987D-767D05F221E6}.voronoi|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

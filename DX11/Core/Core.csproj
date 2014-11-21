@@ -61,9 +61,12 @@
     <Compile Include="Camera\CameraBase.cs" />
     <Compile Include="Camera\FpsCamera.cs" />
     <Compile Include="Camera\OrthoCamera.cs" />
+    <Compile Include="Controls\ColorPickButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="CosTable.cs" />
     <Compile Include="D3DApp.cs" />
-    <Compile Include="D3DForm.cs">
+    <Compile Include="Controls\D3DForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="DisposableClass.cs" />
