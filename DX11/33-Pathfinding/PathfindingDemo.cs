@@ -11,7 +11,6 @@ using Core.Terrain;
 using SlimDX;
 using SlimDX.Direct3D11;
 using SlimDX.DirectWrite;
-using SlimDX.DXGI;
 
 namespace _33_Pathfinding {
     class PathfindingDemo : D3DApp {
@@ -121,7 +120,9 @@ namespace _33_Pathfinding {
                 LayerMapFilename3 = "Textures/lightdirt.dds",
                 LayerMapFilename4 = "textures/snow.png",
                 Material = new Material() {
-                    Ambient = Color.LightGray, Diffuse = Color.LightGray, Specular = new Color4(64, 0, 0, 0)
+                    Ambient = Color.LightGray,
+                    Diffuse = Color.LightGray,
+                    Specular = new Color4(64, 0, 0, 0)
                 },
                 BlendMapFilename = null,
                 HeightScale = 50.0f,
@@ -286,13 +287,13 @@ namespace _33_Pathfinding {
             var view = _lightView;
             var proj = _lightProj;
             var viewProj = view * proj;
-            
+
             _terrain.Renderer.DrawToShadowMap(ImmediateContext, _sMap, viewProj);
             DrawSceneToShadowMap();
 
 
             ImmediateContext.Rasterizer.State = null;
-            
+
 
             ImmediateContext.ClearDepthStencilView(DepthStencilView, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1.0f, 0);
             ImmediateContext.Rasterizer.SetViewports(Viewport);
@@ -357,15 +358,15 @@ namespace _33_Pathfinding {
             _minimap.Draw(ImmediateContext);
 
 
-FontCache.DrawStrings(
-    new[] {
-        "Currently: " + _unit.Position,
-        "Destination: " + _unit.Destination.MapPosition
-    },
-    Vector2.Zero,
-    Color.Yellow
-);
-FontCache.DrawString("bold", "This is bold", new Vector2(Window.ClientSize.Width - 200, 0), Color.Red);
+            FontCache.DrawStrings(
+                new[] {
+                    "Currently: " + _unit.Position,
+                    "Destination: " + _unit.Destination.MapPosition
+                },
+                Vector2.Zero,
+                Color.Yellow
+            );
+            FontCache.DrawString("bold", "This is bold", new Vector2(Window.ClientSize.Width - 200, 0), Color.Red);
             EndFrame();
 
         }

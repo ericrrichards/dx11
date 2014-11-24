@@ -128,7 +128,10 @@ namespace DirectionalLighting {
             var view = _camera.View;
             var proj = _camera.Proj;
 
-            DepthPrePass();
+            // doesn't seem to be much benefit here
+            // 550 fps avg with depth pre-pass
+            // 775 fps avg without
+            //DepthPrePass();
             ForwardSetup();
 
             ImmediateContext.OutputMerger.DepthStencilState = RenderStates.LessEqualDSS;

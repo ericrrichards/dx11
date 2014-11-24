@@ -5,6 +5,7 @@ cbuffer cbPerObject {
 	float4x4 gWorldInvTranspose;
 };
 
+// new
 cbuffer cbPerObjectPS {
 	float3 EyePosition;
 	float specExp;
@@ -14,8 +15,8 @@ cbuffer cbPerObjectPS {
 cbuffer cbDirLightPS {
 	float3 AmbientDown;
 	float3 AmbientRange;
-	float3 DirToLight;
-	float3 DirLightColor;
+	float3 DirToLight; // new
+	float3 DirLightColor; // new
 };
 
 Texture2D DiffuseTexture;
@@ -37,7 +38,7 @@ struct VS_OUTPUT {
 	float4 Position : SV_POSITION;
 	float2 UV : TEXCOORD0;
 	float3 Normal : TEXCOORD1;
-	float3 WorldPos : TEXCOORD2;
+	float3 WorldPos : TEXCOORD2; // new
 };
 
 float4 DepthPrePassVS(float4 Position : POSITION) :SV_POSITION{
@@ -49,6 +50,7 @@ VS_OUTPUT RenderSceneVS(VS_INPUT input) {
 	float3 vNormalWorldSpace;
 	output.Position = mul(float4(input.Position, 1.0f), WorldViewProjection);
 
+	// new
 	output.WorldPos = mul(float4(input.Position, 1.0f), World).xyz;
 
 	output.UV = input.UV;
@@ -78,6 +80,8 @@ Material PrepareMaterial(float3 normal, float2 UV) {
 
 	material.normal = normalize(normal);
 	material.diffuseColor = DiffuseTexture.Sample(LinearSampler, UV);
+
+	// gamma correct input texture diffuse color to linear-space
 	material.diffuseColor.rgb *= material.diffuseColor.rgb;
 
 	material.specExp = specExp;
@@ -87,15 +91,18 @@ Material PrepareMaterial(float3 normal, float2 UV) {
 }
 
 float3 CalcDirectional(float3 position, Material material) {
+	// calculate diffuse light
 	float NDotL = dot(DirToLight, material.normal);
 	float3 finalColor = DirLightColor.rgb * saturate(NDotL);
 
+	// calculate specular light and add to diffuse
 	float3 toEye = EyePosition.xyz - position;
 	toEye = normalize(toEye);
 	float3 halfway = normalize(toEye + DirToLight);
 	float NDotH = saturate(dot(halfway, material.normal));
 	finalColor += DirLightColor.rgb * pow(NDotH, material.specExp) * material.specIntensity;
 
+	// scale light color by material color
 	return finalColor * material.diffuseColor.rgb;
 }
 
