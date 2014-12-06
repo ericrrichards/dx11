@@ -46,9 +46,9 @@ namespace Core.Model {
             );
             _vb = new Buffer(device, new DataStream(vertices.ToArray(), false, false), vbd);
         }
-        public void SetIndices(Device device, List<short> indices) {
+        public void SetIndices(Device device, List<int> indices) {
             var ibd = new BufferDescription(
-                sizeof (short)*indices.Count, 
+                sizeof (int)*indices.Count, 
                 ResourceUsage.Immutable, 
                 BindFlags.IndexBuffer, 
                 CpuAccessFlags.None, 
@@ -63,13 +63,13 @@ namespace Core.Model {
         public void Draw(DeviceContext dc, int subsetId) {
             const int offset = 0;
             dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, _vertexStride, offset));
-            dc.InputAssembler.SetIndexBuffer(_ib, Format.R16_UInt, 0);
+            dc.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
             dc.DrawIndexed(_subsetTable[subsetId].FaceCount*3, _subsetTable[subsetId].FaceStart*3, 0);
         }
         public void DrawInstanced(DeviceContext dc, int subsetId, Buffer instanceBuffer, int numInstances, int instanceStride) {
             const int offset = 0;
             dc.InputAssembler.SetVertexBuffers(0, new VertexBufferBinding(_vb, _vertexStride, offset), new VertexBufferBinding(instanceBuffer, instanceStride, 0));
-            dc.InputAssembler.SetIndexBuffer(_ib, Format.R16_UInt, 0);
+            dc.InputAssembler.SetIndexBuffer(_ib, Format.R32_UInt, 0);
             dc.DrawIndexedInstanced(_subsetTable[subsetId].FaceCount * 3, numInstances, _subsetTable[subsetId].FaceStart * 3,  0, 0);
         }
     }

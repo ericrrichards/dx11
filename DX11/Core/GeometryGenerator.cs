@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -67,7 +68,7 @@ namespace Core {
             ret.Vertices.Add(new Vertex(+w2, +h2, +d2, 1, 0, 0, 0, 0, 1, 1, 0));
             ret.Vertices.Add(new Vertex(+w2, -h2, +d2, 1, 0, 0, 0, 0, 1, 1, 1));
 
-            ret.Indices.AddRange( new[]{
+            ret.Indices.AddRange( new int[]{
                 0,1,2,0,2,3,
                 4,5,6,4,6,7,
                 8,9,10,8,10,11,
@@ -133,6 +134,123 @@ namespace Core {
             }
             return ret;
         }
+
+        public enum SubdivisionCount {
+            None = 0,
+            One = 1,
+            Two = 2,
+            Three = 3,
+            Four = 4,
+            Five = 5,
+            Six = 6,
+            Seven = 7,
+            Eight = 8,
+            Nine = 9
+        }
+
+        public static MeshData CreateGeosphere(float radius, SubdivisionCount numSubdivisions) {
+            
+            var tempMesh = new MeshData();
+            const float x = 0.525731f;
+            const float z = 0.850651f;
+
+            var pos = new List<Vector3> {
+                new Vector3(-x, 0, z), new Vector3(x, 0, z),
+                new Vector3(-x, 0, -z), new Vector3(x, 0, -z),
+                new Vector3(0, z, x), new Vector3(0, z, -x),
+                new Vector3(0, -z, x), new Vector3(0, -z, -x),
+                new Vector3(z, x, 0), new Vector3(-z, x, 0),
+                new Vector3(z, -x, 0), new Vector3(-z, -x, 0)
+            };
+
+            var k = new List<int> {
+                1,4,0,  4,9,0,  4,5,9,  8,5,4,  1,8,4,
+                1,10,8, 10,3,8, 8,3,5,  3,2,5,  3,7,2,
+                3,10,7, 10,6,7, 6,11,7, 6,0,11, 6,1,0,
+                10,1,6, 11,0,9, 2,11,9, 5,2,9,  11,2,7
+            };
+            tempMesh.Vertices = pos.Select(p=>new Vertex {Position = p}).ToList();
+            tempMesh.Indices=k;
+
+            var mh = new MeshHelper();
+            
+            for (var i = 0; i < (int) numSubdivisions; i++) {
+                mh.Subdivide(tempMesh);
+            }
+
+            for (var i = 0; i < tempMesh.Vertices.Count; i++) {
+                var n = Vector3.Normalize(tempMesh.Vertices[i].Position);
+
+                var p = radius*n;
+
+                var theta = MathF.AngleFromXY(tempMesh.Vertices[i].Position.X, tempMesh.Vertices[i].Position.Z);
+
+                var phi = MathF.Acos(tempMesh.Vertices[i].Position.Y/radius);
+
+                var texC = new Vector2(theta/(2*MathF.PI), phi/MathF.PI);
+                var tangent = new Vector3(
+                    -radius*MathF.Sin(phi)*MathF.Sin(theta), 
+                    0,
+                    radius*MathF.Sin(phi)*MathF.Cos(theta)
+                );
+
+                tangent.Normalize();
+
+                tempMesh.Vertices[i] = new Vertex(p, n, tangent, texC);
+            }
+            return tempMesh;
+        }
+
+        private class MeshHelper {
+            private List<Vertex> _vertices;
+            private List<int> _indices;
+            private Dictionary<Tuple<int, int>, int> _newVertices;
+
+            public void Subdivide(MeshData mesh) {
+                _newVertices = new Dictionary<Tuple<int, int>, int>();
+                _vertices = mesh.Vertices;
+                _indices = new List<int>();
+                var numTris = mesh.Indices.Count / 3;
+
+                for (var i = 0; i < numTris; i++) {
+                    var i1 = mesh.Indices[i*3];
+                    var i2 = mesh.Indices[i*3 + 1];
+                    var i3 = mesh.Indices[i*3 + 2];
+
+                    var a = GetNewVertex(i1, i2);
+                    var b = GetNewVertex(i2, i3);
+                    var c = GetNewVertex(i3, i1);
+
+                    _indices.AddRange(new[] {
+                        i1, a, c,
+                        i2, b, a,
+                        i3, c, b,
+                        a, b, c
+                    });
+                }
+                Console.WriteLine(mesh.Vertices.Count);
+                mesh.Indices = _indices;
+            }
+
+            private int GetNewVertex(int i1, int i2) {
+                var t1 = new Tuple<int, int>(i1,i2);
+                var t2 = new Tuple<int, int>(i2, i1);
+
+                if (_newVertices.ContainsKey(t2)) {
+                    return _newVertices[t2];
+                }
+                if (_newVertices.ContainsKey(t1)) {
+                    return _newVertices[t1];
+                }
+                var newIndex = _vertices.Count;
+                _newVertices.Add(t1, newIndex);
+
+                _vertices.Add(new Vertex(){Position = (_vertices[i1].Position + _vertices[i2].Position) * 0.5f});
+
+                return newIndex;
+            }
+        }
+
         public static MeshData CreateCylinder(float bottomRadius, float topRadius, float height, int sliceCount, int stackCount) {
             var ret = new MeshData();
 

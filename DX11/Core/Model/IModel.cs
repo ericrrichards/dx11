@@ -10,7 +10,7 @@ namespace Core.Model {
         public MeshGeometry ModelMesh { get; protected set; }
         protected List<MeshGeometry.Subset> Subsets;
         public int SubsetCount { get { return Subsets.Count; } }
-        protected List<short> Indices;
+        protected List<int> Indices;
         protected List<TVertexType> Vertices;
         public List<Material> Materials { get; protected set; }
         public List<ShaderResourceView> DiffuseMapSRV { get; protected set; }
@@ -25,6 +25,10 @@ namespace Core.Model {
                 if (disposing) {
                     var meshGeometry = ModelMesh;
                     Util.ReleaseCom(ref meshGeometry);
+                    Indices.Clear();
+                    Vertices.Clear();
+                    Indices = null;
+                    Vertices = null;
                 }
                 _disposed = true;
             }
@@ -34,7 +38,7 @@ namespace Core.Model {
         protected IModel() {
             Subsets = new List<MeshGeometry.Subset>();
             Vertices = new List<TVertexType>();
-            Indices = new List<short>();
+            Indices = new List<int>();
             DiffuseMapSRV = new List<ShaderResourceView>();
             NormalMapSRV = new List<ShaderResourceView>();
             Materials = new List<Material>();
@@ -47,6 +51,7 @@ namespace Core.Model {
         public abstract void CreateSphere(Device device, float radius, int slices, int stacks);
         public abstract void CreateCylinder(Device device, float bottomRadius, float topRadius, float height, int sliceCount, int stackCount);
         public abstract void CreateGrid(Device device, float width, float depth, int xVerts, int zVerts);
+        public abstract void CreateGeosphere(Device device, float radius, GeometryGenerator.SubdivisionCount subdivisionCount);
     }
 
     public enum RenderMode {
@@ -58,7 +63,7 @@ namespace Core.Model {
     }
 
     public abstract class IModelInstance<T> {
-        public IModel<T> Model { get; protected set; }
+        public IModel<T> Model { get; set; }
         public Matrix World { get; set; }
         public Matrix ShadowTransform { get; set; }
         public Matrix TexTransform { get; set; }

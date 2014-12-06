@@ -64,7 +64,7 @@ namespace Core.Model {
 
                 Vertices.AddRange(verts);
 
-                var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
+                var indices = mesh.GetIndices().Select(i => ((int)i + subset.VertexStart)).ToList();
                 Indices.AddRange(indices);
 
                 var mat = model.Materials[mesh.MaterialIndex];
@@ -115,8 +115,8 @@ namespace Core.Model {
 
             BoundingBox = new BoundingBox(min, max);
 
-            Vertices.AddRange(mesh.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList());
-            Indices.AddRange(mesh.Indices.Select(i => (short)i));
+            Vertices=mesh.Vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.TexC, v.TangentU)).ToList();
+            Indices=mesh.Indices.Select(i => i).ToList();
 
             Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
             DiffuseMapSRV.Add(null);
@@ -145,6 +145,11 @@ namespace Core.Model {
         public override void CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) {
             var grid = GeometryGenerator.CreateGrid(width, depth, xVerts, zVerts);
             InitFromMeshData(device, grid);
+        }
+
+        public override void CreateGeosphere(Device device, float radius, GeometryGenerator.SubdivisionCount numSubdivisions) {
+            var geosphere = GeometryGenerator.CreateGeosphere(radius, numSubdivisions);
+            InitFromMeshData(device, geosphere);
         }
 
         public static BasicModel LoadFromTxtFile(Device device, string filename) {
@@ -225,7 +230,7 @@ namespace Core.Model {
             ret.BoundingBox = new BoundingBox(min, max);
 
             ret.Vertices.AddRange(vertices.Select(v => new PosNormalTexTan(v.Position, v.Normal, v.Tex, new Vector3(1, 0, 0))).ToList());
-            ret.Indices.AddRange(indices.Select(i => (short)i));
+            ret.Indices.AddRange(indices.Select(i => i));
 
             ret.Materials.Add(new Material { Ambient = Color.Gray, Diffuse = Color.White, Specular = new Color4(16, 1, 1, 1) });
             ret.DiffuseMapSRV.Add(null);
@@ -270,7 +275,7 @@ namespace Core.Model {
             ret.BoundingBox = new BoundingBox(min, max);
 
             foreach (var ib in sdkMesh.IndexBuffers) {
-                ret.Indices.AddRange(ib.Indices.Select(i => (short)i));
+                ret.Indices.AddRange(ib.Indices.Select(i => i));
             }
             foreach (var sdkMeshMaterial in sdkMesh.Materials) {
                 var material = new Material {

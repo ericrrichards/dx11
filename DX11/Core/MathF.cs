@@ -104,5 +104,22 @@ namespace Core {
         }
 
         public static int Rand(int max) { return _rand.Next(max); }
+
+        public static float AngleFromXY(float x, float y) {
+            float theta;
+            if (x >= 0.0f) {
+                theta = Atan(y/x);
+                if (theta < 0.0f) {
+                    theta += 2*PI;
+                }
+            } else {
+                theta = Atan(y/x) + PI;
+            }
+            return theta;
+        }
+
+        public static float Acos(float f) {
+            return (float) Math.Acos(f);
+        }
     }
 }

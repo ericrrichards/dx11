@@ -47,7 +47,7 @@ namespace Core.Model {
                 var verts = ExtractVertices(mesh, vertToBoneWeight, flipTexY);
                 Vertices.AddRange(verts);
                 // extract indices and shift them to the proper offset into the combined vertex buffer
-                var indices = mesh.GetIndices().Select(i => (short)(i + (uint)subset.VertexStart)).ToList();
+                var indices = mesh.GetIndices().Select(i => ((int)i + subset.VertexStart)).ToList();
                 Indices.AddRange(indices);
 
                 // extract materials
@@ -138,5 +138,6 @@ namespace Core.Model {
         public override void CreateCylinder(Device device, float bottomRadius, float topRadius, float height, int sliceCount, int stackCount) { throw new System.NotImplementedException(); }
 
         public override void CreateGrid(Device device, float width, float depth, int xVerts, int zVerts) { throw new System.NotImplementedException(); }
+        public override void CreateGeosphere(Device device, float radius, GeometryGenerator.SubdivisionCount numSubdivisions) {throw new System.NotImplementedException();}
     }
 }
