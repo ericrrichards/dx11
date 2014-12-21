@@ -30,6 +30,14 @@ namespace _36_Geosphere {
         private Point _lastMousePos;
         private bool _disposed;
 
+        private float _inputDelay = 0;
+
+        private readonly Material _material = new Material() {
+            Ambient = Color.Blue,
+            Diffuse = Color.Red,
+            Specular = new Color4(16.0f, 0.75f, 0.75f, 0.75f)
+        };
+
         private GeosphereDemo(IntPtr hInstance) : base(hInstance) {
             MainWindowCaption = "Geosphere Demo";
 
@@ -87,10 +95,16 @@ namespace _36_Geosphere {
 
             _geosphereModel = new BasicModel();
             _geosphereModel.CreateGeosphere(Device, 5, _subdivisions);
+            _geosphereModel.Materials[0] = _material;
 
             _sphereModel = new BasicModel();
             _sphereModel.CreateSphere(Device, 5, 20,20);
-            
+            _sphereModel.Materials[0] = new Material() {
+                Ambient = Color.Blue,
+                Diffuse = Color.Red,
+                Specular = new Color4(16.0f, 0.75f, 0.75f, 0.75f)
+            };
+
             _geosphere = new BasicModelInstance(_geosphereModel) {
                 World = Matrix.Identity
             };
@@ -104,7 +118,8 @@ namespace _36_Geosphere {
             _camera.SetLens(0.25f * MathF.PI, AspectRatio, 1.0f, 1000.0f);
         }
 
-        private float _inputDelay = 0;
+        
+
         public override void UpdateScene(float dt) {
             base.UpdateScene(dt);
             _inputDelay -= dt;
@@ -182,6 +197,7 @@ namespace _36_Geosphere {
                 _geosphereModel = new BasicModel();
                 _geosphereModel.CreateGeosphere(Device, 5, _subdivisions);
                 _geosphere.Model = _geosphereModel;
+                _geosphereModel.Materials[0] = _material;
                 _inputDelay = 1;
             }
         }

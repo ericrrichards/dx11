@@ -6,13 +6,20 @@ using SlimDX;
 
 namespace Core {
     public static class GeometryGenerator {
-        private static readonly List<Vector3> Icosahedron = new List<Vector3> {
+        private static readonly List<Vector3> IcosahedronVertices = new List<Vector3> {
             new Vector3(-0.525731f, 0, 0.850651f), new Vector3(0.525731f, 0, 0.850651f),
             new Vector3(-0.525731f, 0, -0.850651f), new Vector3(0.525731f, 0, -0.850651f),
             new Vector3(0, 0.850651f, 0.525731f), new Vector3(0, 0.850651f, -0.525731f),
             new Vector3(0, -0.850651f, 0.525731f), new Vector3(0, -0.850651f, -0.525731f),
             new Vector3(0.850651f, 0.525731f, 0), new Vector3(-0.850651f, 0.525731f, 0),
             new Vector3(0.850651f, -0.525731f, 0), new Vector3(-0.850651f, -0.525731f, 0)
+        };
+
+        private static readonly List<int> IcosahedronIndices = new List<int> {
+            1,4,0,  4,9,0,  4,5,9,  8,5,4,  1,8,4,
+            1,10,8, 10,3,8, 8,3,5,  3,2,5,  3,7,2,
+            3,10,7, 10,6,7, 6,11,7, 6,0,11, 6,1,0,
+            10,1,6, 11,0,9, 2,11,9, 5,2,9,  11,2,7
         };
 
         [StructLayout(LayoutKind.Sequential)]
@@ -158,15 +165,8 @@ namespace Core {
 
             var tempMesh = new MeshData();
 
-
-            var k = new List<int> {
-                1,4,0,  4,9,0,  4,5,9,  8,5,4,  1,8,4,
-                1,10,8, 10,3,8, 8,3,5,  3,2,5,  3,7,2,
-                3,10,7, 10,6,7, 6,11,7, 6,0,11, 6,1,0,
-                10,1,6, 11,0,9, 2,11,9, 5,2,9,  11,2,7
-            };
-            tempMesh.Vertices = Icosahedron.Select(p => new Vertex { Position = p }).ToList();
-            tempMesh.Indices = k;
+            tempMesh.Vertices = IcosahedronVertices.Select(p => new Vertex { Position = p }).ToList();
+            tempMesh.Indices = IcosahedronIndices;
 
             var mh = new Subdivider();
 
@@ -174,18 +174,24 @@ namespace Core {
                 mh.Subdivide4(tempMesh);
             }
 
+            // Project vertices onto sphere and scale.
             for (var i = 0; i < tempMesh.Vertices.Count; i++) {
+                // Project onto unit sphere.
                 var n = Vector3.Normalize(tempMesh.Vertices[i].Position);
-
+                // Project onto sphere.
                 var p = radius * n;
 
+                // Derive texture coordinates from spherical coordinates.
                 var theta = MathF.AngleFromXY(tempMesh.Vertices[i].Position.X, tempMesh.Vertices[i].Position.Z);
-
                 var phi = MathF.Acos(tempMesh.Vertices[i].Position.Y / radius);
-
                 var texC = new Vector2(theta / (2 * MathF.PI), phi / MathF.PI);
-                var tangent = new Vector3(-radius * MathF.Sin(phi) * MathF.Sin(theta), 0, radius * MathF.Sin(phi) * MathF.Cos(theta));
 
+                // Partial derivative of P with respect to theta
+                var tangent = new Vector3(
+                    -radius * MathF.Sin(phi) * MathF.Sin(theta),
+                    0,
+                    radius * MathF.Sin(phi) * MathF.Cos(theta)
+                );
                 tangent.Normalize();
 
                 tempMesh.Vertices[i] = new Vertex(p, n, tangent, texC);
@@ -205,6 +211,16 @@ namespace Core {
                 var numTris = mesh.Indices.Count / 3;
 
                 for (var i = 0; i < numTris; i++) {
+                    //       i2
+                    //       *
+                    //      / \
+                    //     /   \
+                    //   a*-----*b
+                    //   / \   / \
+                    //  /   \ /   \
+                    // *-----*-----*
+                    // i1    c      i3
+
                     var i1 = mesh.Indices[i * 3];
                     var i2 = mesh.Indices[i * 3 + 1];
                     var i3 = mesh.Indices[i * 3 + 2];
@@ -214,11 +230,11 @@ namespace Core {
                     var c = GetNewVertex(i3, i1);
 
                     _indices.AddRange(new[] {
-                        i1, a, c,
-                        i2, b, a,
-                        i3, c, b,
-                        a, b, c
-                    });
+                i1, a, c,
+                i2, b, a,
+                i3, c, b,
+                a, b, c
+            });
                 }
 #if DEBUG
                 Console.WriteLine(mesh.Vertices.Count);
