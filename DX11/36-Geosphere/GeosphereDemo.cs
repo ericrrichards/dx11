@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.Runtime;
 using System.Windows.Forms;
 using Core;
 using Core.Camera;
@@ -20,8 +19,11 @@ namespace _36_Geosphere {
         private readonly LookAtCamera _camera;
 
         private BasicModel _geosphereModel;
-
         private BasicModelInstance _geosphere;
+
+        private BasicModel _sphereModel;
+        private BasicModelInstance _sphere;
+        private bool _showSphere;
 
         private GeometryGenerator.SubdivisionCount _subdivisions = 0;
 
@@ -63,6 +65,7 @@ namespace _36_Geosphere {
                     Util.ReleaseCom(ref _texMgr);
 
                     Util.ReleaseCom(ref _geosphereModel);
+                    Util.ReleaseCom(ref _sphereModel);
 
                     Effects.DestroyAll();
                     InputLayouts.DestroyAll();
@@ -84,10 +87,14 @@ namespace _36_Geosphere {
 
             _geosphereModel = new BasicModel();
             _geosphereModel.CreateGeosphere(Device, 5, _subdivisions);
+
+            _sphereModel = new BasicModel();
+            _sphereModel.CreateSphere(Device, 5, 20,20);
             
             _geosphere = new BasicModelInstance(_geosphereModel) {
                 World = Matrix.Identity
             };
+            _sphere = new BasicModelInstance(_sphereModel);
 
 
             return true;
@@ -121,7 +128,7 @@ namespace _36_Geosphere {
             }
 
             if (Util.IsKeyDown(Keys.D0)) {
-                _subdivisions = 0;
+                _subdivisions = GeometryGenerator.SubdivisionCount.None;
                 RebuildGeosphere();
             }
             if (Util.IsKeyDown(Keys.D1)) {
@@ -156,10 +163,14 @@ namespace _36_Geosphere {
                 _subdivisions = GeometryGenerator.SubdivisionCount.Eight;
                 RebuildGeosphere();
             }
-            if (Util.IsKeyDown(Keys.D9)) {
-                _subdivisions = GeometryGenerator.SubdivisionCount.Nine;
-                RebuildGeosphere();
+
+            if (Util.IsKeyDown(Keys.S)) {
+                _showSphere = true;
             }
+            if (Util.IsKeyDown(Keys.G)) {
+                _showSphere = false;
+            }
+            
             
             _camera.UpdateViewMatrix();
 
@@ -214,9 +225,13 @@ namespace _36_Geosphere {
 
             for (var p = 0; p < activeTech.Description.PassCount; p++) {
                 var pass = activeTech.GetPassByIndex(p);
-                _geosphere.Draw(ImmediateContext, pass, view, proj, RenderMode.Basic);
+                if (_showSphere) {
+                    _sphere.Draw(ImmediateContext, pass, view, proj, RenderMode.Basic);
+                } else {
+                    _geosphere.Draw(ImmediateContext, pass, view, proj, RenderMode.Basic);
+                }
             }
-            
+
             SwapChain.Present(0, PresentFlags.None);
             ImmediateContext.Rasterizer.State = null;
         }
