@@ -111,6 +111,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject", "TestProject\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "36-Geosphere", "36-Geosphere\36-Geosphere.csproj", "{B5B1DB76-CAD1-40EF-B686-5CFCF4B3048C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PointLighting", "PointLighting\PointLighting.csproj", "{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -352,6 +354,12 @@ Global
 		{B5B1DB76-CAD1-40EF-B686-5CFCF4B3048C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B5B1DB76-CAD1-40EF-B686-5CFCF4B3048C}.voronoi|Any CPU.ActiveCfg = Release|Any CPU
 		{B5B1DB76-CAD1-40EF-B686-5CFCF4B3048C}.voronoi|Any CPU.Build.0 = Release|Any CPU
+		{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8}.voronoi|Any CPU.ActiveCfg = Release|Any CPU
+		{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8}.voronoi|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -402,6 +410,7 @@ Global
 		{7374E40C-5E19-4526-A905-391B79F184F5} = {4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}
 		{E5EA1CF8-FA88-414A-8C13-CBC8E5D90AF2} = {4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}
 		{B5B1DB76-CAD1-40EF-B686-5CFCF4B3048C} = {16C6CAB6-7D86-4043-98AE-7621BC136AA1}
+		{9AD85875-BDFD-4312-94F4-EF4D95EB9CF8} = {4E34DD8B-F8F7-4B0F-8BE7-35AEFFC6B7CB}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true
