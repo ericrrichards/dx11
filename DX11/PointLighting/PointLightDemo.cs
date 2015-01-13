@@ -21,8 +21,7 @@ namespace PointLighting {
         private Point _lastMousePos;
         private bool _disposed;
 
-        private DirectionalLightingEffect _effect;
-        private PointLightingEffect _plEffect;
+        private FowardLightingEffect _effect;
         private InputLayout _layout;
         private BlendState _additiveBlend;
 
@@ -66,7 +65,6 @@ namespace PointLighting {
                     RenderStates.DestroyAll();
 
                     Util.ReleaseCom(ref _effect);
-                    Util.ReleaseCom(ref _plEffect);
                     Util.ReleaseCom(ref _layout);
                     Util.ReleaseCom(ref _additiveBlend);
                 }
@@ -90,8 +88,7 @@ namespace PointLighting {
 
             _bunnyInstance = new BasicModelInstance(_bunnyModel);
 
-            _effect = new DirectionalLightingEffect(Device, "FX/DirectionalLight.fxo");
-            _plEffect = new PointLightingEffect(Device, "FX/PointLight.fxo");
+            _effect = new FowardLightingEffect(Device, "FX/ForwardLight.fxo");
 
             var blendDesc = new BlendStateDescription {
                 AlphaToCoverageEnable = false,
@@ -173,7 +170,7 @@ namespace PointLighting {
             ImmediateContext.OutputMerger.BlendState = _additiveBlend;
             for (int i = 0; i < NumLights; i++) {
                 PointSetup(i);
-                activeTech = _plEffect.PointLight;
+                activeTech = _effect.PointLight;
                 for (var p = 0; p < activeTech.Description.PassCount; p++) {
                     var pass = activeTech.GetPassByIndex(p);
                     _bunnyInstance.Draw(ImmediateContext, pass, view, proj, DrawPoint);
@@ -186,9 +183,9 @@ namespace PointLighting {
         }
 
         private void PointSetup(int i) {
-            _plEffect.SetLightPosition(_lightPositions[i]);
-            _plEffect.SetLightRangeRcp(1.0f/_lightRange);
-            _plEffect.SetLightColor(_lightColor[i]);
+            _effect.SetLightPosition(_lightPositions[i]);
+            _effect.SetLightRangeRcp(1.0f/_lightRange);
+            _effect.SetLightColor(_lightColor[i]);
         }
 
         private static Vector3 GammaToLinear(Vector3 c) {
@@ -224,15 +221,15 @@ namespace PointLighting {
             var world = _bunnyInstance.World;
             var wit = MathF.InverseTranspose(world);
 
-            _plEffect.SetWorld(world);
-            _plEffect.SetWorldViewProj(world * view * proj);
-            _plEffect.SetWorldInvTranspose(wit);
-            _plEffect.SetEyePosition(_camera.Position);
-            _plEffect.SetSpecularExponent(250.0f);
-            _plEffect.SetSpecularIntensity(0.25f);
+            _effect.SetWorld(world);
+            _effect.SetWorldViewProj(world * view * proj);
+            _effect.SetWorldInvTranspose(wit);
+            _effect.SetEyePosition(_camera.Position);
+            _effect.SetSpecularExponent(250.0f);
+            _effect.SetSpecularIntensity(0.25f);
 
             for (var i = 0; i < model.SubsetCount; i++) {
-                _plEffect.SetDiffuseMap(model.DiffuseMapSRV[i]);
+                _effect.SetDiffuseMap(model.DiffuseMapSRV[i]);
                 pass.Apply(ImmediateContext);
                 model.ModelMesh.Draw(ImmediateContext, i);
             }

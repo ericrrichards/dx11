@@ -3,7 +3,7 @@ using SlimDX.Direct3D11;
 using Effect = Core.FX.Effect;
 
 namespace PointLighting {
-    internal class DirectionalLightingEffect : Effect {
+    internal class FowardLightingEffect : Effect {
         // per object variable
         private readonly EffectMatrixVariable _worldViewProj;
         private readonly EffectMatrixVariable _world;
@@ -17,20 +17,26 @@ namespace PointLighting {
         private readonly EffectVectorVariable _eyePosition;
         private readonly EffectScalarVariable _specularExponent;
         private readonly EffectScalarVariable _specularIntensity;
+
+        private readonly EffectVectorVariable _pointLightPosition;
+        private readonly EffectScalarVariable _pointLightRangeRcp;
+        private readonly EffectVectorVariable _pointLightColor;
+
         // per subset diffuse texture
         private readonly EffectResourceVariable _diffuseMap;
         // ambient effect technique
         public readonly EffectTechnique Ambient;
         public readonly EffectTechnique DepthPrePass;
         public readonly EffectTechnique Directional;
+        public readonly EffectTechnique PointLight;
 
-        public DirectionalLightingEffect(Device device, string filename)
+        public FowardLightingEffect(Device device, string filename)
             : base(device, filename) {
 
             Ambient = FX.GetTechniqueByName("Ambient");
             DepthPrePass = FX.GetTechniqueByName("DepthPrePass");
             Directional = FX.GetTechniqueByName("Directional");
-
+            PointLight = FX.GetTechniqueByName("Point");
 
             _worldViewProj = FX.GetVariableByName("WorldViewProjection").AsMatrix();
             _world = FX.GetVariableByName("World").AsMatrix();
@@ -45,6 +51,10 @@ namespace PointLighting {
             _eyePosition = FX.GetVariableByName("EyePosition").AsVector();
             _specularExponent = FX.GetVariableByName("specExp").AsScalar();
             _specularIntensity = FX.GetVariableByName("specIntensity").AsScalar();
+
+            _pointLightPosition = FX.GetVariableByName("PointLightPosition").AsVector();
+            _pointLightRangeRcp = FX.GetVariableByName("PointLightRangeRcp").AsScalar();
+            _pointLightColor = FX.GetVariableByName("PointLightColor").AsVector();
 
             _diffuseMap = FX.GetVariableByName("DiffuseTexture").AsResource();
         }
@@ -89,6 +99,17 @@ namespace PointLighting {
 
         public void SetSpecularIntensity(float i) {
             _specularIntensity.Set(i);
+        }
+        public void SetLightPosition(Vector3 p) {
+            _pointLightPosition.Set(p);
+        }
+
+        public void SetLightColor(Vector3 c) {
+            _pointLightColor.Set(c);
+        }
+
+        public void SetLightRangeRcp(float f) {
+            _pointLightRangeRcp.Set(f);
         }
     }
 }

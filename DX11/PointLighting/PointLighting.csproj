@@ -46,21 +46,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DirectionalLightingEffect.cs" />
+    <Compile Include="FowardLightingEffect.cs" />
     <Compile Include="PointLightDemo.forms.cs" />
-    <Compile Include="PointLightingEffect.cs" />
     <Compile Include="PointLightDemo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <Content Include="FX\DirectionalLight.fx">
+    <Content Include="FX\ForwardLight.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="FX\ForwardLightCommon.fx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="FX\PointLight.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\bunny.sdkmesh">
@@ -82,9 +78,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd FX
-fxc /Od /Fc /Zi /T  fx_5_0 /Fo DirectionalLight.fxo DirectionalLight.fx
-
-fxc /Od /Fc /Zi /T  fx_5_0 /Fo PointLight.fxo PointLight.fx</PostBuildEvent>
+fxc /Od /Fc /Zi /T  fx_5_0 /Fo ForwardLight.fxo ForwardLight.fx</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
