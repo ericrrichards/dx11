@@ -89,8 +89,6 @@ namespace Core {
                     StartPosition = FormStartPosition.CenterScreen,
                     MyWndProc = WndProc,
                     MinimumSize = new Size(200, 200),
-
-
                 };
                 Window.MouseDown += OnMouseDown;
                 Window.MouseUp += OnMouseUp;

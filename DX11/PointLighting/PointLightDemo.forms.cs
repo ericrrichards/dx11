@@ -81,9 +81,11 @@ namespace PointLighting {
             };
             _hsbLightRange.Scroll += (sender, args) => {
                 _lightRange = _hsbLightRange.Value;
+                this.Window.ActiveControl = null;
             };
             _hsbLightRange.ValueChanged += (sender, args) => {
                 _lightRange = _hsbLightRange.Value;
+                this.Window.ActiveControl = null;
             };
 
 
