@@ -17,10 +17,10 @@ namespace Core.Model {
         public SkinnedModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipTexY = false) {
            
             
-            var importer = new AssimpImporter();
+            var importer = new AssimpContext();
         #if DEBUG
-            importer.AttachLogStream(new ConsoleLogStream());
-            importer.VerboseLoggingEnabled = true;
+            var logstream = new ConsoleLogStream();
+            logstream.Attach();
         #endif
             var model = importer.ImportFile(filename, PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace );
     
@@ -56,11 +56,16 @@ namespace Core.Model {
                 Materials.Add(material);
 
                 // extract material textures
-                var diffusePath = mat.GetTexture(TextureType.Diffuse, 0).FilePath;
+                TextureSlot diffuseSlot;
+                mat.GetMaterialTexture(TextureType.Diffuse, 0, out diffuseSlot);
+                var diffusePath = diffuseSlot.FilePath;
                 if (!string.IsNullOrEmpty(diffusePath)) {
                     DiffuseMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, diffusePath)));
                 }
-                var normalPath = mat.GetTexture(TextureType.Normals, 0).FilePath;
+
+                TextureSlot normalSlot;
+                mat.GetMaterialTexture(TextureType.Normals, 0, out normalSlot);
+                var normalPath = normalSlot.FilePath;
                 if (!string.IsNullOrEmpty(normalPath)) {
                     NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
                 } else {
@@ -93,7 +98,7 @@ namespace Core.Model {
                 var tan = mesh.HasTangentBasis ? mesh.Tangents[i] : new Vector3D();
                 var texC = new Vector3D();
                 if (mesh.HasTextureCoords(0)) {
-                    var coord = mesh.GetTextureCoords(0)[i];
+                    var coord = mesh.TextureCoordinateChannels[0][i];
                     if (flipTexY) {
                         coord.Y = -coord.Y;
                     }
@@ -117,11 +122,11 @@ namespace Core.Model {
                 // we really want the reverse mapping, i.e. lookup the vertexID and get the bone id and weight
                 // We'll support up to 4 bones per vertex, so we need a list of weights for each vertex
                 foreach (var weight in bone.VertexWeights) {
-                    if (vertToBoneWeight.ContainsKey(weight.VertexID)) {
-                        vertToBoneWeight[weight.VertexID].Add(new VertexWeight((uint) boneIndex, weight.Weight));
+                    if (vertToBoneWeight.ContainsKey((uint) weight.VertexID)) {
+                        vertToBoneWeight[(uint) weight.VertexID].Add(new VertexWeight(boneIndex, weight.Weight));
                     } else {
-                        vertToBoneWeight[weight.VertexID] = new List<VertexWeight>(
-                            new[] {new VertexWeight((uint) boneIndex, weight.Weight)}
+                        vertToBoneWeight[(uint) weight.VertexID] = new List<VertexWeight>(
+                            new[] {new VertexWeight(boneIndex, weight.Weight)}
                         );
                     }
                 }

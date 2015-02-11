@@ -23,6 +23,9 @@ namespace AssimpModel {
         private BasicModelInstance _stoneInstance;
         private BasicModelInstance _dwarfInstance;
 
+        private BasicModel _towerModel;
+        private BasicModelInstance _towerInstance;
+
         private readonly DirectionalLight[] _dirLights;
 
         private readonly FpsCamera _camera;
@@ -66,6 +69,7 @@ namespace AssimpModel {
                     Util.ReleaseCom(ref _treeModel);
                     Util.ReleaseCom(ref _stoneModel);
                     Util.ReleaseCom(ref _dwarfModel);
+                    Util.ReleaseCom(ref _towerModel);
                     Util.ReleaseCom(ref _texMgr);
 
                     Effects.DestroyAll();
@@ -107,9 +111,28 @@ namespace AssimpModel {
                     Specular = new Color4(128, 1f, 1.0f, 1.0f)
                 };
             }
+
+            
+
             
             _dwarfInstance = new BasicModelInstance(_dwarfModel) {
                 World = Matrix.RotationX(-MathF.PI / 2)* Matrix.Scaling(0.05f, 0.05f, 0.05f)*Matrix.Translation(4, 0, 4)
+            };
+
+            _towerModel = new BasicModel(Device, _texMgr, "Models/Final Eiffel Tower.STL", "Textures");
+
+            _towerModel.DiffuseMapSRV.Add(_texMgr.CreateTexture("Textures/white.png"));
+            _towerModel.NormalMapSRV.Add(_texMgr.CreateTexture("Textures/white_nmap.png"));
+
+            _towerModel.Materials[0] = new Material() {
+                Ambient = Color.DarkGray,
+                Diffuse = Color.White,
+                Specular = new Color4(128, 1f, 1.0f, 1.0f)
+            };
+
+
+            _towerInstance = new BasicModelInstance(_towerModel) {
+                World = Matrix.Scaling(0.01f, 0.01f, 0.01f)*Matrix.Translation(6,0,6)
             };
 
 
@@ -165,8 +188,17 @@ namespace AssimpModel {
                 _modelInstance.Draw(ImmediateContext, pass, view,proj);
                 _stoneInstance.Draw(ImmediateContext, pass, view,proj);
                 _dwarfInstance.Draw(ImmediateContext, pass, view, proj);
+                //_towerInstance.Draw(ImmediateContext, pass, view, proj);
             }
-
+            
+            Effects.BasicFX.SetDirLights(_dirLights);
+            Effects.BasicFX.SetEyePosW(_camera.Position);
+            activeTech = Effects.BasicFX.Light3Tech;
+            for (var p = 0; p < activeTech.Description.PassCount; p++) {
+                var pass = activeTech.GetPassByIndex(p);
+                _towerInstance.Draw(ImmediateContext, pass, view, proj, RenderMode.Basic);
+            }
+            
             SwapChain.Present(0, PresentFlags.None);
         }
         protected override void OnMouseDown(object sender, MouseEventArgs mouseEventArgs) {

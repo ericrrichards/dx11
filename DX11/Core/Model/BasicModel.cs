@@ -18,14 +18,15 @@ namespace Core.Model {
 
         public BasicModel(Device device, TextureManager texMgr, string filename, string texturePath, bool flipUv = false) {
 
-            var importer = new AssimpImporter();
+            var importer = new AssimpContext();
             if (!importer.IsImportFormatSupported(Path.GetExtension(filename))) {
                 throw new ArgumentException("Model format " + Path.GetExtension(filename) + " is not supported!  Cannot load {1}", "filename");
             }
 #if DEBUG
-
-            importer.AttachLogStream(new ConsoleLogStream());
-            importer.VerboseLoggingEnabled = true;
+            var logStream = new ConsoleLogStream();
+            logStream.Attach();
+            //importer.  .AttachLogStream(new ConsoleLogStream());
+            //importer.VerboseLoggingEnabled = true;
 #endif
             var postProcessFlags = PostProcessSteps.GenerateSmoothNormals | PostProcessSteps.CalculateTangentSpace;
             if (flipUv) {
@@ -56,7 +57,7 @@ namespace Core.Model {
                     max = Vector3.Maximize(max, pos);
 
                     var norm = mesh.HasNormals ? mesh.Normals[i] : new Vector3D();
-                    var texC = mesh.HasTextureCoords(0) ? mesh.GetTextureCoords(0)[i] : new Vector3D();
+                    var texC = mesh.HasTextureCoords(0) ? mesh.TextureCoordinateChannels[0][i] : new Vector3D();
                     var tan = mesh.HasTangentBasis ? mesh.Tangents[i] : new Vector3D();
                     var v = new PosNormalTexTan(pos, norm.ToVector3(), texC.ToVector2(), tan.ToVector3());
                     verts.Add(v);
@@ -71,8 +72,9 @@ namespace Core.Model {
                 var material = mat.ToMaterial();
 
                 Materials.Add(material);
-
-                var diffusePath = mat.GetTexture(TextureType.Diffuse, 0).FilePath;
+                TextureSlot diffuseSlot;
+                mat.GetMaterialTexture(TextureType.Diffuse, 0, out diffuseSlot);
+                var diffusePath = diffuseSlot.FilePath;
                 if (Path.GetExtension(diffusePath) == ".tga") {
                     // DirectX doesn't like to load tgas, so you will need to convert them to pngs yourself with an image editor
                     diffusePath = diffusePath.Replace(".tga", ".png");
@@ -80,7 +82,9 @@ namespace Core.Model {
                 if (!string.IsNullOrEmpty(diffusePath)) {
                     DiffuseMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, diffusePath)));
                 }
-                var normalPath = mat.GetTexture(TextureType.Normals, 0).FilePath;
+                TextureSlot normalSlot;
+                mat.GetMaterialTexture(TextureType.Normals, 0, out normalSlot);
+                var normalPath = normalSlot.FilePath;
                 if (!string.IsNullOrEmpty(normalPath)) {
                     NormalMapSRV.Add(texMgr.CreateTexture(Path.Combine(texturePath, normalPath)));
                 } else {
